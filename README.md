@@ -1,56 +1,210 @@
-# x402-compatible USD₮ payments on Ethereum and Plasma
+# xUSDT
 
-Production implementation of an x402-style A2A payment rail supporting:
-- Ethereum mainnet (USDT via gasless pull using PaymentRouter.sol)
-- Plasma L1 (USD₮0 via native EIP-3009 transferWithAuthorization)
+xUSDT is an x402-compatible agent-to-agent (A2A) payment system that enables autonomous micropayments in USD₮ across two L1 networks:
+- Ethereum mainnet: USD₮ (USDT contract) via gasless pull-payments using an EIP‑712 router
+- Plasma Layer 1: USD₮0 via native EIP‑3009 `transferWithAuthorization`
 
-## Quick start
+References: x402 spec and examples [github.com/coinbase/x402](https://github.com/coinbase/x402), Plasma network docs [docs.plasma.to](https://docs.plasma.to/)
 
-1. Install toolchains (already scripted in this repo):
-   - Python venv with pinned deps in requirements.txt
-   - Node with Hardhat and OZ contracts
+## Features
+- x402-style 3-step handshake (Payment Required → Payment Submitted → Payment Completed)
+- Multi-network options in a single invoice (Ethereum + Plasma)
+- Ethereum: EIP‑712 signed authorizations executed by `PaymentRouter.sol` (pulls approved USDT)
+- Plasma: EIP‑3009 gasless transfers via token `transferWithAuthorization`
+- Replay protection (per‑payer nonces), deadlines, strict parameter binding
+- Python agents (client/merchant) + facilitator for on-chain settlement
 
-2. Configure environment variables in .env (see keys below):
+## Architecture
+- Smart contract (Ethereum): `contracts/PaymentRouter.sol`
+  - EIP‑712 domain: `{ name: "PaymentRouter", version: "1", chainId, verifyingContract }`
+  - Typehash: `Transfer(address token,address from,address to,uint256 amount,uint256 nonce,uint256 deadline)`
+  - Stateless: never holds funds; executes `IERC20(token).transferFrom(from, to, amount)` if signature is valid
+- Plasma (no router): call USD₮0 token’s `transferWithAuthorization` (EIP‑3009)
+- Off-chain services (Python):
+  - `agent/merchant_agent.py`: builds PaymentRequired (both networks), verifies + settles, returns PaymentCompleted
+  - `agent/client_agent.py`: auto-selects best option, produces EIP‑712/EIP‑3009 signatures
+  - `agent/facilitator.py`: submits on-chain transactions (router/USDT on Ethereum, EIP‑3009 on Plasma)
+  - `agent/crypto.py`: typed‑data builders and signers
 
-```
-ETH_RPC=
-PLASMA_RPC=https://rpc.plasma.to
-ROUTER_ADDRESS=0xPaymentRouterAddress
-USDT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7
-USDT0_ADDRESS=0xPlasmaUSDT0Address
-ETH_CHAIN_ID=1
-PLASMA_CHAIN_ID=9745
-MERCHANT_ADDRESS=0xYourMerchantEOA
-RELAYER_PRIVATE_KEY=0x...
-CLIENT_PRIVATE_KEY=0x...
-DRY_RUN=true
-```
+Repo map:
+- contracts/PaymentRouter.sol — EIP‑712 router
+- hardhat.config.js, scripts/deploy.js — build/deploy
+- agent/config.py — env-driven settings
+- agent/*.py — agents, facilitator, crypto, models
+- test_flow.py — end‑to‑end demo script
+- requirements.txt — pinned Python deps
 
-3. Compile contracts:
+## Requirements
+- Node.js ≥ 18 (Hardhat), npm ≥ 9
+- Python ≥ 3.9
+- RPC endpoints:
+  - Ethereum mainnet (INFURA/Alchemy or self-hosted)
+  - Plasma RPC: `https://rpc.plasma.to` (chainId 9745)
 
-```
+## Install
+```bash
+# Python
+python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Node
+npm install
 npx hardhat compile
 ```
 
-4. Deploy router to Ethereum mainnet (requires funded relayer key):
+## Configure (.env)
+```bash
+ETH_RPC=
+PLASMA_RPC=https://rpc.plasma.to
 
+# Deployed router address (Ethereum)
+ROUTER_ADDRESS=0xPaymentRouterAddress
+
+# Token addresses
+USDT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7  # USD₮ (USDT) on Ethereum
+USDT0_ADDRESS=0xPlasmaUSDT0Address                      # USD₮0 on Plasma (official address)
+
+# Chain IDs
+ETH_CHAIN_ID=1
+PLASMA_CHAIN_ID=9745
+
+# Merchant receiving address
+MERCHANT_ADDRESS=0xYourMerchantEOA
+
+# Keys (never commit real keys)
+RELAYER_PRIVATE_KEY=0x...
+CLIENT_PRIVATE_KEY=0x...
+
+# Safety (true skips chain submission)
+DRY_RUN=true
 ```
+
+## Build and Deploy (Ethereum)
+1) Compile
+```bash
+npx hardhat compile
+```
+2) Deploy router (requires funded relayer key)
+```bash
 ETH_RPC=... RELAYER_PRIVATE_KEY=0x... npx hardhat run scripts/deploy.js --network mainnet
 ```
+3) Set `ROUTER_ADDRESS` in `.env` to the deployed address
+4) One‑time approval (payer → router): approve sufficient USDT allowance via wallet or script
 
-5. Run end-to-end demo (DRY_RUN=true to skip chain submission):
-
-```
+## Run the Demo
+Dry run (no transactions broadcast):
+```bash
 source .venv/bin/activate
 python test_flow.py
 ```
+Live ETH flow (broadcasts via router):
+```bash
+DRY_RUN=false ETH_RPC=... ROUTER_ADDRESS=0x... MERCHANT_ADDRESS=0x... \
+RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... python test_flow.py
+```
 
-## Notes
-- Plasma mainnet params: chainId 9745, RPC https://rpc.plasma.to (docs: https://docs.plasma.to/, explorer: https://plasmascan.to/).
-- Replace USDT0_ADDRESS with the official USD₮0 contract from Plasma resources once confirmed.
-- USDT on Ethereum requires a one-time approve(router, allowance) by the payer.
+Notes:
+- Ethereum path: payer must have approved the router; relayer pays gas
+- Plasma path: provide the official USD₮0 address; transfers are gasless for USD₮0
+
+## x402 Message Shapes
+PaymentRequired (server → client):
+```json
+{
+  "type": "payment-required",
+  "invoiceId": "uuid-12345",
+  "timestamp": 1704067200,
+  "paymentOptions": [
+    {
+      "network": "ethereum",
+      "chainId": 1,
+      "token": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "tokenSymbol": "USDT",
+      "amount": "5000000",
+      "decimals": 6,
+      "recipient": "0xMerchant",
+      "scheme": "erc20-gasless-router",
+      "routerContract": "0xRouter",
+      "nonce": 0,
+      "deadline": 1704067500
+    },
+    {
+      "network": "plasma",
+      "chainId": 9745,
+      "token": "0xUSDT0",
+      "tokenSymbol": "USDT0",
+      "amount": "5000000",
+      "decimals": 6,
+      "recipient": "0xMerchant",
+      "scheme": "eip3009-transfer-with-auth",
+      "nonce": "0x…32bytes",
+      "deadline": 1704067500
+    }
+  ],
+  "description": "Payment for premium API access"
+}
+```
+
+PaymentSubmitted (client → server):
+```json
+{
+  "type": "payment-submitted",
+  "invoiceId": "uuid-12345",
+  "chosenOption": {
+    "network": "ethereum",
+    "chainId": 1,
+    "token": "0xdAC…",
+    "amount": "5000000",
+    "from": "0xClient",
+    "to": "0xMerchant",
+    "nonce": 0,
+    "deadline": 1704067500
+  },
+  "signature": { "v": 27, "r": "0x…", "s": "0x…" },
+  "scheme": "erc20-gasless-router"
+}
+```
+
+PaymentCompleted (server → client):
+```json
+{
+  "type": "payment-completed",
+  "invoiceId": "uuid-12345",
+  "txHash": "0x…",
+  "network": "ethereum",
+  "status": "confirmed",
+  "receipt": { "blockNumber": 123456, "gasUsed": 76543 }
+}
+```
+
+## EIP‑712 / EIP‑3009 Details
+- Router (Ethereum, typed data `Transfer`): binds token, from, to, amount, nonce, deadline to prevent parameter tampering and replay
+- USD₮0 (Plasma, EIP‑3009 `TransferWithAuthorization`): uses `from, to, value, validAfter, validBefore, nonce` with token’s domain (name, version, chainId, verifyingContract)
+
+## Operational Guidance
+- Nonces: router keeps `nonces[from]` (sequential). Clients should query via `eth_call` before signing; the contract enforces on-chain.
+- Deadlines: keep short (e.g., 5–10 minutes) and reject expired authorizations server-side.
+- Idempotency: map `invoiceId → txHash`; ignore duplicate submissions after confirmed settlement.
+- Gas: relayer pays ETH gas for Ethereum; Plasma USD₮0 is gasless for transfers.
+
+## Security
+- Never commit private keys; use a secure vault in production
+- Verify `to == MERCHANT_ADDRESS` server-side before submitting any on-chain call
+- Enforce exact amount/decimals match; reject under/over‑payment
+- Consider rate limits and minimums on Ethereum to cover gas
+
+## Troubleshooting
+- Invalid signature on Ethereum: ensure router `chainId` and `verifyingContract` match typed data; verify the current router nonce
+- Invalid signature on Plasma: ensure `validAfter/validBefore/nonce` match exactly in both signature and settlement call
+- USDT approval missing: approve router first from payer’s wallet
+
+## Roadmap
+- Permit2 support on Ethereum to remove initial approval
+- Rich A2A SDK middleware adapters
+- Extended unit/integration tests and CI
 
 ## References
-- x402 spec and repo: https://github.com/coinbase/x402
-- Plasma documentation: https://docs.plasma.to/
-- USDT (Ethereum): 0xdAC17F958D2ee523a2206206994597C13D831ec7
+- x402 protocol and examples: https://github.com/coinbase/x402
+- Plasma network docs: https://docs.plasma.to/ • Explorer: https://plasmascan.to
+- USDT (Ethereum) contract: 0xdAC17F958D2ee523a2206206994597C13D831ec7
