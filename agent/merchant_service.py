@@ -25,6 +25,15 @@ def get_premium() -> Response:
     return JSONResponse(content=pr.model_dump(), status_code=402)
 
 
+@app.post("/pay")
+def post_pay(submitted: PaymentSubmitted) -> dict:
+    completed = verify_and_settle(submitted)
+    out = completed.model_dump()
+    if not isinstance(out.get("receipt"), dict):
+        out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
+    return out
+
+
 @app.get("/product/{sku}")
 def get_product_invoice(sku: str) -> Response:
     # Minimal SKU catalog (atomic amounts, 6 decimals); extend as needed
@@ -41,10 +50,14 @@ def get_product_invoice(sku: str) -> Response:
     return JSONResponse(content=pr.model_dump(), status_code=402)
 
 
-@app.post("/pay")
-def post_pay(submitted: PaymentSubmitted) -> dict:
-    completed = verify_and_settle(submitted)
-    out = completed.model_dump()
+@app.get("/invoice/{invoice_id}")
+def get_invoice(invoice_id: str) -> dict:
+    from .merchant_agent import get_invoice_record
+
+    rec = get_invoice_record(invoice_id)
+    if rec is None:
+        return {"invoiceId": invoice_id, "status": "pending"}
+    out = rec.model_dump()
     if not isinstance(out.get("receipt"), dict):
         out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
     return out
@@ -86,7 +99,15 @@ def post_pay_nft(submitted: PaymentSubmitted) -> dict:
     from agent.facilitator import PaymentFacilitator
     fac = PaymentFacilitator()
     opt = submitted.chosenOption
-    # signature bytes are not available; using v/r/s variant
+    # Use bytes path (router.payAndMintReceiveAuth): signature covers receiveWithAuthorization(to=router)
+    v = int(submitted.signature.v)
+    r_hex = submitted.signature.r[2:] if submitted.signature.r.startswith("0x") else submitted.signature.r
+    s_hex = submitted.signature.s[2:] if submitted.signature.s.startswith("0x") else submitted.signature.s
+    # Left-pad r and s to 32 bytes (64 hex chars)
+    r_hex = r_hex.rjust(64, "0")
+    s_hex = s_hex.rjust(64, "0")
+    v_hex = f"{v:02x}"
+    sig_bytes_hex = "0x" + r_hex + s_hex + v_hex
     res = fac.settle_plasma_pay_and_mint(
         router_address=opt.to,
         from_addr=opt.from_,
@@ -95,9 +116,7 @@ def post_pay_nft(submitted: PaymentSubmitted) -> dict:
         valid_after=opt.validAfter or (opt.deadline - 600),
         valid_before=opt.validBefore or opt.deadline,
         nonce32=str(opt.nonce if isinstance(opt.nonce, str) else hex(int(opt.nonce))),
-        v=submitted.signature.v,
-        r=submitted.signature.r,
-        s=submitted.signature.s,
+        signature_bytes=sig_bytes_hex,
     )
     out = {
         "type": "payment-completed",

@@ -177,6 +177,14 @@ async function buy_nft({ merchantUrl, sku }) {
   return payResp.data;
 }
 
+
+async function get_invoice_status({ merchantUrl, invoiceId }) {
+  const base = merchantUrl || process.env.MERCHANT_URL || 'http://127.0.0.1:8000';
+  if (!invoiceId) throw new Error('invoiceId is required');
+  const resp = await (await import('axios')).then(m=>m.default).get(`${base}/invoice/${encodeURIComponent(invoiceId)}`);
+  return resp.data;
+}
+
 // Minimal MCP server or fallback JSON-RPC stdio
 async function start() {
   const tools = {
@@ -184,6 +192,7 @@ async function start() {
     'wallet_link_status': { run: wallet_link_status },
     'get_wallet_address': { run: get_wallet_address },
     'buy_nft': { run: buy_nft },
+    'get_invoice_status': { run: get_invoice_status },
   };
 
   if (mcp && mcp.createServer) {
@@ -193,6 +202,7 @@ async function start() {
     server.tool('wallet_link_status', { inputSchema: { type: 'object', properties: {} } }, async () => ({ ...(await wallet_link_status()) }));
     server.tool('get_wallet_address', { inputSchema: { type: 'object', properties: {} } }, async () => ({ ...(await get_wallet_address()) }));
     server.tool('buy_nft', { inputSchema: { type: 'object', properties: { merchantUrl: { type: 'string' }, sku: { type: 'string' } }, required: ['sku'] } }, async (args) => ({ ...(await buy_nft(args)) }));
+    server.tool('get_invoice_status', { inputSchema: { type: 'object', properties: { merchantUrl: { type: 'string' }, invoiceId: { type: 'string' } }, required: ['invoiceId'] } }, async (args) => ({ ...(await get_invoice_status(args)) }));
     await server.start();
     return;
   }

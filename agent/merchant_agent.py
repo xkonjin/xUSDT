@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict
 import os
 
 from .config import settings
@@ -13,6 +13,14 @@ from .minter import PlasmaMinter
 
 def _now() -> int:
     return int(time.time())
+
+
+# In-memory invoice records to provide idempotency and status lookups.
+_INVOICE_RECORDS: Dict[str, PaymentCompleted] = {}
+
+
+def get_invoice_record(invoice_id: str) -> Optional[PaymentCompleted]:
+    return _INVOICE_RECORDS.get(invoice_id)
 
 
 def build_payment_required(
@@ -80,16 +88,23 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
     - Submits the transaction via the appropriate facilitator path.
     - Returns a PaymentCompleted message with tx hash and status.
     """
+    # Idempotency: return previously computed result if present
+    existing = _INVOICE_RECORDS.get(submitted.invoiceId)
+    if existing is not None:
+        return existing
+
     opt = submitted.chosenOption
     # Minimal off-chain checks
     if opt.to.lower() != settings.MERCHANT_ADDRESS.lower():
-        return PaymentCompleted(
+        pc = PaymentCompleted(
             invoiceId=submitted.invoiceId,
             txHash="0x0",
             network=opt.network,
             status="failed",
             receipt={"error": "recipient_mismatch"},
         )
+        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        return pc
 
     facilitator = PaymentFacilitator()
     if submitted.scheme == "erc20-gasless-router":
@@ -103,13 +118,15 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             r=submitted.signature.r,
             s=submitted.signature.s,
         )
-        return PaymentCompleted(
+        pc = PaymentCompleted(
             invoiceId=submitted.invoiceId,
             txHash=res.tx_hash or "0x0",
             network="ethereum",
             status="confirmed" if res.success else "failed",
             receipt=(res.receipt if res.receipt else {"error": res.error}),
         )
+        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        return pc
 
     if submitted.scheme == "eip3009-transfer-with-auth":
         # Use exact bounds from the signed payload
@@ -151,7 +168,7 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
                 if res.receipt is None:
                     res.receipt = {}
                 res.receipt["mint_error"] = str(mint_err)
-        return PaymentCompleted(
+        pc = PaymentCompleted(
             invoiceId=submitted.invoiceId,
             txHash=res.tx_hash or "0x0",
             network="plasma",
@@ -159,13 +176,17 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             receipt=(res.receipt if res.receipt else {"error": res.error}),
             tokenId=(int(token_id) if token_id is not None else None),
         )
+        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        return pc
 
-    return PaymentCompleted(
+    pc = PaymentCompleted(
         invoiceId=submitted.invoiceId,
         txHash="0x0",
         network=opt.network,
         status="failed",
         receipt={"error": "unsupported_scheme"},
     )
+    _INVOICE_RECORDS[submitted.invoiceId] = pc
+    return pc
 
 
