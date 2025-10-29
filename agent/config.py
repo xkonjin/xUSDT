@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     # Chain IDs
     ETH_CHAIN_ID: int = Field(default=1)
     PLASMA_CHAIN_ID: int = Field(default=9745)
+    # Feature flags
+    PREFER_PLASMA: bool = Field(default=False, description="Prefer Plasma for payments when true")
 
     # Token addresses
     USDT_ADDRESS: str = Field(

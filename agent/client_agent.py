@@ -27,8 +27,14 @@ class ClientAgent:
         self.client_acct = Account.from_key(settings.CLIENT_PRIVATE_KEY)
 
     def _prefer_plasma(self) -> bool:
-        # Simple heuristic: prefer Plasma when USDT0 address is configured
-        return settings.USDT0_ADDRESS.lower() != "0xplasmausdt0address"
+        # Prefer Plasma only when explicitly enabled and configured
+        if not settings.PREFER_PLASMA:
+            return False
+        try:
+            addr = Web3.to_checksum_address(settings.USDT0_ADDRESS)
+        except Exception:
+            return False
+        return settings.PLASMA_CHAIN_ID == 9745 and addr != Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
 
     def _choose_option(self, req: PaymentRequired) -> Tuple[dict, str]:
         opts = req.paymentOptions

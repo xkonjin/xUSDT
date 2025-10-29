@@ -32,6 +32,12 @@ module.exports = {
       chainId: 9745,
       accounts: RELAYER_PRIVATE_KEY ? [RELAYER_PRIVATE_KEY] : [],
     },
+    // Arbitrum One (cheaper gas EVM L2)
+    arbitrum: {
+      url: ETH_RPC || "",
+      chainId: 42161,
+      accounts: RELAYER_PRIVATE_KEY ? [RELAYER_PRIVATE_KEY] : [],
+    },
   },
 };
 
