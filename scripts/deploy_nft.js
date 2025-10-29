@@ -23,8 +23,8 @@ async function main() {
 
   const factory = await hre.ethers.getContractFactory("NFTPlasma");
   const nft = await factory.deploy(name, symbol, deployer.address);
-  await nft.deployed();
-  console.log("NFTPlasma deployed:", nft.address);
+  await nft.waitForDeployment();
+  console.log("NFTPlasma deployed:", await nft.getAddress());
 }
 
 main().catch((err) => {
