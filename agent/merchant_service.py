@@ -25,6 +25,22 @@ def get_premium() -> Response:
     return JSONResponse(content=pr.model_dump(), status_code=402)
 
 
+@app.get("/product/{sku}")
+def get_product_invoice(sku: str) -> Response:
+    # Minimal SKU catalog (atomic amounts, 6 decimals); extend as needed
+    catalog = {
+        "premium": {"amount": 1_000_000, "description": "Premium API access"},
+        "vip-pass": {"amount": 3_000_000, "description": "VIP Access NFT"},
+    }
+    item = catalog.get(sku, None)
+    if item is None:
+        # Default to 402 for unknown SKU with generic description and nominal price
+        item = {"amount": int(1_000_00), "description": f"Order {sku}"}
+    pr = build_payment_required(amount_atomic=int(item["amount"]), description=str(item["description"]), deadline_secs=600)
+    # Force Plasma-only by preference if configured; build_payment_required handles that flag
+    return JSONResponse(content=pr.model_dump(), status_code=402)
+
+
 @app.post("/pay")
 def post_pay(submitted: PaymentSubmitted) -> dict:
     completed = verify_and_settle(submitted)

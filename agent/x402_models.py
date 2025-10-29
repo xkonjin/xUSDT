@@ -74,5 +74,6 @@ class PaymentCompleted(BaseModel):
     network: Literal["ethereum", "plasma"]
     status: Literal["confirmed", "failed"]
     receipt: Optional[dict] = None
+    tokenId: Optional[int] = None
 
 

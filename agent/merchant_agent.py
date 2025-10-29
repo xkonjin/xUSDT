@@ -3,10 +3,12 @@ from __future__ import annotations
 import time
 import uuid
 from typing import List, Optional
+import os
 
 from .config import settings
 from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted
 from .facilitator import PaymentFacilitator
+from .minter import PlasmaMinter
 
 
 def _now() -> int:
@@ -124,12 +126,38 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             r=submitted.signature.r,
             s=submitted.signature.s,
         )
+        token_id = None
+        if res.success:
+            # Mint NFT to payer ("to" address) after confirmed payment
+            try:
+                minter = PlasmaMinter()
+                # Token URI strategy: env template or default by invoiceId
+                base_uri = getattr(settings, "NFT_BASE_URI", None) or os.environ.get("NFT_BASE_URI")
+                if base_uri and "{invoiceId}" in base_uri:
+                    token_uri = base_uri.format(invoiceId=submitted.invoiceId)
+                elif base_uri:
+                    token_uri = base_uri.rstrip("/") + f"/{submitted.invoiceId}"
+                else:
+                    token_uri = f"https://example.com/nft/{submitted.invoiceId}"
+                mr = minter.mint(to=opt.to, token_uri=token_uri)
+                if mr.success:
+                    token_id = mr.token_id
+                else:
+                    # Attach mint error to receipt for debugging; settlement remains confirmed
+                    if res.receipt is None:
+                        res.receipt = {}
+                    res.receipt["mint_error"] = mr.error
+            except Exception as mint_err:  # noqa: BLE001
+                if res.receipt is None:
+                    res.receipt = {}
+                res.receipt["mint_error"] = str(mint_err)
         return PaymentCompleted(
             invoiceId=submitted.invoiceId,
             txHash=res.tx_hash or "0x0",
             network="plasma",
             status="confirmed" if res.success else "failed",
             receipt=(res.receipt if res.receipt else {"error": res.error}),
+            tokenId=(int(token_id) if token_id is not None else None),
         )
 
     return PaymentCompleted(

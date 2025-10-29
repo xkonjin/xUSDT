@@ -4,7 +4,7 @@ xUSDT is an x402-compatible agent-to-agent (A2A) payment system that enables aut
 - Ethereum mainnet: USD₮ (USDT contract) via gasless pull-payments using an EIP‑712 router
 - Plasma Layer 1: USD₮0 via native EIP‑3009 `transferWithAuthorization`
 
-References: x402 spec and examples [github.com/coinbase/x402](https://github.com/coinbase/x402), Plasma network docs [docs.plasma.to](https://docs.plasma.to/)
+References: x402 spec and examples https://github.com/coinbase/x402, Plasma network docs https://docs.plasma.to/
 
 ## Features
 - x402-style 3-step handshake (Payment Required → Payment Submitted → Payment Completed)
@@ -26,40 +26,31 @@ References: x402 spec and examples [github.com/coinbase/x402](https://github.com
   - `agent/facilitator.py`: submits on-chain transactions (router/USDT on Ethereum, EIP‑3009 on Plasma)
   - `agent/crypto.py`: typed‑data builders and signers
 
-## Diagram
-
-### Sequence (A2A x402 handshake and settlement)
+### Sequence (Plasma USD₮0)
 ```mermaid
 sequenceDiagram
-  participant Client
-  participant Merchant as Merchant Server
-  participant Facilitator
-  participant Ethereum as PaymentRouter (Ethereum)
-  participant Plasma as USD₮0 Token (Plasma)
+    participant C as Client Agent
+    participant M as Merchant Service (HTTP)
+    participant F as Facilitator
+    participant P as Plasma (USDT₀)
 
-  Client->>Merchant: GET /premium
-  Merchant-->>Client: 402 PaymentRequired (options: Ethereum + Plasma)
-  Client->>Client: Choose best option (prefer Plasma if configured)
-  Client->>Client: Sign typed data (EIP-712 or EIP-3009)
-  Client-->>Merchant: PaymentSubmitted (chosenOption + signature)
-  Merchant->>Facilitator: Verify + submit settlement
-  alt Ethereum (erc20-gasless-router)
-    Facilitator->>Ethereum: gaslessTransfer(token, from, to, amount, deadline, v,r,s)
-    Ethereum-->>Facilitator: tx receipt (success/fail)
-  else Plasma (eip3009-transfer-with-auth)
-    Facilitator->>Plasma: transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v,r,s)
-    Plasma-->>Facilitator: tx receipt (success/fail)
-  end
-  Facilitator-->>Client: PaymentCompleted (txHash, status)
+    C->>M: GET /premium
+    M-->>C: 402 + PaymentRequired (Plasma-only when PREFER_PLASMA=true)
+    C->>C: Build EIP-3009 typed data (domain=name/version/chainId/token)
+    C->>M: POST /pay (PaymentSubmitted: v/r/s, nonce, validAfter/Before)
+    M->>F: verify_and_settle()
+    F->>P: transferWithAuthorization(from,to,value,validAfter,validBefore,nonce,v,r,s)
+    P-->>F: Tx receipt (status=1, logs Transfer)
+    F-->>M: Success with txHash
+    M-->>C: 200 + PaymentCompleted (txHash, receipt)
 ```
 
 ### Components
 ```mermaid
 flowchart LR
-  A[merchant_agent.build_payment_required]\n(server advertises options) -->|PaymentRequired| C[client_agent.prepare_submission]\n(client chooses + signs)
-  C -->|PaymentSubmitted| B[merchant_agent.verify_and_settle]\n(server verifies + orchestrates)
-  B -->|Ethereum path| R[contracts/PaymentRouter.sol]\n(EIP-712 pull via router)
-  B -->|Plasma path| T[USD₮0 token (EIP-3009)]\n(transferWithAuthorization)
+    C[Client Agent] -->|HTTP (x402 JSON)| M[Merchant Service]
+    M -->|verify/settle| F[Facilitator]
+    F -->|JSON-RPC| T[USDT₀ (EIP-3009) on Plasma]
 ```
 
 Repo map:
@@ -316,18 +307,47 @@ PaymentCompleted (server → client):
 - Enforce exact amount/decimals match; reject under/over‑payment
 - Consider rate limits and minimums on Ethereum to cover gas
 
-## Troubleshooting
-- Invalid signature on Ethereum: ensure router `chainId` and `verifyingContract` match typed data; verify the current router nonce
-- Invalid signature on Plasma: ensure `validAfter/validBefore/nonce` match exactly in both signature and settlement call
-- USDT approval missing: approve router first from payer’s wallet
+### Bullet‑proofing checklist
+- Signature domains
+  - EIP‑712: chainId and verifyingContract must match deployed router (if used)
+  - EIP‑3009: use the token’s on-chain name/version where exposed; otherwise allow explicit overrides
+- Nonces and expiry
+  - Router: fetch `nonces[from]` via eth_call before signing; enforce increment on-chain
+  - EIP‑3009: generate 32‑byte nonce; include `validAfter`/`validBefore`; allow small clock drift
+- Payload validation
+  - Strictly bind token/from/to/amount/nonce/deadline in signatures
+  - Check `recipient == MERCHANT_ADDRESS`
+  - Optionally pre‑check `balanceOf(from) >= amount` on Plasma to fail fast
+- Transport & idempotency
+  - Use `invoiceId` mapping to ignore duplicates after success
+  - Map reverts to structured x402 error fields (invalid_signature, expired, insufficient_funds, nonce_mismatch, etc.)
+- Observability
+  - Log txHash and minimal receipt fields; redact secrets; structure logs by invoiceId
+- Malleability & recovery
+  - Router uses OZ ECDSA.recover; EIP‑3009 is validated by token contract
+- Amount controls
+  - `PAY_AMOUNT_ATOMIC` env to cap or choose payment size (supports micros)
 
-## Roadmap
-- Permit2 support on Ethereum to remove initial approval
-- Rich A2A SDK middleware adapters
-- Extended unit/integration tests and CI
+## v0 demo plan (UI-assisted showcase)
+Goal: a v0 app that demonstrates end‑to‑end x402 payments on Plasma.
 
-## References
-- x402 protocol and examples: https://github.com/coinbase/x402
-- Plasma network docs: https://docs.plasma.to/ • Explorer: https://plasmascan.to
-- USDT (Ethereum) contract: 0xdAC17F958D2ee523a2206206994597C13D831ec7
- - USD₮0 (Plasma) contract: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
+### Pages / flows
+- Merchant dashboard
+  - Shows current configuration (Plasma RPC, token address, merchant address)
+  - Button: “Start merchant server” (or show deployed URL)
+- Client demo
+  - Inputs: Merchant URL, amount (atomic or decimals), payer key (local only)
+  - Button 1: “Request resource” → displays PaymentRequired JSON
+  - Button 2: “Sign & Pay” → constructs EIP‑3009, POSTs /pay, shows tx hash
+- Explorer linkouts
+  - Link to Plasma explorer with tx hash
+
+### Backend wiring
+- Reuse `agent/merchant_service.py` as the merchant endpoint
+- Reuse `scripts/client_http.py` logic inside the v0 server action or via client API call
+- Provide env controls for PREFER_PLASMA, USDT0_ADDRESS, PAY_AMOUNT_ATOMIC
+
+### Hardening for v0
+- Never transmit private keys to the server (sign in the browser or local worker)
+- If server‑side signing is necessary for demo, restrict to test values and clearly warn users
+- Redact secrets in logs; show only tx hashes and minimal receipts
