@@ -14,11 +14,13 @@ class PaymentOption(BaseModel):
     recipient: str
     scheme: Literal[
         "erc20-gasless-router",  # Ethereum via PaymentRouter
-        "eip3009-transfer-with-auth",  # Plasma via token EIP-3009
+        "eip3009-transfer-with-auth",  # Plasma via token EIP-3009 (direct pay)
+        "eip3009-receive",  # Plasma via router (receiveWithAuthorization)
     ]
     routerContract: Optional[str] = None  # for ethereum option
     nonce: Optional[Union[str, int]] = None
     deadline: int
+    nftCollection: Optional[str] = None
 
 
 class PaymentRequired(BaseModel):
@@ -41,13 +43,15 @@ class ChosenOption(BaseModel):
     token: str
     amount: str
     from_: str = Field(alias="from")
-    to: str
+    to: str  # for Plasma-direct: token to; for router path: router address
     # EIP-712 (router) or EIP-3009 (token) fields
     nonce: Union[str, int]
     deadline: int
     # Plasma (EIP-3009) explicit bounds
     validAfter: Optional[int] = None
     validBefore: Optional[int] = None
+    # Router NFT path
+    toNFT: Optional[str] = None
     # For plasma EIP-3009, validAfter/validBefore naming is common; use deadline for simplicity
 
 
@@ -59,6 +63,7 @@ class PaymentSubmitted(BaseModel):
     scheme: Literal[
         "erc20-gasless-router",
         "eip3009-transfer-with-auth",
+        "eip3009-receive",
     ]
 
 

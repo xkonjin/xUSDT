@@ -160,6 +160,65 @@ class ClientAgent:
                 scheme=scheme,
             )
 
+        if scheme == "eip3009-receive":
+            # Router-based atomic pay+mint path: to = router
+            router_addr = chosen_dict.get("routerContract")
+            to_nft = from_addr  # default to payer
+            # Use on-chain token name/version where possible
+            token_contract = self.w3_plasma.eth.contract(
+                address=Web3.to_checksum_address(token),
+                abi=[
+                    {"inputs": [], "name": "name", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                    {"inputs": [], "name": "version", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                ],
+            )
+            try:
+                token_name = token_contract.functions.name().call()
+            except Exception:
+                token_name = settings.USDT0_NAME
+            try:
+                token_version = token_contract.functions.version().call()
+            except Exception:
+                token_version = settings.USDT0_VERSION
+
+            valid_after = _now() - 1
+            valid_before = deadline
+            nonce32 = chosen_dict.get("nonce") or random_nonce32()
+
+            typed = build_eip3009_typed_data(
+                token_name=token_name,
+                token_version=token_version,
+                chain_id=chain_id,
+                verifying_contract=token,
+                from_addr=from_addr,
+                to_addr=router_addr,
+                value=amount,
+                valid_after=valid_after,
+                valid_before=valid_before,
+                nonce32=nonce32,
+            )
+            v, r, s = sign_typed_data(settings.CLIENT_PRIVATE_KEY, typed)
+            chosen = ChosenOption(
+                network="plasma",
+                chainId=chain_id,
+                token=token,
+                amount=str(amount),
+                **{"from": from_addr},
+                to=router_addr,
+                nonce=nonce32,
+                deadline=valid_before,
+                validAfter=valid_after,
+                validBefore=valid_before,
+                toNFT=from_addr,
+            )
+            sig = Signature(v=v, r=r, s=s)
+            return PaymentSubmitted(
+                invoiceId=req.invoiceId,
+                chosenOption=chosen,
+                signature=sig,
+                scheme=scheme,
+            )
+
         raise ValueError(f"Unsupported scheme: {scheme}")
 
 

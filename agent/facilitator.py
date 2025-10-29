@@ -116,6 +116,8 @@ class PaymentFacilitator:
         self.usdt0_vrs: Contract = self.w3_plasma.eth.contract(
             address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI_VRS
         )
+        # NFT Router (optional)
+        self.router_nft: Contract | None = None
 
     def _wait_for_receipt(self, w3: Web3, tx_hash: str, confirmations: int = 1) -> Dict[str, Any]:
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -202,6 +204,93 @@ class PaymentFacilitator:
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
         except Exception as e:  # noqa: BLE001
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+
+    def settle_plasma_pay_and_mint(
+        self,
+        *,
+        router_address: str,
+        from_addr: str,
+        to_nft: str,
+        value: int,
+        valid_after: int,
+        valid_before: int,
+        nonce32: str,
+        v: int | None = None,
+        r: str | None = None,
+        s: str | None = None,
+        signature_bytes: str | None = None,
+    ) -> SettlementResult:
+        try:
+            abi = [
+                {
+                    "inputs": [
+                        {"internalType": "address", "name": "from", "type": "address"},
+                        {"internalType": "address", "name": "toNFT", "type": "address"},
+                        {"internalType": "uint256", "name": "value", "type": "uint256"},
+                        {"internalType": "uint256", "name": "validAfter", "type": "uint256"},
+                        {"internalType": "uint256", "name": "validBefore", "type": "uint256"},
+                        {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+                        {"internalType": "bytes", "name": "signature", "type": "bytes"},
+                    ],
+                    "name": "payAndMintReceiveAuth",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                },
+                {
+                    "inputs": [
+                        {"internalType": "address", "name": "from", "type": "address"},
+                        {"internalType": "address", "name": "toNFT", "type": "address"},
+                        {"internalType": "uint256", "name": "value", "type": "uint256"},
+                        {"internalType": "uint256", "name": "validAfter", "type": "uint256"},
+                        {"internalType": "uint256", "name": "validBefore", "type": "uint256"},
+                        {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+                        {"internalType": "uint8", "name": "v", "type": "uint8"},
+                        {"internalType": "bytes32", "name": "r", "type": "bytes32"},
+                        {"internalType": "bytes32", "name": "s", "type": "bytes32"},
+                    ],
+                    "name": "payAndMintVRS",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                },
+            ]
+            router = self.w3_plasma.eth.contract(address=Web3.to_checksum_address(router_address), abi=abi)
+            nonce_hex = nonce32 if (isinstance(nonce32, str) and nonce32.startswith("0x")) else ("0x" + str(nonce32))
+            if signature_bytes:
+                tx = router.functions.payAndMintReceiveAuth(
+                    Web3.to_checksum_address(from_addr),
+                    Web3.to_checksum_address(to_nft),
+                    int(value),
+                    int(valid_after),
+                    int(valid_before),
+                    nonce_hex,
+                    Web3.to_bytes(hexstr=signature_bytes),
+                ).build_transaction(
+                    {"from": self.plasma_account.address, "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address)}
+                )
+            else:
+                tx = router.functions.payAndMintVRS(
+                    Web3.to_checksum_address(from_addr),
+                    Web3.to_checksum_address(to_nft),
+                    int(value),
+                    int(valid_after),
+                    int(valid_before),
+                    nonce_hex,
+                    int(v or 0),
+                    r or "0x",
+                    s or "0x",
+                ).build_transaction(
+                    {"from": self.plasma_account.address, "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address)}
+                )
+
+            signed = self.w3_plasma.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
+            tx_hash = self.w3_plasma.to_hex(self.w3_plasma.eth.send_raw_transaction(signed.rawTransaction))
+            receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
+            status = receipt.get("status", 0) == 1
+            return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
+        except Exception as e:
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
 
