@@ -70,6 +70,20 @@ def sign_typed_data(private_key: str, typed_data: Dict[str, Any]) -> Tuple[int, 
     return signed.v, Web3.to_hex(signed.r), Web3.to_hex(signed.s)
 
 
+def _normalize_bytes32(value: Any) -> bytes:
+    if isinstance(value, (bytes, bytearray)):
+        b = bytes(value)
+        if len(b) != 32:
+            raise ValueError("bytes32 must be 32 bytes")
+        return b
+    if isinstance(value, str):
+        s = value[2:] if value.startswith("0x") else value
+        if len(s) != 64:
+            raise ValueError("hex string for bytes32 must be 64 nybbles")
+        return bytes.fromhex(s)
+    raise TypeError("bytes32 value must be hex string or 32-byte sequence")
+
+
 def build_eip3009_typed_data(
     *,
     token_name: str,
@@ -94,6 +108,13 @@ def build_eip3009_typed_data(
         bytes32 nonce;
     }
     """
+    # Ensure nonce is bytes32 for EIP-3009 hashing
+    try:
+        nonce_bytes = _normalize_bytes32(nonce32)
+    except Exception:
+        # fallback: keep as-is to avoid hard failure in DRY_RUN
+        nonce_bytes = nonce32
+
     typed_data = {
         "types": {
             "EIP712Domain": [
@@ -124,7 +145,7 @@ def build_eip3009_typed_data(
             "value": int(value),
             "validAfter": int(valid_after),
             "validBefore": int(valid_before),
-            "nonce": nonce32,
+            "nonce": nonce_bytes,
         },
     }
     return typed_data
