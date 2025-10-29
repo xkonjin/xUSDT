@@ -176,6 +176,16 @@ def post_channel_settle() -> dict:
     return {"ok": False, "error": res.error}
 
 
+@app.get("/channel/diag")
+def channel_diag() -> dict:
+    from .config import settings as _s
+    return {
+        "CHANNEL_ADDRESS": getattr(_s, "CHANNEL_ADDRESS", None),
+        "PLASMA_CHAIN_ID": getattr(_s, "PLASMA_CHAIN_ID", None),
+        "MERCHANT_ADDRESS": getattr(_s, "MERCHANT_ADDRESS", None),
+    }
+
+
 @app.get("/premium-nft")
 def get_premium_nft() -> Response:
     # Build Plasma-only PaymentRequired for router NFT path
