@@ -40,11 +40,22 @@ class ClientAgent:
         chosen = ordered[0]
         return chosen.dict(by_alias=True), chosen.scheme
 
-    def _fetch_router_nonce(self, payer: str) -> int:
-        # Off-chain nonce lookup is optional pre-check; router enforces it on-chain.
-        # For simplicity, let client start with its local sequential counter of 0.
-        # Production: call router.nonces(payer) via eth_call (requires ABI).
-        return 0
+    def _fetch_router_nonce(self, payer: str, router: str) -> int:
+        # Query PaymentRouter.nonces(payer); fallback to 0 if router is not deployed/reachable.
+        try:
+            abi = [
+                {
+                    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+                    "name": "nonces",
+                    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function",
+                }
+            ]
+            c = self.w3_eth.eth.contract(address=Web3.to_checksum_address(router), abi=abi)
+            return int(c.functions.nonces(Web3.to_checksum_address(payer)).call())
+        except Exception:
+            return 0
 
     def prepare_submission(self, req: PaymentRequired) -> PaymentSubmitted:
         chosen_dict, scheme = self._choose_option(req)
@@ -58,7 +69,7 @@ class ClientAgent:
 
         if scheme == "erc20-gasless-router":
             verifying_contract = chosen_dict["routerContract"]
-            nonce = self._fetch_router_nonce(from_addr)
+            nonce = self._fetch_router_nonce(from_addr, verifying_contract)
             typed = build_router_typed_data(
                 chain_id=chain_id,
                 verifying_contract=verifying_contract,
@@ -89,21 +100,25 @@ class ClientAgent:
             )
 
         if scheme == "eip3009-transfer-with-auth":
-            # Query token name/version if available; fallback to sensible defaults
-            token_contract = self.w3_plasma.eth.contract(
-                address=Web3.to_checksum_address(token), abi=[
-                    {"inputs": [], "name": "name", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
-                    {"inputs": [], "name": "version", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
-                ]
-            )
-            try:
-                token_name = token_contract.functions.name().call()
-            except Exception:
-                token_name = "USDTe"
-            try:
-                token_version = token_contract.functions.version().call()
-            except Exception:
-                token_version = "1"
+            # Use configured overrides or query token name/version
+            token_name = settings.USDT0_NAME
+            token_version = settings.USDT0_VERSION
+            if not token_name or not token_version:
+                token_contract = self.w3_plasma.eth.contract(
+                    address=Web3.to_checksum_address(token),
+                    abi=[
+                        {"inputs": [], "name": "name", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                        {"inputs": [], "name": "version", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                    ],
+                )
+                try:
+                    token_name = token_name or token_contract.functions.name().call()
+                except Exception:
+                    token_name = token_name or "USDTe"
+                try:
+                    token_version = token_version or token_contract.functions.version().call()
+                except Exception:
+                    token_version = token_version or "1"
 
             valid_after = _now() - 1
             valid_before = deadline
@@ -131,6 +146,8 @@ class ClientAgent:
                 to=to_addr,
                 nonce=nonce32,
                 deadline=valid_before,
+                validAfter=valid_after,
+                validBefore=valid_before,
             )
             sig = Signature(v=v, r=r, s=s)
             return PaymentSubmitted(

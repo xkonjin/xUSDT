@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
  * @title PaymentRouter
@@ -97,7 +98,7 @@ contract PaymentRouter {
             abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
         );
 
-        address signer = ecrecover(digest, v, r, s);
+        address signer = ECDSA.recover(digest, v, r, s);
         require(signer == from && signer != address(0), "Invalid signature");
 
         // Consume nonce before external call

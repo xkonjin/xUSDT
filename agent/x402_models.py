@@ -45,6 +45,9 @@ class ChosenOption(BaseModel):
     # EIP-712 (router) or EIP-3009 (token) fields
     nonce: Union[str, int]
     deadline: int
+    # Plasma (EIP-3009) explicit bounds
+    validAfter: Optional[int] = None
+    validBefore: Optional[int] = None
     # For plasma EIP-3009, validAfter/validBefore naming is common; use deadline for simplicity
 
 

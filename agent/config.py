@@ -27,9 +27,12 @@ class Settings(BaseSettings):
         description="USDT on Ethereum mainnet (6 decimals)",
     )
     USDT0_ADDRESS: str = Field(
-        default="0xPlasmaUSDT0Address",
+        default="0xb8c774360b6c2d432deca3eae177fd53b15b25ebb",
         description="USD₮0 token on Plasma mainnet (replace with official)",
     )
+    # Optional EIP-3009 domain overrides (if token doesn't expose name/version)
+    USDT0_NAME: str = Field(default="USDTe", description="USD₮0 token name for EIP-3009 domain")
+    USDT0_VERSION: str = Field(default="1", description="USD₮0 token version for EIP-3009 domain")
 
     # Router (Ethereum)
     ROUTER_ADDRESS: str = Field(

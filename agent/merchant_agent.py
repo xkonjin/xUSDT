@@ -110,12 +110,15 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
         )
 
     if submitted.scheme == "eip3009-transfer-with-auth":
+        # Use exact bounds from the signed payload
+        va = int(opt.validAfter) if opt.validAfter is not None else (int(opt.deadline) - 600)
+        vb = int(opt.validBefore) if opt.validBefore is not None else int(opt.deadline)
         res = facilitator.settle_plasma_eip3009(
             from_addr=opt.from_,
             to_addr=opt.to,
             value=int(opt.amount),
-            valid_after=int(submitted.chosenOption.deadline) - 600,  # approx
-            valid_before=int(opt.deadline),
+            valid_after=va,
+            valid_before=vb,
             nonce32=str(opt.nonce),
             v=submitted.signature.v,
             r=submitted.signature.r,
