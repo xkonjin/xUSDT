@@ -100,9 +100,15 @@ class PaymentFacilitator:
         self.eth_account = self.w3_eth.eth.account.from_key(settings.RELAYER_PRIVATE_KEY)
         self.plasma_account = self.w3_plasma.eth.account.from_key(settings.RELAYER_PRIVATE_KEY)
 
-        self.router: Contract = self.w3_eth.eth.contract(
-            address=Web3.to_checksum_address(settings.ROUTER_ADDRESS), abi=ROUTER_ABI
-        )
+        # Router is only needed for Ethereum path; tolerate missing/placeholder address
+        self.router: Optional[Contract] = None
+        try:
+            if settings.ROUTER_ADDRESS and Web3.is_address(settings.ROUTER_ADDRESS):
+                self.router = self.w3_eth.eth.contract(
+                    address=Web3.to_checksum_address(settings.ROUTER_ADDRESS), abi=ROUTER_ABI
+                )
+        except Exception:
+            self.router = None
         # Construct both ABI variants for compatibility
         self.usdt0_bytes: Contract = self.w3_plasma.eth.contract(
             address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI_BYTES
@@ -170,41 +176,25 @@ class PaymentFacilitator:
         s: str,
     ) -> SettlementResult:
         try:
-            # Prefer bytes-signature variant if available
-            sig_bytes = Web3.to_bytes(hexstr=(r + s[2:] + format(int(v), '02x')))
-            try:
-                tx = self.usdt0_bytes.functions.transferWithAuthorization(
-                    Web3.to_checksum_address(from_addr),
-                    Web3.to_checksum_address(to_addr),
-                    int(value),
-                    int(valid_after),
-                    int(valid_before),
-                    nonce32,
-                    sig_bytes,
-                ).build_transaction(
-                    {
-                        "from": self.plasma_account.address,
-                        "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
-                    }
-                )
-            except Exception:
-                # Fallback to (v,r,s) variant
-                tx = self.usdt0_vrs.functions.transferWithAuthorization(
-                    Web3.to_checksum_address(from_addr),
-                    Web3.to_checksum_address(to_addr),
-                    int(value),
-                    int(valid_after),
-                    int(valid_before),
-                    nonce32,
-                    int(v),
-                    r,
-                    s,
-                ).build_transaction(
-                    {
-                        "from": self.plasma_account.address,
-                        "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
-                    }
-                )
+            # Use (v,r,s) variant explicitly per deployed token interface
+            # Normalize nonce to 0x-prefixed bytes32 hex
+            nonce_hex = nonce32 if (isinstance(nonce32, str) and nonce32.startswith("0x")) else ("0x" + str(nonce32))
+            tx = self.usdt0_vrs.functions.transferWithAuthorization(
+                Web3.to_checksum_address(from_addr),
+                Web3.to_checksum_address(to_addr),
+                int(value),
+                int(valid_after),
+                int(valid_before),
+                nonce_hex,
+                int(v),
+                r,
+                s,
+            ).build_transaction(
+                {
+                    "from": self.plasma_account.address,
+                    "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
+                }
+            )
 
             signed = self.w3_plasma.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
             tx_hash = self.w3_plasma.to_hex(self.w3_plasma.eth.send_raw_transaction(signed.rawTransaction))

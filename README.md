@@ -150,6 +150,8 @@ USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
 USDT0_NAME=USDTe
 USDT0_VERSION=1
 PREFER_PLASMA=true
+# Optional amount (atomic units; default 1000000 = 1 USDT0)
+PAY_AMOUNT_ATOMIC=100000
 ```
 2) Dry run (no tx broadcast):
 ```bash
@@ -165,6 +167,15 @@ MERCHANT_ADDRESS=0xYourMerchant RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x.
 python test_flow.py
 ```
 The facilitator will call `transferWithAuthorization(from,to,value,validAfter,validBefore,nonce,signature bytes)` and fall back to `(v,r,s)` if needed.
+
+### Plasma-only mode
+When `PREFER_PLASMA=true`, the Ethereum option is omitted from PaymentRequired, avoiding any need to set `ROUTER_ADDRESS`.
+
+### Amount control
+`PAY_AMOUNT_ATOMIC` lets you choose the payment amount in token units (6 decimals). For example:
+```bash
+PAY_AMOUNT_ATOMIC=100000  # 0.1 USDT0
+```
 
 ## x402 Message Shapes
 PaymentRequired (server → client):

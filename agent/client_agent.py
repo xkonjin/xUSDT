@@ -106,25 +106,22 @@ class ClientAgent:
             )
 
         if scheme == "eip3009-transfer-with-auth":
-            # Use configured overrides or query token name/version
-            token_name = settings.USDT0_NAME
-            token_version = settings.USDT0_VERSION
-            if not token_name or not token_version:
-                token_contract = self.w3_plasma.eth.contract(
-                    address=Web3.to_checksum_address(token),
-                    abi=[
-                        {"inputs": [], "name": "name", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
-                        {"inputs": [], "name": "version", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
-                    ],
-                )
-                try:
-                    token_name = token_name or token_contract.functions.name().call()
-                except Exception:
-                    token_name = token_name or "USDTe"
-                try:
-                    token_version = token_version or token_contract.functions.version().call()
-                except Exception:
-                    token_version = token_version or "1"
+            # Prefer on-chain token name/version; fallback to configured overrides
+            token_contract = self.w3_plasma.eth.contract(
+                address=Web3.to_checksum_address(token),
+                abi=[
+                    {"inputs": [], "name": "name", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                    {"inputs": [], "name": "version", "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"},
+                ],
+            )
+            try:
+                token_name = token_contract.functions.name().call()
+            except Exception:
+                token_name = settings.USDT0_NAME
+            try:
+                token_version = token_contract.functions.version().call()
+            except Exception:
+                token_version = settings.USDT0_VERSION
 
             valid_after = _now() - 1
             valid_before = deadline
