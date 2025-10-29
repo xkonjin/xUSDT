@@ -159,7 +159,19 @@ def post_channel_settle() -> dict:
     res = fac.settle_plasma_channel(receipts, sigs)
     if res.success:
         _PENDING_CHANNEL_RECEIPTS.clear()
-        out_receipt = res.receipt if isinstance(res.receipt, dict) else {"raw": str(res.receipt)}
+        out_receipt = res.receipt
+        try:
+            from web3 import Web3
+            out_receipt = Web3.toJSON(out_receipt)
+        except Exception:
+            try:
+                import json as _json
+                out_receipt = _json.loads(Web3.toJSON(out_receipt))  # type: ignore[name-defined]
+            except Exception:
+                try:
+                    out_receipt = dict(out_receipt) if isinstance(out_receipt, dict) else str(out_receipt)
+                except Exception:
+                    out_receipt = str(out_receipt)
         return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": out_receipt}
     return {"ok": False, "error": res.error}
 
@@ -195,7 +207,23 @@ def get_premium_nft() -> Response:
 
 
 @app.post("/pay-nft")
-def post_pay_nft(submitted: PaymentSubmitted) -> dict:
+def post_pay_nft(submitted: PaymentSubmitted) -> Response:
+    from hexbytes import HexBytes
+    from web3.datastructures import AttributeDict
+
+    def _jsonify(obj):
+        if isinstance(obj, AttributeDict):
+            return {k: _jsonify(v) for k, v in obj.items()}
+        if isinstance(obj, HexBytes):
+            return Web3.to_hex(obj)
+        if isinstance(obj, (bytes, bytearray)):
+            return Web3.to_hex(obj)
+        if isinstance(obj, (list, tuple)):
+            return [_jsonify(v) for v in obj]
+        if isinstance(obj, dict):
+            return {k: _jsonify(v) for k, v in obj.items()}
+        return obj
+
     try:
         # Here we would route to facilitator.settle_plasma_pay_and_mint using routerContract and toNFT
         from agent.facilitator import PaymentFacilitator
@@ -236,13 +264,16 @@ def post_pay_nft(submitted: PaymentSubmitted) -> dict:
             "status": "confirmed" if res.success else "failed",
             "receipt": out_receipt,
         }
-        return out
+        return JSONResponse(content=_jsonify(out))
     except Exception as e:
-        return {
-            "type": "payment-completed",
-            "invoiceId": submitted.invoiceId,
-            "txHash": "0x0",
-            "network": "plasma",
-            "status": "failed",
-            "receipt": {"error": str(e)},
-        }
+        return JSONResponse(
+            content={
+                "type": "payment-completed",
+                "invoiceId": submitted.invoiceId,
+                "txHash": "0x0",
+                "network": "plasma",
+                "status": "failed",
+                "receipt": {"error": str(e)},
+            },
+            status_code=200,
+        )
