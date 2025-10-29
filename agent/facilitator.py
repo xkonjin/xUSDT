@@ -1,0 +1,160 @@
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
+
+from web3 import Web3
+from web3.contract import Contract
+
+from .config import settings
+
+
+ROUTER_ABI = [
+    {
+        "inputs": [
+            {"internalType": "address", "name": "token", "type": "address"},
+            {"internalType": "address", "name": "from", "type": "address"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "amount", "type": "uint256"},
+            {"internalType": "uint256", "name": "deadline", "type": "uint256"},
+            {"internalType": "uint8", "name": "v", "type": "uint8"},
+            {"internalType": "bytes32", "name": "r", "type": "bytes32"},
+            {"internalType": "bytes32", "name": "s", "type": "bytes32"},
+        ],
+        "name": "gaslessTransfer",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    }
+]
+
+
+EIP3009_ABI = [
+    {
+        "inputs": [
+            {"internalType": "address", "name": "from", "type": "address"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "value", "type": "uint256"},
+            {"internalType": "uint256", "name": "validAfter", "type": "uint256"},
+            {"internalType": "uint256", "name": "validBefore", "type": "uint256"},
+            {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+            {"internalType": "uint8", "name": "v", "type": "uint8"},
+            {"internalType": "bytes32", "name": "r", "type": "bytes32"},
+            {"internalType": "bytes32", "name": "s", "type": "bytes32"},
+        ],
+        "name": "transferWithAuthorization",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    }
+]
+
+
+@dataclass
+class SettlementResult:
+    success: bool
+    tx_hash: Optional[str]
+    error: Optional[str]
+    receipt: Optional[Dict[str, Any]]
+
+
+class PaymentFacilitator:
+    def __init__(self) -> None:
+        self.w3_eth = Web3(Web3.HTTPProvider(settings.ETH_RPC))
+        self.w3_plasma = Web3(Web3.HTTPProvider(settings.PLASMA_RPC))
+
+        self.eth_account = self.w3_eth.eth.account.from_key(settings.RELAYER_PRIVATE_KEY)
+        self.plasma_account = self.w3_plasma.eth.account.from_key(settings.RELAYER_PRIVATE_KEY)
+
+        self.router: Contract = self.w3_eth.eth.contract(
+            address=Web3.to_checksum_address(settings.ROUTER_ADDRESS), abi=ROUTER_ABI
+        )
+        self.usdt0: Contract = self.w3_plasma.eth.contract(
+            address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI
+        )
+
+    def _wait_for_receipt(self, w3: Web3, tx_hash: str, confirmations: int = 1) -> Dict[str, Any]:
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        # Simple confirm loop; production can use websockets/subscriptions
+        if confirmations > 1:
+            target = receipt.blockNumber + confirmations - 1
+            while w3.eth.block_number < target:
+                time.sleep(1.0)
+        return dict(receipt)
+
+    def settle_ethereum_router(
+        self,
+        *,
+        token: str,
+        from_addr: str,
+        to_addr: str,
+        amount: int,
+        deadline: int,
+        v: int,
+        r: str,
+        s: str,
+    ) -> SettlementResult:
+        try:
+            tx = self.router.functions.gaslessTransfer(
+                Web3.to_checksum_address(token),
+                Web3.to_checksum_address(from_addr),
+                Web3.to_checksum_address(to_addr),
+                int(amount),
+                int(deadline),
+                int(v),
+                r,
+                s,
+            ).build_transaction(
+                {
+                    "from": self.eth_account.address,
+                    "nonce": self.w3_eth.eth.get_transaction_count(self.eth_account.address),
+                }
+            )
+            signed = self.w3_eth.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
+            tx_hash = self.w3_eth.to_hex(self.w3_eth.eth.send_raw_transaction(signed.rawTransaction))
+            receipt = self._wait_for_receipt(self.w3_eth, tx_hash, confirmations=1)
+            status = receipt.get("status", 0) == 1
+            return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
+        except Exception as e:  # noqa: BLE001 - bubble error in response
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+
+    def settle_plasma_eip3009(
+        self,
+        *,
+        from_addr: str,
+        to_addr: str,
+        value: int,
+        valid_after: int,
+        valid_before: int,
+        nonce32: str,
+        v: int,
+        r: str,
+        s: str,
+    ) -> SettlementResult:
+        try:
+            tx = self.usdt0.functions.transferWithAuthorization(
+                Web3.to_checksum_address(from_addr),
+                Web3.to_checksum_address(to_addr),
+                int(value),
+                int(valid_after),
+                int(valid_before),
+                nonce32,
+                int(v),
+                r,
+                s,
+            ).build_transaction(
+                {
+                    "from": self.plasma_account.address,
+                    "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
+                }
+            )
+            signed = self.w3_plasma.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
+            tx_hash = self.w3_plasma.to_hex(self.w3_plasma.eth.send_raw_transaction(signed.rawTransaction))
+            receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
+            status = receipt.get("status", 0) == 1
+            return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
+        except Exception as e:  # noqa: BLE001
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+
+
