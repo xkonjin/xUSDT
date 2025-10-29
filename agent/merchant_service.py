@@ -4,6 +4,8 @@ import time
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+import json
+from web3 import Web3
 
 from .merchant_agent import build_payment_required, verify_and_settle
 from .x402_models import PaymentSubmitted
@@ -63,6 +65,105 @@ def get_invoice(invoice_id: str) -> dict:
     return out
 
 
+# ---------------- Channel-first optional endpoints -----------------
+# In-memory store of pending channel receipts; replace with durable store in production.
+_PENDING_CHANNEL_RECEIPTS: list[dict] = []
+
+
+class ChannelReceiptIn(BaseModel):
+    payer: str
+    merchant: str
+    amount: int
+    serviceId: str  # 0x-hex 32 bytes
+    nonce: str      # 0x-hex 32 bytes
+    expiry: int
+    signature: str  # 0x-hex bytes (65)
+
+
+@app.post("/channel/receipt")
+def post_channel_receipt(body: ChannelReceiptIn) -> dict:
+    """Accept a signed channel receipt for later batch settlement.
+
+    Validation performed server-side:
+    - Signature must recover to `payer` under the channel EIP-712 domain
+    - Merchant must match our configured MERCHANT_ADDRESS
+    """
+    from .crypto import build_channel_receipt_typed_data
+
+    if body.merchant.lower() != settings.MERCHANT_ADDRESS.lower():
+        return {"ok": False, "error": "recipient_mismatch"}
+
+    # Build typed data and recover signer
+    typed = build_channel_receipt_typed_data(
+        chain_id=settings.PLASMA_CHAIN_ID,
+        verifying_contract=settings.CHANNEL_ADDRESS or "0x0000000000000000000000000000000000000000",
+        payer=body.payer,
+        merchant=body.merchant,
+        amount=int(body.amount),
+        service_id_hex32=body.serviceId,
+        nonce32=body.nonce,
+        expiry=int(body.expiry),
+    )
+    try:
+        from eth_account.messages import encode_structured_data
+        from eth_account import Account
+        signable = encode_structured_data(primitive=typed)
+        recovered = Account.recover_message(signable, signature=body.signature)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"invalid_signature: {e}"}
+
+    if recovered.lower() != body.payer.lower():
+        return {"ok": False, "error": "signature_mismatch"}
+
+    rec = {
+        "payer": body.payer,
+        "merchant": body.merchant,
+        "amount": int(body.amount),
+        "serviceId": body.serviceId,
+        "nonce": body.nonce,
+        "expiry": int(body.expiry),
+        "signature": body.signature,
+    }
+    _PENDING_CHANNEL_RECEIPTS.append(rec)
+    return {"ok": True, "queued": len(_PENDING_CHANNEL_RECEIPTS)}
+
+
+@app.post("/channel/settle")
+def post_channel_settle() -> dict:
+    """Batch-settle all queued receipts using PlasmaPaymentChannel.settleBatch.
+
+    Requires CHANNEL_ADDRESS to be configured and the relayer to be funded on Plasma.
+    """
+    if not settings.CHANNEL_ADDRESS:
+        return {"ok": False, "error": "channel_not_configured"}
+    if not _PENDING_CHANNEL_RECEIPTS:
+        return {"ok": True, "txHash": None, "settled": 0}
+
+    # Convert to receipt tuples and signature bytes for the ABI call
+    receipts = [
+        {
+            "payer": r["payer"],
+            "merchant": r["merchant"],
+            "amount": int(r["amount"]),
+            "serviceId": r["serviceId"],
+            "nonce": r["nonce"],
+            "expiry": int(r["expiry"]),
+        }
+        for r in _PENDING_CHANNEL_RECEIPTS
+    ]
+    sigs = [r["signature"] for r in _PENDING_CHANNEL_RECEIPTS]
+
+    from .facilitator import PaymentFacilitator
+
+    fac = PaymentFacilitator()
+    res = fac.settle_plasma_channel(receipts, sigs)
+    if res.success:
+        _PENDING_CHANNEL_RECEIPTS.clear()
+        out_receipt = res.receipt if isinstance(res.receipt, dict) else {"raw": str(res.receipt)}
+        return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": out_receipt}
+    return {"ok": False, "error": res.error}
+
+
 @app.get("/premium-nft")
 def get_premium_nft() -> Response:
     # Build Plasma-only PaymentRequired for router NFT path
@@ -95,37 +196,53 @@ def get_premium_nft() -> Response:
 
 @app.post("/pay-nft")
 def post_pay_nft(submitted: PaymentSubmitted) -> dict:
-    # Here we would route to facilitator.settle_plasma_pay_and_mint using routerContract and toNFT
-    from agent.facilitator import PaymentFacilitator
-    fac = PaymentFacilitator()
-    opt = submitted.chosenOption
-    # Use bytes path (router.payAndMintReceiveAuth): signature covers receiveWithAuthorization(to=router)
-    v = int(submitted.signature.v)
-    r_hex = submitted.signature.r[2:] if submitted.signature.r.startswith("0x") else submitted.signature.r
-    s_hex = submitted.signature.s[2:] if submitted.signature.s.startswith("0x") else submitted.signature.s
-    # Left-pad r and s to 32 bytes (64 hex chars)
-    r_hex = r_hex.rjust(64, "0")
-    s_hex = s_hex.rjust(64, "0")
-    v_hex = f"{v:02x}"
-    sig_bytes_hex = "0x" + r_hex + s_hex + v_hex
-    res = fac.settle_plasma_pay_and_mint(
-        router_address=opt.to,
-        from_addr=opt.from_,
-        to_nft=opt.toNFT or opt.from_,
-        value=int(opt.amount),
-        valid_after=opt.validAfter or (opt.deadline - 600),
-        valid_before=opt.validBefore or opt.deadline,
-        nonce32=str(opt.nonce if isinstance(opt.nonce, str) else hex(int(opt.nonce))),
-        signature_bytes=sig_bytes_hex,
-    )
-    out = {
-        "type": "payment-completed",
-        "invoiceId": submitted.invoiceId,
-        "txHash": res.tx_hash or "0x0",
-        "network": "plasma",
-        "status": "confirmed" if res.success else "failed",
-        "receipt": res.receipt if res.receipt else {"error": res.error},
-    }
-    if not isinstance(out.get("receipt"), dict):
-        out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
-    return out
+    try:
+        # Here we would route to facilitator.settle_plasma_pay_and_mint using routerContract and toNFT
+        from agent.facilitator import PaymentFacilitator
+        fac = PaymentFacilitator()
+        opt = submitted.chosenOption
+        # Use bytes path (router.payAndMintReceiveAuth): signature covers receiveWithAuthorization(to=router)
+        v = int(submitted.signature.v)
+        r_hex = submitted.signature.r[2:] if submitted.signature.r.startswith("0x") else submitted.signature.r
+        s_hex = submitted.signature.s[2:] if submitted.signature.s.startswith("0x") else submitted.signature.s
+        # Left-pad r and s to 32 bytes (64 hex chars)
+        r_hex = r_hex.rjust(64, "0")
+        s_hex = s_hex.rjust(64, "0")
+        v_hex = f"{v:02x}"
+        sig_bytes_hex = "0x" + r_hex + s_hex + v_hex
+        res = fac.settle_plasma_pay_and_mint(
+            router_address=opt.to,
+            from_addr=opt.from_,
+            to_nft=opt.toNFT or opt.from_,
+            value=int(opt.amount),
+            valid_after=opt.validAfter or (opt.deadline - 600),
+            valid_before=opt.validBefore or opt.deadline,
+            nonce32=str(opt.nonce if isinstance(opt.nonce, str) else hex(int(opt.nonce))),
+            signature_bytes=sig_bytes_hex,
+        )
+        receipt_obj = res.receipt if res.receipt else {"error": res.error}
+        # Normalize nested web3 types to JSON-friendly
+        try:
+            receipt_json_str = Web3.toJSON(receipt_obj)
+            out_receipt = json.loads(receipt_json_str)
+        except Exception:
+            out_receipt = receipt_obj if isinstance(receipt_obj, dict) else str(receipt_obj)
+
+        out = {
+            "type": "payment-completed",
+            "invoiceId": submitted.invoiceId,
+            "txHash": res.tx_hash or "0x0",
+            "network": "plasma",
+            "status": "confirmed" if res.success else "failed",
+            "receipt": out_receipt,
+        }
+        return out
+    except Exception as e:
+        return {
+            "type": "payment-completed",
+            "invoiceId": submitted.invoiceId,
+            "txHash": "0x0",
+            "network": "plasma",
+            "status": "failed",
+            "receipt": {"error": str(e)},
+        }

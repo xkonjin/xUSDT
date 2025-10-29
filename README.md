@@ -19,7 +19,10 @@ References: x402 spec and examples https://github.com/coinbase/x402, Plasma netw
   - EIP‑712 domain: `{ name: "PaymentRouter", version: "1", chainId, verifyingContract }`
   - Typehash: `Transfer(address token,address from,address to,uint256 amount,uint256 nonce,uint256 deadline)`
   - Stateless: never holds funds; executes `IERC20(token).transferFrom(from, to, amount)` if signature is valid
-- Plasma (no router): call USD₮0 token’s `transferWithAuthorization` (EIP‑3009)
+- Plasma (direct or channel):
+  - Direct: call USD₮0 token’s `transferWithAuthorization` (EIP‑3009)
+  - Channel-first: `contracts/plasma/PlasmaPaymentChannel.sol` amortizes micropayments with 0.1% protocol fee (no floor)
+  - Direct settle with fee: `contracts/plasma/PlasmaPaymentRouter.sol` pulls tokens and deducts 0.1% to fee collector
 - Off-chain services (Python):
   - `agent/merchant_agent.py`: builds PaymentRequired (both networks), verifies + settles, returns PaymentCompleted
   - `agent/client_agent.py`: auto-selects best option, produces EIP‑712/EIP‑3009 signatures
@@ -53,8 +56,10 @@ flowchart LR
     F -->|JSON-RPC| T[USDT₀ (EIP-3009) on Plasma]
 ```
 
-Repo map:
-- contracts/PaymentRouter.sol — EIP‑712 router
+- Repo map:
+- contracts/PaymentRouter.sol — EIP‑712 router (Ethereum)
+- contracts/plasma/PlasmaPaymentRouter.sol — allowance-based settle with 0.1% fee (Plasma)
+- contracts/plasma/PlasmaPaymentChannel.sol — EIP‑712 receipts, batch settle, 0.1% fee (Plasma)
 - hardhat.config.js, scripts/deploy.js — build/deploy
 - scripts/approve-usdt.js — approve router allowance from payer (Arbitrum/Ethereum)
 - scripts/e2e-local-mock.js — full local E2E with MockUSDT (no real funds)
@@ -110,6 +115,12 @@ MERCHANT_ADDRESS=0xYourMerchantEOA
 # Keys (never commit real keys)
 RELAYER_PRIVATE_KEY=0x...
 CLIENT_PRIVATE_KEY=0x...
+
+# Protocol fee (practical policy)
+PLATFORM_FEE_BPS=10                 # 0.1%
+FLOOR_SAFETY_FACTOR_BPS=150         # 1.5x multiplier for gas-cost floor (direct-only)
+DIRECT_SETTLE_GAS_UNITS=120000      # estimated units for two transferFrom calls
+DIRECT_SETTLE_FLOOR_ATOMIC=0        # static floor in token atomic units (set >0 after calibration)
 
 # Safety (true skips chain submission)
 DRY_RUN=true

@@ -118,6 +118,39 @@ class PaymentFacilitator:
         )
         # NFT Router (optional)
         self.router_nft: Contract | None = None
+        # Channel (optional)
+        self.channel: Contract | None = None
+        if getattr(settings, "CHANNEL_ADDRESS", None):
+            channel_abi = [
+                {
+                    "inputs": [
+                        {
+                            "components": [
+                                {"internalType": "address", "name": "payer", "type": "address"},
+                                {"internalType": "address", "name": "merchant", "type": "address"},
+                                {"internalType": "uint256", "name": "amount", "type": "uint256"},
+                                {"internalType": "bytes32", "name": "serviceId", "type": "bytes32"},
+                                {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+                                {"internalType": "uint64", "name": "expiry", "type": "uint64"},
+                            ],
+                            "internalType": "struct PlasmaPaymentChannel.Receipt[]",
+                            "name": "receipts",
+                            "type": "tuple[]",
+                        },
+                        {"internalType": "bytes[]", "name": "signatures", "type": "bytes[]"},
+                    ],
+                    "name": "settleBatch",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                }
+            ]
+            try:
+                self.channel = self.w3_plasma.eth.contract(
+                    address=Web3.to_checksum_address(settings.CHANNEL_ADDRESS), abi=channel_abi
+                )
+            except Exception:
+                self.channel = None
 
     def _wait_for_receipt(self, w3: Web3, tx_hash: str, confirmations: int = 1) -> Dict[str, Any]:
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -291,6 +324,29 @@ class PaymentFacilitator:
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
         except Exception as e:
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+
+    def settle_plasma_channel(self, receipts: list[dict], signatures: list[str]) -> SettlementResult:
+        """Batch-settle channel receipts on Plasma.
+
+        `receipts` is a list of dicts matching the Solidity struct fields.
+        `signatures` are 0x-prefixed bytes signatures for the EIP-712 receipts.
+        """
+        if self.channel is None:
+            return SettlementResult(success=False, tx_hash=None, error="channel_not_configured", receipt=None)
+        try:
+            tx = self.channel.functions.settleBatch(receipts, signatures).build_transaction(
+                {
+                    "from": self.plasma_account.address,
+                    "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
+                }
+            )
+            signed = self.w3_plasma.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
+            tx_hash = self.w3_plasma.to_hex(self.w3_plasma.eth.send_raw_transaction(signed.rawTransaction))
+            receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
+            status = receipt.get("status", 0) == 1
+            return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
+        except Exception as e:  # noqa: BLE001
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
 

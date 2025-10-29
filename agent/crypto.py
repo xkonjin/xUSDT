@@ -156,3 +156,131 @@ def random_nonce32() -> str:
     return Web3.to_hex(uuid.uuid4().bytes + uuid.uuid4().bytes)[:66]
 
 
+def build_eip3009_receive_typed_data(
+    *,
+    token_name: str,
+    token_version: str,
+    chain_id: int,
+    verifying_contract: str,
+    from_addr: str,
+    to_addr: str,
+    value: int,
+    valid_after: int,
+    valid_before: int,
+    nonce32: str,
+) -> Dict[str, Any]:
+    """Build EIP-3009 ReceiveWithAuthorization typed data.
+
+    struct ReceiveWithAuthorization {
+        address from;
+        address to;
+        uint256 value;
+        uint256 validAfter;
+        uint256 validBefore;
+        bytes32 nonce;
+    }
+    """
+    try:
+        nonce_bytes = _normalize_bytes32(nonce32)
+    except Exception:
+        nonce_bytes = nonce32
+
+    typed_data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "ReceiveWithAuthorization": [
+                {"name": "from", "type": "address"},
+                {"name": "to", "type": "address"},
+                {"name": "value", "type": "uint256"},
+                {"name": "validAfter", "type": "uint256"},
+                {"name": "validBefore", "type": "uint256"},
+                {"name": "nonce", "type": "bytes32"},
+            ],
+        },
+        "primaryType": "ReceiveWithAuthorization",
+        "domain": {
+            "name": token_name,
+            "version": token_version,
+            "chainId": chain_id,
+            "verifyingContract": Web3.to_checksum_address(verifying_contract),
+        },
+        "message": {
+            "from": Web3.to_checksum_address(from_addr),
+            "to": Web3.to_checksum_address(to_addr),
+            "value": int(value),
+            "validAfter": int(valid_after),
+            "validBefore": int(valid_before),
+            "nonce": nonce_bytes,
+        },
+    }
+    return typed_data
+
+
+def build_channel_receipt_typed_data(
+    *,
+    chain_id: int,
+    verifying_contract: str,
+    payer: str,
+    merchant: str,
+    amount: int,
+    service_id_hex32: str,
+    nonce32: str,
+    expiry: int,
+) -> Dict[str, Any]:
+    """Build EIP-712 typed data for PlasmaPaymentChannel.Receipt.
+
+    struct Receipt {
+      address payer;
+      address merchant;
+      uint256 amount;
+      bytes32 serviceId;
+      bytes32 nonce;
+      uint64  expiry;
+    }
+    """
+    try:
+        nonce_bytes = _normalize_bytes32(nonce32)
+    except Exception:
+        nonce_bytes = nonce32
+
+    typed_data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"},
+            ],
+            "Receipt": [
+                {"name": "payer", "type": "address"},
+                {"name": "merchant", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "serviceId", "type": "bytes32"},
+                {"name": "nonce", "type": "bytes32"},
+                {"name": "expiry", "type": "uint64"},
+            ],
+        },
+        "primaryType": "Receipt",
+        "domain": {
+            "name": "PlasmaPaymentChannel",
+            "version": "1",
+            "chainId": chain_id,
+            "verifyingContract": Web3.to_checksum_address(verifying_contract),
+        },
+        "message": {
+            "payer": Web3.to_checksum_address(payer),
+            "merchant": Web3.to_checksum_address(merchant),
+            "amount": int(amount),
+            "serviceId": service_id_hex32,
+            "nonce": nonce_bytes,
+            "expiry": int(expiry),
+        },
+    }
+    return typed_data
+
+

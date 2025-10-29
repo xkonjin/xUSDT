@@ -21,6 +21,9 @@ class PaymentOption(BaseModel):
     nonce: Optional[Union[str, int]] = None
     deadline: int
     nftCollection: Optional[str] = None
+    # Fee and routing hints (optional; ignored by legacy clients)
+    recommendedMode: Optional[Literal["channel", "direct"]] = None
+    feeBreakdown: Optional["FeeBreakdown"] = None
 
 
 class PaymentRequired(BaseModel):
@@ -29,6 +32,19 @@ class PaymentRequired(BaseModel):
     timestamp: int
     paymentOptions: List[PaymentOption]
     description: Optional[str] = None
+
+
+class FeeBreakdown(BaseModel):
+    # Original requested amount in atomic units
+    amount: str
+    # Protocol fee percent in basis points (e.g., 10 = 0.1%)
+    percentBps: int
+    # Fee from percent only (before any floor), as integer string
+    percentFee: str
+    # Whether a dynamic floor was applied
+    floorApplied: bool = False
+    # Final total fee (max(percentFee, floor))
+    totalFee: str
 
 
 class Signature(BaseModel):

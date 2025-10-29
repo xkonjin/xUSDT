@@ -6,7 +6,7 @@ from typing import List, Optional, Dict
 import os
 
 from .config import settings
-from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted
+from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted, FeeBreakdown
 from .facilitator import PaymentFacilitator
 from .minter import PlasmaMinter
 
@@ -41,6 +41,11 @@ def build_payment_required(
     options: List[PaymentOption] = []
 
     # Plasma via EIP-3009 (preferred path)
+    # Compute fee and routing hints for Plasma path (direct EIP-3009 by default today)
+    # Policy: channel-first recommended, but fall back to direct with dynamic-floor logic
+    # Note: Dynamic floor requires calibration; see Settings.DIRECT_SETTLE_FLOOR_ATOMIC
+    # For Plasma direct, we advertise the direct path but mark recommendedMode as "channel"
+    fee_amt_plasma, floor_applied_plasma = compute_protocol_fee(amount_atomic, chain="plasma", mode="direct")
     plasma_option = PaymentOption(
         network="plasma",
         chainId=settings.PLASMA_CHAIN_ID,
@@ -52,10 +57,19 @@ def build_payment_required(
         scheme="eip3009-transfer-with-auth",
         nonce=uuid.uuid4().hex.ljust(64, "0"),  # server-suggested 32-byte hex
         deadline=deadline,
+        recommendedMode="channel",
+        feeBreakdown=FeeBreakdown(
+            amount=str(amount_atomic),
+            percentBps=int(settings.PLATFORM_FEE_BPS),
+            percentFee=str((amount_atomic * int(settings.PLATFORM_FEE_BPS)) // 10_000),
+            floorApplied=bool(floor_applied_plasma),
+            totalFee=str(fee_amt_plasma),
+        ),
     )
 
     # Only include Ethereum option when Plasma is not explicitly preferred
     if not settings.PREFER_PLASMA:
+        fee_amt_eth, floor_applied_eth = compute_protocol_fee(amount_atomic, chain="ethereum", mode="direct")
         eth_option = PaymentOption(
             network="ethereum",
             chainId=settings.ETH_CHAIN_ID,
@@ -68,6 +82,14 @@ def build_payment_required(
             routerContract=settings.ROUTER_ADDRESS,
             nonce=0,  # placeholder; client computes actual router nonce
             deadline=deadline,
+            recommendedMode="channel",
+            feeBreakdown=FeeBreakdown(
+                amount=str(amount_atomic),
+                percentBps=int(settings.PLATFORM_FEE_BPS),
+                percentFee=str((amount_atomic * int(settings.PLATFORM_FEE_BPS)) // 10_000),
+                floorApplied=bool(floor_applied_eth),
+                totalFee=str(fee_amt_eth),
+            ),
         )
         options.append(eth_option)
 
@@ -79,6 +101,34 @@ def build_payment_required(
         paymentOptions=options,
         description=description,
     )
+
+
+def compute_protocol_fee(amount_atomic: int, *, chain: str, mode: str) -> tuple[int, bool]:
+    """Compute protocol fee in atomic units under the practical policy.
+
+    - percent component: amount * PLATFORM_FEE_BPS / 10_000
+    - dynamic floor: applied only in direct mode; taken from DIRECT_SETTLE_FLOOR_ATOMIC when > 0
+      (operators calibrate this value to cover relayer gas costs with a safety factor)
+
+    Returns (feeAmountAtomic, floorApplied)
+    """
+    # Percent component (rounding down)
+    percent_fee = (amount_atomic * int(settings.PLATFORM_FEE_BPS)) // 10_000
+
+    if mode != "direct":
+        # Channel path: no floor, flat percentage only
+        return percent_fee, False
+
+    # Direct path: apply dynamic floor if configured
+    floor_atomic = int(getattr(settings, "DIRECT_SETTLE_FLOOR_ATOMIC", 0) or 0)
+    if floor_atomic <= 0:
+        # Optional future: compute from gas price and conversion if configured
+        # For now, no floor when not calibrated
+        return percent_fee, False
+
+    if percent_fee >= floor_atomic:
+        return percent_fee, False
+    return floor_atomic, True
 
 
 def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:

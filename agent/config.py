@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -42,6 +43,14 @@ class Settings(BaseSettings):
         description="Deployed PaymentRouter address on Ethereum",
     )
 
+    # Plasma channel & router (optional)
+    CHANNEL_ADDRESS: Optional[str] = Field(
+        default=None, description="Deployed PlasmaPaymentChannel address on Plasma"
+    )
+    PLASMA_FEE_COLLECTOR: Optional[str] = Field(
+        default=None, description="Protocol fee collector on Plasma"
+    )
+
     # Merchant receiving address (same EOA can be used on both networks)
     MERCHANT_ADDRESS: str = Field(..., description="Merchant/receiver address")
 
@@ -51,6 +60,22 @@ class Settings(BaseSettings):
     )
     CLIENT_PRIVATE_KEY: str = Field(
         ..., description="Private key for client agent EOA (test/demo)"
+    )
+
+    # Protocol fee parameters
+    PLATFORM_FEE_BPS: int = Field(
+        default=10, description="Protocol fee in basis points (10 = 0.1%)"
+    )
+    FLOOR_SAFETY_FACTOR_BPS: int = Field(
+        default=150,
+        description="Multiplier for gas-cost floor as basis points (150 = 1.5x)",
+    )
+    # Estimated gas units for a direct on-chain settle via router (two transferFrom calls)
+    DIRECT_SETTLE_GAS_UNITS: int = Field(default=120000)
+    # Optional precomputed floor in token atomic units when no price feed is configured
+    DIRECT_SETTLE_FLOOR_ATOMIC: int = Field(
+        default=0,
+        description="Static floor in token atomic units; overrides computed floor when >0",
     )
 
     class Config:
