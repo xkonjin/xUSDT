@@ -29,6 +29,8 @@ References: x402 spec and examples [github.com/coinbase/x402](https://github.com
 Repo map:
 - contracts/PaymentRouter.sol — EIP‑712 router
 - hardhat.config.js, scripts/deploy.js — build/deploy
+- scripts/approve-usdt.js — approve router allowance from payer (Arbitrum/Ethereum)
+- scripts/e2e-local-mock.js — full local E2E with MockUSDT (no real funds)
 - agent/config.py — env-driven settings
 - agent/*.py — agents, facilitator, crypto, models
 - test_flow.py — end‑to‑end demo script
@@ -63,11 +65,15 @@ ROUTER_ADDRESS=0xPaymentRouterAddress
 
 # Token addresses
 USDT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7  # USD₮ (USDT) on Ethereum
-USDT0_ADDRESS=0xPlasmaUSDT0Address                      # USD₮0 on Plasma (official address)
+USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb  # USD₮0 on Plasma (TetherTokenOFTExtension)
 
 # Chain IDs
 ETH_CHAIN_ID=1
 PLASMA_CHAIN_ID=9745
+
+# Optional tokens domain overrides for EIP-3009 (use if token name/version are not callable)
+USDT0_NAME=USDTe
+USDT0_VERSION=1
 
 # Merchant receiving address
 MERCHANT_ADDRESS=0xYourMerchantEOA
@@ -78,6 +84,9 @@ CLIENT_PRIVATE_KEY=0x...
 
 # Safety (true skips chain submission)
 DRY_RUN=true
+
+# Preference flag (when true, prefer Plasma USD₮0 when configured)
+PREFER_PLASMA=false
 ```
 
 ## Build and Deploy (Ethereum)
@@ -106,7 +115,56 @@ RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... python test_flow.py
 
 Notes:
 - Ethereum path: payer must have approved the router; relayer pays gas
-- Plasma path: provide the official USD₮0 address; transfers are gasless for USD₮0
+- Plasma path: uses USD₮0 EIP‑3009; facilitator first tries bytes signature variant of `transferWithAuthorization`, then falls back to `(v,r,s)` signature when needed.
+
+## Arbitrum (cheaper gas) quickstart
+1) Deploy router to Arbitrum
+```bash
+ETH_RPC=https://arb1.arbitrum.io/rpc RELAYER_PRIVATE_KEY=0x... npx hardhat run scripts/deploy.js --network arbitrum
+```
+2) Approve once (payer → router) on Arbitrum USDT
+```bash
+ETH_RPC=https://arb1.arbitrum.io/rpc \
+CLIENT_PRIVATE_KEY=0x... \
+USDT_ADDRESS=0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9 \
+ROUTER_ADDRESS=0xDeployedRouter \
+node scripts/approve-usdt.js
+```
+3) Live payment
+```bash
+DRY_RUN=false \
+ETH_RPC=https://arb1.arbitrum.io/rpc ETH_CHAIN_ID=42161 \
+USDT_ADDRESS=0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9 \
+ROUTER_ADDRESS=0xDeployedRouter \
+MERCHANT_ADDRESS=0xYourMerchant \
+RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... \
+python test_flow.py
+```
+
+## Plasma quickstart (USD₮0 EIP‑3009)
+1) Configure environment
+```bash
+PLASMA_RPC=https://rpc.plasma.to
+PLASMA_CHAIN_ID=9745
+USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
+USDT0_NAME=USDTe
+USDT0_VERSION=1
+PREFER_PLASMA=true
+```
+2) Dry run (no tx broadcast):
+```bash
+source .venv/bin/activate
+python test_flow.py
+```
+3) Live:
+```bash
+DRY_RUN=false PLASMA_RPC=https://rpc.plasma.to PLASMA_CHAIN_ID=9745 \
+USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb \
+USDT0_NAME=USDTe USDT0_VERSION=1 PREFER_PLASMA=true \
+MERCHANT_ADDRESS=0xYourMerchant RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... \
+python test_flow.py
+```
+The facilitator will call `transferWithAuthorization(from,to,value,validAfter,validBefore,nonce,signature bytes)` and fall back to `(v,r,s)` if needed.
 
 ## x402 Message Shapes
 PaymentRequired (server → client):
@@ -208,3 +266,4 @@ PaymentCompleted (server → client):
 - x402 protocol and examples: https://github.com/coinbase/x402
 - Plasma network docs: https://docs.plasma.to/ • Explorer: https://plasmascan.to
 - USDT (Ethereum) contract: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+ - USD₮0 (Plasma) contract: 0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb

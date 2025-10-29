@@ -29,8 +29,8 @@ class Settings(BaseSettings):
         description="USDT on Ethereum mainnet (6 decimals)",
     )
     USDT0_ADDRESS: str = Field(
-        default="0xb8c774360b6c2d432deca3eae177fd53b15b25ebb",
-        description="USD₮0 token on Plasma mainnet (replace with official)",
+        default="0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
+        description="USD₮0 token on Plasma mainnet (official TetherTokenOFTExtension)",
     )
     # Optional EIP-3009 domain overrides (if token doesn't expose name/version)
     USDT0_NAME: str = Field(default="USDTe", description="USD₮0 token name for EIP-3009 domain")

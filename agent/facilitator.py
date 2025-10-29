@@ -30,7 +30,40 @@ ROUTER_ABI = [
 ]
 
 
-EIP3009_ABI = [
+EIP3009_ABI_BYTES = [
+    {
+        "inputs": [
+            {"internalType": "address", "name": "from", "type": "address"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "value", "type": "uint256"},
+            {"internalType": "uint256", "name": "validAfter", "type": "uint256"},
+            {"internalType": "uint256", "name": "validBefore", "type": "uint256"},
+            {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+            {"internalType": "bytes", "name": "signature", "type": "bytes"},
+        ],
+        "name": "transferWithAuthorization",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {"internalType": "address", "name": "from", "type": "address"},
+            {"internalType": "address", "name": "to", "type": "address"},
+            {"internalType": "uint256", "name": "value", "type": "uint256"},
+            {"internalType": "uint256", "name": "validAfter", "type": "uint256"},
+            {"internalType": "uint256", "name": "validBefore", "type": "uint256"},
+            {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+            {"internalType": "bytes", "name": "signature", "type": "bytes"},
+        ],
+        "name": "receiveWithAuthorization",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
+]
+
+EIP3009_ABI_VRS = [
     {
         "inputs": [
             {"internalType": "address", "name": "from", "type": "address"},
@@ -70,8 +103,12 @@ class PaymentFacilitator:
         self.router: Contract = self.w3_eth.eth.contract(
             address=Web3.to_checksum_address(settings.ROUTER_ADDRESS), abi=ROUTER_ABI
         )
-        self.usdt0: Contract = self.w3_plasma.eth.contract(
-            address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI
+        # Construct both ABI variants for compatibility
+        self.usdt0_bytes: Contract = self.w3_plasma.eth.contract(
+            address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI_BYTES
+        )
+        self.usdt0_vrs: Contract = self.w3_plasma.eth.contract(
+            address=Web3.to_checksum_address(settings.USDT0_ADDRESS), abi=EIP3009_ABI_VRS
         )
 
     def _wait_for_receipt(self, w3: Web3, tx_hash: str, confirmations: int = 1) -> Dict[str, Any]:
@@ -133,22 +170,42 @@ class PaymentFacilitator:
         s: str,
     ) -> SettlementResult:
         try:
-            tx = self.usdt0.functions.transferWithAuthorization(
-                Web3.to_checksum_address(from_addr),
-                Web3.to_checksum_address(to_addr),
-                int(value),
-                int(valid_after),
-                int(valid_before),
-                nonce32,
-                int(v),
-                r,
-                s,
-            ).build_transaction(
-                {
-                    "from": self.plasma_account.address,
-                    "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
-                }
-            )
+            # Prefer bytes-signature variant if available
+            sig_bytes = Web3.to_bytes(hexstr=(r + s[2:] + format(int(v), '02x')))
+            try:
+                tx = self.usdt0_bytes.functions.transferWithAuthorization(
+                    Web3.to_checksum_address(from_addr),
+                    Web3.to_checksum_address(to_addr),
+                    int(value),
+                    int(valid_after),
+                    int(valid_before),
+                    nonce32,
+                    sig_bytes,
+                ).build_transaction(
+                    {
+                        "from": self.plasma_account.address,
+                        "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
+                    }
+                )
+            except Exception:
+                # Fallback to (v,r,s) variant
+                tx = self.usdt0_vrs.functions.transferWithAuthorization(
+                    Web3.to_checksum_address(from_addr),
+                    Web3.to_checksum_address(to_addr),
+                    int(value),
+                    int(valid_after),
+                    int(valid_before),
+                    nonce32,
+                    int(v),
+                    r,
+                    s,
+                ).build_transaction(
+                    {
+                        "from": self.plasma_account.address,
+                        "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),
+                    }
+                )
+
             signed = self.w3_plasma.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
             tx_hash = self.w3_plasma.to_hex(self.w3_plasma.eth.send_raw_transaction(signed.rawTransaction))
             receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
