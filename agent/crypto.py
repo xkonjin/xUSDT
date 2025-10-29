@@ -247,6 +247,10 @@ def build_channel_receipt_typed_data(
         nonce_bytes = _normalize_bytes32(nonce32)
     except Exception:
         nonce_bytes = nonce32
+    try:
+        service_bytes = _normalize_bytes32(service_id_hex32)
+    except Exception:
+        service_bytes = service_id_hex32
 
     typed_data = {
         "types": {
@@ -276,7 +280,7 @@ def build_channel_receipt_typed_data(
             "payer": Web3.to_checksum_address(payer),
             "merchant": Web3.to_checksum_address(merchant),
             "amount": int(amount),
-            "serviceId": service_id_hex32,
+            "serviceId": service_bytes,
             "nonce": nonce_bytes,
             "expiry": int(expiry),
         },
