@@ -31,8 +31,10 @@ Repo map:
 - hardhat.config.js, scripts/deploy.js — build/deploy
 - scripts/approve-usdt.js — approve router allowance from payer (Arbitrum/Ethereum)
 - scripts/e2e-local-mock.js — full local E2E with MockUSDT (no real funds)
+- scripts/client_http.py — simple HTTP client agent for agent-to-agent demo
 - agent/config.py — env-driven settings
 - agent/*.py — agents, facilitator, crypto, models
+- agent/merchant_service.py — FastAPI server exposing `/premium` (402) and `/pay`
 - test_flow.py — end‑to‑end demo script
 - requirements.txt — pinned Python deps
 
@@ -176,6 +178,21 @@ When `PREFER_PLASMA=true`, the Ethereum option is omitted from PaymentRequired, 
 ```bash
 PAY_AMOUNT_ATOMIC=100000  # 0.1 USDT0
 ```
+
+## Agent-to-Agent over HTTP (x402-style)
+Start merchant server (FastAPI):
+```bash
+source .venv/bin/activate
+uvicorn agent.merchant_service:app --host 0.0.0.0 --port 8000
+```
+Run client agent:
+```bash
+MERCHANT_URL=http://127.0.0.1:8000 python scripts/client_http.py
+```
+Flow:
+1) GET /premium → returns 402 with PaymentRequired (Plasma-only if `PREFER_PLASMA=true`)
+2) Client signs (EIP-3009) and POST /pay with PaymentSubmitted
+3) Server settles on Plasma and returns PaymentCompleted with txHash
 
 ## x402 Message Shapes
 PaymentRequired (server → client):
