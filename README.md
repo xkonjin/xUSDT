@@ -216,6 +216,34 @@ Run client agent:
 ```bash
 MERCHANT_URL=http://127.0.0.1:8000 python scripts/client_http.py
 ```
+
+## MCP server (Claude tools) for Plasma NFT checkout
+
+This repo includes a minimal MCP server that lets Claude link a wallet and say “buy NFT”. It uses WalletConnect v2 to link any EVM wallet and completes payment + mint on Plasma via the HTTP endpoints above.
+
+Prereqs:
+- Node.js ≥ 18
+- Env: `WC_PROJECT_ID` (WalletConnect Cloud), `MERCHANT_URL` (default `http://127.0.0.1:8000`)
+- Merchant must be running with Plasma config and `NFT_CONTRACT` set.
+
+Install and run:
+```bash
+cd mcp
+npm install
+WC_PROJECT_ID=... MERCHANT_URL=http://127.0.0.1:8000 npm start
+# In Claude, add this MCP as a custom tool (stdio). Call tools:
+# - wallet_link_start → returns a WC URI (also printed as a QR in logs)
+# - wallet_link_status → { status, address }
+# - get_wallet_address → { address }
+# - buy_nft { sku: "premium" } → returns PaymentCompleted with txHash and tokenId
+```
+
+Notes:
+- The server builds EIP‑3009 typed data for Plasma USD₮0 and requests an `eth_signTypedData_v4` signature from the linked wallet. It then POSTs `/pay` to the merchant.
+- Configure token domain overrides if your USD₮0 token does not expose name/version on-chain: set `USDT0_NAME` and `USDT0_VERSION`.
+
+References
+- Coinbase org (x402, agentkit, payments-mcp, etc.): [https://github.com/coinbase](https://github.com/coinbase)
 Flow:
 1) GET /premium → returns 402 with PaymentRequired (Plasma-only if `PREFER_PLASMA=true`)
 2) Client signs (EIP-3009) and POST /pay with PaymentSubmitted
