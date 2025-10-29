@@ -18,11 +18,22 @@ def main() -> None:
         sys.exit(1)
     pr = PaymentRequired.model_validate(r.json())
 
-    # Step 2: sign and submit payment
+    # Step 2: depending on policy, either channel-first or direct settle path
     client = ClientAgent()
-    submitted: PaymentSubmitted = client.prepare_submission(pr)
-    p = requests.post(f"{base}/pay", json=submitted.model_dump(by_alias=True))
-    print("PaymentCompleted:\n", json.dumps(p.json(), indent=2))
+    use_channel = os.environ.get("USE_CHANNEL", "true").lower() not in ("false", "0", "no")
+
+    if use_channel and os.environ.get("CHANNEL_ADDRESS"):
+        # Build channel receipt and enqueue
+        receipt = client.prepare_channel_receipt(pr)
+        q = requests.post(f"{base}/channel/receipt", json=receipt)
+        print("Queued channel receipt:", q.json())
+        # Attempt immediate batch settlement
+        s = requests.post(f"{base}/channel/settle")
+        print("Channel settle result:\n", json.dumps(s.json(), indent=2))
+    else:
+        submitted: PaymentSubmitted = client.prepare_submission(pr)
+        p = requests.post(f"{base}/pay", json=submitted.model_dump(by_alias=True))
+        print("PaymentCompleted:\n", json.dumps(p.json(), indent=2))
 
 
 if __name__ == "__main__":
