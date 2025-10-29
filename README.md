@@ -368,17 +368,33 @@ PaymentCompleted (server → client):
   - `PAY_AMOUNT_ATOMIC` env to cap or choose payment size (supports micros)
 
 ## What’s new (Plasma NFT flow)
-- ERC‑721 contract on Plasma: `contracts/plasma/NFTPlasma.sol` with owner‑only `safeMint(to, uri)` and `Minted` event.
-- Deploy script: `scripts/deploy_nft.js` (Hardhat + ethers v6) prints deployed address.
-- Plasma minter: `agent/minter.py` calls `safeMint` and decodes `Minted` to return `token_id`.
-- Merchant mints on success: `agent/merchant_agent.verify_and_settle` now mints an NFT to the payer after confirmed Plasma payment and returns `tokenId` in `PaymentCompleted`.
-- Idempotency + status: in‑memory invoice records keyed by `invoiceId`; duplicate submits return the same result. New `GET /invoice/{invoice_id}` for polling.
-- Product invoices: `GET /product/{sku}` returns a Plasma‑only `PaymentRequired` (when `PREFER_PLASMA=true`).
-- MCP server: `mcp/` provides tools for Claude to link a wallet and perform “buy NFT”. Tools include `wallet_link_start`, `wallet_link_status`, `get_wallet_address`, `buy_nft`, and `get_invoice_status`.
+- Atomic router-based NFT on payment (Plasma):
+  - `contracts/plasma/PlasmaReceipt721.sol` (Smiley Receipt ERC‑721 with `onlyMinter`).
+  - `contracts/plasma/MerchantNFTRouter.sol` accepts EIP‑3009 authorizations and mints the NFT in the same transaction.
+  - Router paths:
+    - `payAndMintReceiveAuth(from, toNFT, value, validAfter, validBefore, nonce, signatureBytes)` using token.receiveWithAuthorization(to=router)
+    - `payAndMintVRS(from, toNFT, value, validAfter, validBefore, nonce, v, r, s)` using token.transferWithAuthorization(to=treasury)
+  - FastAPI endpoints for the router flow:
+    - `GET /premium-nft` → 402 PaymentRequired for 0.01 USDT₀ (10,000 atomic), scheme `eip3009-receive`, includes `routerContract` and `nftCollection`.
+    - `POST /pay-nft` → settles via router and returns `PaymentCompleted` with `txHash` and a JSON‑safe receipt.
+  - Client agent signs EIP‑3009 ReceiveWithAuthorization typed data to the router; server assembles a 65‑byte signature as `r||s||v` (r/s left‑padded to 32 bytes).
+
+Deployed demo (Plasma mainnet):
+- Chain ID: 9745, RPC: `https://rpc.plasma.to`
+- USD₮0 token: `0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb`
+- Treasury (merchant): `0xdec34d821a100ae7a632caf36161c5651d0d5df9`
+- PlasmaReceipt721: `0xD4d9640F089DE66D00ff0242BFFE1a4377c71b50`
+- MerchantNFTRouter: `0x3fB9F749f17634312Cb2C1d3340061A504DDC991`
+- Example tx hashes:
+  - `0xd4b3fd31b15fb48005d06ae3c71ed990f37f1ef48333b714baacaaa824b8f518` (confirmed)
+  - `0xe01c98a8d6ff4fc5e01157197fd01b5562c4021e5d9d77ac8a8afbb91d43d4f8` (confirmed)
+
+Server serialization hardening:
+- `/pay-nft` now returns JSONResponse and converts web3 AttributeDict/HexBytes to JSON‑safe primitives to avoid 500s from pydantic serialization.
 
 ### New endpoints
-- `GET /product/{sku}` → 402 PaymentRequired (Plasma EIP‑3009 option) for a catalog SKU.
-- `POST /pay` → processes `PaymentSubmitted`; on success, mints NFT to payer and returns `PaymentCompleted` with `tokenId`.
+- `GET /premium-nft` → 402 PaymentRequired (Plasma EIP‑3009 router option) for a 0.01 USDT₀ NFT.
+- `POST /pay-nft` → processes `PaymentSubmitted` signed for ReceiveWithAuthorization; on success, calls the router to forward funds to treasury and mints the Smiley NFT.
 - `GET /invoice/{invoice_id}` → returns `{ status: "pending" }` or the stored `PaymentCompleted`.
 
 ### MCP tools (Claude)
