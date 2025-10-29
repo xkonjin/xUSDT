@@ -26,6 +26,42 @@ References: x402 spec and examples [github.com/coinbase/x402](https://github.com
   - `agent/facilitator.py`: submits on-chain transactions (router/USDT on Ethereum, EIP‑3009 on Plasma)
   - `agent/crypto.py`: typed‑data builders and signers
 
+## Diagram
+
+### Sequence (A2A x402 handshake and settlement)
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Merchant as Merchant Server
+  participant Facilitator
+  participant Ethereum as PaymentRouter (Ethereum)
+  participant Plasma as USD₮0 Token (Plasma)
+
+  Client->>Merchant: GET /premium
+  Merchant-->>Client: 402 PaymentRequired (options: Ethereum + Plasma)
+  Client->>Client: Choose best option (prefer Plasma if configured)
+  Client->>Client: Sign typed data (EIP-712 or EIP-3009)
+  Client-->>Merchant: PaymentSubmitted (chosenOption + signature)
+  Merchant->>Facilitator: Verify + submit settlement
+  alt Ethereum (erc20-gasless-router)
+    Facilitator->>Ethereum: gaslessTransfer(token, from, to, amount, deadline, v,r,s)
+    Ethereum-->>Facilitator: tx receipt (success/fail)
+  else Plasma (eip3009-transfer-with-auth)
+    Facilitator->>Plasma: transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v,r,s)
+    Plasma-->>Facilitator: tx receipt (success/fail)
+  end
+  Facilitator-->>Client: PaymentCompleted (txHash, status)
+```
+
+### Components
+```mermaid
+flowchart LR
+  A[merchant_agent.build_payment_required]\n(server advertises options) -->|PaymentRequired| C[client_agent.prepare_submission]\n(client chooses + signs)
+  C -->|PaymentSubmitted| B[merchant_agent.verify_and_settle]\n(server verifies + orchestrates)
+  B -->|Ethereum path| R[contracts/PaymentRouter.sol]\n(EIP-712 pull via router)
+  B -->|Plasma path| T[USD₮0 token (EIP-3009)]\n(transferWithAuthorization)
+```
+
 Repo map:
 - contracts/PaymentRouter.sol — EIP‑712 router
 - hardhat.config.js, scripts/deploy.js — build/deploy
