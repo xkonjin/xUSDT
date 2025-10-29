@@ -32,14 +32,11 @@ class ClientAgent:
 
     def _choose_option(self, req: PaymentRequired) -> Tuple[dict, str]:
         opts = req.paymentOptions
-        plasma_first = self._prefer_plasma()
-        ordered = sorted(
-            opts,
-            key=lambda o: 0
-            if (plasma_first and o.network == "plasma") else (1 if o.network == "plasma" else 2),
-        )
-        if not ordered:
+        if not opts:
             raise ValueError("No payment options presented")
+        plasma_first = self._prefer_plasma()
+        priority = {"plasma": 0, "ethereum": 1} if plasma_first else {"ethereum": 0, "plasma": 1}
+        ordered = sorted(opts, key=lambda o: priority.get(o.network, 99))
         chosen = ordered[0]
         return chosen.dict(by_alias=True), chosen.scheme
 
