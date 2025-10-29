@@ -367,6 +367,60 @@ PaymentCompleted (server → client):
 - Amount controls
   - `PAY_AMOUNT_ATOMIC` env to cap or choose payment size (supports micros)
 
+## What’s new (Plasma NFT flow)
+- ERC‑721 contract on Plasma: `contracts/plasma/NFTPlasma.sol` with owner‑only `safeMint(to, uri)` and `Minted` event.
+- Deploy script: `scripts/deploy_nft.js` (Hardhat + ethers v6) prints deployed address.
+- Plasma minter: `agent/minter.py` calls `safeMint` and decodes `Minted` to return `token_id`.
+- Merchant mints on success: `agent/merchant_agent.verify_and_settle` now mints an NFT to the payer after confirmed Plasma payment and returns `tokenId` in `PaymentCompleted`.
+- Idempotency + status: in‑memory invoice records keyed by `invoiceId`; duplicate submits return the same result. New `GET /invoice/{invoice_id}` for polling.
+- Product invoices: `GET /product/{sku}` returns a Plasma‑only `PaymentRequired` (when `PREFER_PLASMA=true`).
+- MCP server: `mcp/` provides tools for Claude to link a wallet and perform “buy NFT”. Tools include `wallet_link_start`, `wallet_link_status`, `get_wallet_address`, `buy_nft`, and `get_invoice_status`.
+
+### New endpoints
+- `GET /product/{sku}` → 402 PaymentRequired (Plasma EIP‑3009 option) for a catalog SKU.
+- `POST /pay` → processes `PaymentSubmitted`; on success, mints NFT to payer and returns `PaymentCompleted` with `tokenId`.
+- `GET /invoice/{invoice_id}` → returns `{ status: "pending" }` or the stored `PaymentCompleted`.
+
+### MCP tools (Claude)
+- `wallet_link_start` → returns a WalletConnect URI; also prints QR in server logs.
+- `wallet_link_status` → `{ status, address }`.
+- `get_wallet_address` → `{ address }`.
+- `buy_nft` `{ sku, merchantUrl? }` → performs EIP‑3009 signing via WalletConnect and calls `/pay`.
+- `get_invoice_status` `{ invoiceId, merchantUrl? }` → polls `/invoice/{id}`.
+
+## End‑to‑end quickstart (Plasma + MCP)
+1) Deploy NFT
+```bash
+npx hardhat run scripts/deploy_nft.js --network plasma
+# Copy the printed address to NFT_CONTRACT
+```
+2) Configure and run merchant
+```bash
+export PLASMA_RPC=https://rpc.plasma.to
+export PLASMA_CHAIN_ID=9745
+export ETH_RPC=https://ethereum.publicnode.com
+export ETH_CHAIN_ID=1
+export USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb
+export USDT0_NAME=USDTe
+export USDT0_VERSION=1
+export PREFER_PLASMA=true
+export RELAYER_PRIVATE_KEY=0x...
+export CLIENT_PRIVATE_KEY=0x...
+export MERCHANT_ADDRESS=0xYourMerchant
+export NFT_CONTRACT=0xDeployedNft
+uvicorn agent.merchant_service:app --host 0.0.0.0 --port 8000
+```
+3) Run MCP server
+```bash
+cd mcp && npm install
+WC_PROJECT_ID=... MERCHANT_URL=http://127.0.0.1:8000 npm start
+```
+4) In Claude (with the MCP attached)
+- `wallet_link_start` → show QR in logs, connect wallet
+- `wallet_link_status`
+- `buy_nft { "sku": "premium" }`
+- `get_invoice_status { "invoiceId": "..." }`
+
 ## v0 demo plan (UI-assisted showcase)
 Goal: a v0 app that demonstrates end‑to‑end x402 payments on Plasma.
 
