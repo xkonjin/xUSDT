@@ -30,9 +30,23 @@ def build_payment_required(
 
     options: List[PaymentOption] = []
 
-    # Ethereum via router
-    options.append(
-        PaymentOption(
+    # Plasma via EIP-3009 (preferred path)
+    plasma_option = PaymentOption(
+        network="plasma",
+        chainId=settings.PLASMA_CHAIN_ID,
+        token=settings.USDT0_ADDRESS,
+        tokenSymbol="USDT0",
+        amount=str(amount_atomic),
+        decimals=6,
+        recipient=settings.MERCHANT_ADDRESS,
+        scheme="eip3009-transfer-with-auth",
+        nonce=uuid.uuid4().hex.ljust(64, "0"),  # server-suggested 32-byte hex
+        deadline=deadline,
+    )
+
+    # Only include Ethereum option when Plasma is not explicitly preferred
+    if not settings.PREFER_PLASMA:
+        eth_option = PaymentOption(
             network="ethereum",
             chainId=settings.ETH_CHAIN_ID,
             token=settings.USDT_ADDRESS,
@@ -45,23 +59,9 @@ def build_payment_required(
             nonce=0,  # placeholder; client computes actual router nonce
             deadline=deadline,
         )
-    )
+        options.append(eth_option)
 
-    # Plasma via EIP-3009
-    options.append(
-        PaymentOption(
-            network="plasma",
-            chainId=settings.PLASMA_CHAIN_ID,
-            token=settings.USDT0_ADDRESS,
-            tokenSymbol="USDT0",
-            amount=str(amount_atomic),
-            decimals=6,
-            recipient=settings.MERCHANT_ADDRESS,
-            scheme="eip3009-transfer-with-auth",
-            nonce=uuid.uuid4().hex.ljust(64, "0"),  # server-suggested 32-byte hex
-            deadline=deadline,
-        )
-    )
+    options.append(plasma_option)
 
     return PaymentRequired(
         invoiceId=invoice_id,
