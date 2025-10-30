@@ -62,6 +62,8 @@ export default function ClientPage() {
   const [merchantUrl, setMerchantUrl] = useState(DEFAULTS.MERCHANT_URL);
   const [amountAtomic, setAmountAtomic] = useState<number>(DEFAULTS.PAY_AMOUNT_ATOMIC);
   const [pr, setPr] = useState<PaymentRequired | null>(null);
+  const [sku, setSku] = useState<string>("");
+  const [errorMsg, setErrorMsg] = useState<string>("");
   const [completed, setCompleted] = useState<PaymentCompleted | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -89,16 +91,24 @@ export default function ClientPage() {
     setCompleted(null);
     setTxHash(null);
     setTxStatus("idle");
+    setErrorMsg("");
     try {
       const url = new URL("/api/premium", window.location.origin);
       url.searchParams.set("merchantUrl", merchantUrl);
+      if (sku.trim()) url.searchParams.set("sku", sku.trim());
       const r = await fetch(url.toString(), { cache: "no-store" });
-      const j = await r.json();
-      setPr(j);
+      const raw = await r.text();
+      let parsed: unknown = null;
+      try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
+      if (r.status !== 402) {
+        setErrorMsg(`Unexpected status ${r.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+      } else {
+        setPr(parsed as PaymentRequired);
+      }
     } finally {
       setBusy(false);
     }
-  }, [merchantUrl]);
+  }, [merchantUrl, sku]);
 
   const signAndPay = useCallback(async () => {
     if (!plasmaOption) throw new Error("No Plasma option in PaymentRequired");
@@ -155,13 +165,19 @@ export default function ClientPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ merchantUrl, payload }),
     });
-    const j = await resp.json();
-    setCompleted(j);
-    if (j?.txHash && j.txHash !== "0x0") {
-      setTxHash(j.txHash);
+    const raw = await resp.text();
+    let parsed: unknown = null;
+    try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
+    if (!resp.ok) {
+      setErrorMsg(`Payment failed (${resp.status}): ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+    }
+    setCompleted(parsed as PaymentCompleted);
+    const txh = (parsed as { txHash?: string } | null | undefined)?.txHash as string | undefined;
+    if (txh && txh !== "0x0") {
+      setTxHash(txh);
       setTxStatus("pending");
       try {
-        const receipt = (await waitForReceipt(DEFAULTS.PLASMA_RPC, j.txHash, 60, 1500)) as { status: string | number };
+        const receipt = (await waitForReceipt(DEFAULTS.PLASMA_RPC, txh, 60, 1500)) as { status: string | number };
         const st = typeof receipt.status === "string" ? parseInt(receipt.status, 16) : Number(receipt.status);
         setTxStatus(st === 1 ? "confirmed" : "failed");
       } catch {
@@ -201,6 +217,15 @@ export default function ClientPage() {
             <span className="text-xs opacity-60">{(amountAtomic / 1_000_000).toFixed(6)} USDT0</span>
           </label>
         </div>
+        <label className="grid gap-1">
+          <span className="text-sm opacity-80">SKU (optional, e.g., premium)</span>
+          <input
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
+            placeholder="premium"
+          />
+        </label>
 
         <div className="flex items-center gap-3">
           <button
@@ -223,7 +248,19 @@ export default function ClientPage() {
           >
             Sign & Pay (EIP‑3009)
           </button>
+          <button
+            onClick={() => { setPr(null); setCompleted(null); setTxHash(null); setTxStatus("idle"); setErrorMsg(""); }}
+            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30"
+          >
+            Reset
+          </button>
         </div>
+
+        {errorMsg ? (
+          <div className="rounded-md border border-red-600/40 bg-red-600/10 text-red-700 dark:text-red-300 px-3 py-2 text-sm">
+            {errorMsg}
+          </div>
+        ) : null}
 
         <div className="grid gap-4">
           {pr ? <JsonCard title="PaymentRequired" data={pr} /> : null}

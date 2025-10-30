@@ -6,9 +6,19 @@ export async function GET(req: NextRequest) {
   const sku = searchParams.get("sku");
   const path = sku ? `/product/${encodeURIComponent(sku)}` : "/premium";
   const url = `${merchantUrl.replace(/\/$/, "")}${path}`;
-  const res = await fetch(url, { method: "GET", cache: "no-store" });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const res = await fetch(url, { method: "GET", cache: "no-store" });
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      const txt = await res.text();
+      body = txt || null;
+    }
+    return NextResponse.json(body ?? { error: "empty upstream response" }, { status: res.status });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 502 });
+  }
 }
 
 
