@@ -3,6 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { buildTransferWithAuthorization, fetchTokenNameAndVersion, splitSignature } from "../lib/eip3009";
 import { waitForReceipt } from "../lib/rpc";
+import { Card } from "../../components/ui/Card";
+import { Field } from "../../components/ui/Field";
+import { Button } from "../../components/ui/Button";
 
 const DEFAULTS = {
   PLASMA_RPC: "https://rpc.plasma.to",
@@ -192,103 +195,72 @@ export default function ClientPage() {
   }, [explorerBase, txHash]);
 
   return (
-    <main className="flex min-h-screen flex-col gap-6 p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold">Client Demo</h1>
-      <div className="grid gap-4">
-        <div className="grid gap-2 md:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Merchant URL</span>
-            <input
-              value={merchantUrl}
-              onChange={(e) => setMerchantUrl(e.target.value)}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-              placeholder="http://127.0.0.1:8000"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Amount (atomic, 6 decimals)</span>
-            <input
-              type="number"
-              value={amountAtomic}
-              onChange={(e) => setAmountAtomic(parseInt(e.target.value || "0", 10))}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-              placeholder="100000"
-            />
-            <span className="text-xs opacity-60">{(amountAtomic / 1_000_000).toFixed(6)} USDT0</span>
-          </label>
-        </div>
-        <label className="grid gap-1">
-          <span className="text-sm opacity-80">SKU (optional, e.g., premium)</span>
-          <input
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-            placeholder="premium"
+    <main className="xui-grid" style={{ paddingTop: 16, paddingBottom: 32 }}>
+      <h1 className="xui-card-title" style={{ fontSize: 22 }}>Client Demo</h1>
+      <Card>
+        <div className="xui-grid cols-2">
+          <Field
+            label="Merchant URL"
+            placeholder="http://127.0.0.1:8000"
+            value={merchantUrl}
+            onChange={(e) => setMerchantUrl((e.target as HTMLInputElement).value)}
           />
-        </label>
+          <Field
+            type="number"
+            label="Amount (atomic, 6 decimals)"
+            placeholder="100000"
+            value={amountAtomic}
+            onChange={(e) => setAmountAtomic(parseInt((e.target as HTMLInputElement).value || "0", 10))}
+            helpText={`${(amountAtomic / 1_000_000).toFixed(6)} USDT0`}
+          />
+        </div>
+        <div className="xui-grid" style={{ marginTop: 8 }}>
+          <Field
+            label="SKU (optional, e.g., premium)"
+            placeholder="premium"
+            value={sku}
+            onChange={(e) => setSku((e.target as HTMLInputElement).value)}
+          />
+        </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={connectWallet}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30"
-          >
-            {account ? `Wallet: ${account.slice(0, 6)}…${account.slice(-4)}` : "Connect Wallet"}
-          </button>
-          <button
-            onClick={requestResource}
-            disabled={busy}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30 disabled:opacity-50"
-          >
-            {busy ? "Requesting…" : "Request resource (402)"}
-          </button>
-          <button
-            onClick={signAndPay}
-            disabled={!pr || !plasmaOption}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30 disabled:opacity-50"
-          >
-            Sign & Pay (EIP‑3009)
-          </button>
-          <button
-            onClick={() => { setPr(null); setCompleted(null); setTxHash(null); setTxStatus("idle"); setErrorMsg(""); }}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30"
-          >
-            Reset
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+          <Button onClick={connectWallet}>{account ? `Wallet: ${account.slice(0, 6)}…${account.slice(-4)}` : "Connect Wallet"}</Button>
+          <Button onClick={requestResource} disabled={busy} variant="outline">{busy ? "Requesting…" : "Request resource (402)"}</Button>
+          <Button onClick={signAndPay} disabled={!pr || !plasmaOption} variant="primary">Sign & Pay (EIP‑3009)</Button>
+          <Button onClick={() => { setPr(null); setCompleted(null); setTxHash(null); setTxStatus("idle"); setErrorMsg(""); }} variant="ghost">Reset</Button>
         </div>
 
         {errorMsg ? (
-          <div className="rounded-md border border-red-600/40 bg-red-600/10 text-red-700 dark:text-red-300 px-3 py-2 text-sm">
-            {errorMsg}
+          <div className="xui-card" style={{ padding: 12, borderColor: "#ef4444" }}>
+            <div style={{ color: "#ef4444" }}>{errorMsg}</div>
           </div>
         ) : null}
+      </Card>
 
-        <div className="grid gap-4">
+      <Card title="Debug">
+        <div className="xui-grid">
           {pr ? <JsonCard title="PaymentRequired" data={pr} /> : null}
           {completed ? <JsonCard title="PaymentCompleted" data={completed} /> : null}
-        </div>
-
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span>Tx status:</span>
-            <StatusLamp status={txStatus} />
-            <code className="text-xs">{txHash || "—"}</code>
-          </div>
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Explorer base URL (optional)</span>
-            <input
-              value={explorerBase}
-              onChange={(e) => setExplorerBase(e.target.value)}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
+          <div className="xui-grid">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+              <span>Tx status:</span>
+              <StatusLamp status={txStatus} />
+              <code style={{ fontSize: 12 }}>{txHash || "—"}</code>
+            </div>
+            <Field
+              label="Explorer base URL (optional)"
               placeholder="https://explorer.plasma.to"
+              value={explorerBase}
+              onChange={(e) => setExplorerBase((e.target as HTMLInputElement).value)}
             />
-          </label>
-          {explorerHref ? (
-            <a href={explorerHref} target="_blank" className="text-blue-600 underline text-sm">
-              Open in explorer ↗
-            </a>
-          ) : null}
+            {explorerHref ? (
+              <a href={explorerHref} target="_blank" className="xui-link" rel="noreferrer">
+                Open in explorer ↗
+              </a>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </Card>
     </main>
   );
 }

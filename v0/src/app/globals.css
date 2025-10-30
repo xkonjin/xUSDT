@@ -18,7 +18,9 @@ body {
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background: radial-gradient(1200px 800px at 10% 10%, rgba(59,130,246,0.12), transparent 60%),
+              radial-gradient(1200px 800px at 90% 30%, rgba(16,185,129,0.10), transparent 60%),
+              var(--background);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -40,3 +42,54 @@ a {
     color-scheme: dark;
   }
 }
+
+/* XUI: minimal design system */
+:root {
+  --xui-bg: var(--background);
+  --xui-fg: var(--foreground);
+  --xui-muted: rgba(127,127,127,0.7);
+  --xui-border: color-mix(in oklab, var(--xui-fg) 18%, transparent);
+  --xui-card: color-mix(in oklab, var(--xui-bg) 86%, transparent);
+  --xui-elev: 0 10px 30px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.02);
+  --xui-primary: #60a5fa; /* sky-400 */
+  --xui-primary-600: #2563eb;
+}
+
+.xui-container { width: 100%; max-width: 1120px; margin-inline: auto; padding: 24px; }
+
+.xui-nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(8px); background: color-mix(in oklab, var(--xui-bg) 65%, transparent); border-bottom: 1px solid var(--xui-border); }
+.xui-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; }
+.xui-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+.xui-brand-mark { width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(135deg, var(--xui-primary), var(--xui-primary-600)); box-shadow: 0 0 24px rgba(96,165,250,0.5); }
+.xui-nav-links { display: inline-flex; gap: 14px; }
+.xui-link { opacity: 0.9; font-size: 14px; }
+.xui-link:hover { opacity: 1; text-decoration: underline; }
+
+.xui-card { border: 1px solid var(--xui-border); background: var(--xui-card); border-radius: 16px; box-shadow: var(--xui-elev); overflow: hidden; }
+.xui-card-head { padding: 16px 18px 0 18px; }
+.xui-card-title { font-size: 18px; font-weight: 600; }
+.xui-card-subtitle { font-size: 13px; opacity: 0.7; margin-top: 4px; }
+.xui-card-body { padding: 16px 18px 18px 18px; }
+
+.xui-grid { display: grid; gap: 16px; }
+.xui-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 860px) { .xui-grid.cols-2 { grid-template-columns: 1fr; } }
+
+.xui-btn { appearance: none; border: 1px solid var(--xui-border); background: color-mix(in oklab, var(--xui-bg) 90%, transparent); color: var(--xui-fg); border-radius: 12px; padding: 10px 14px; font-size: 14px; line-height: 1; cursor: pointer; }
+.xui-btn--primary { background: linear-gradient(135deg, var(--xui-primary), var(--xui-primary-600)); color: white; border-color: transparent; }
+.xui-btn--outline { background: transparent; }
+.xui-btn--ghost { background: transparent; border-color: transparent; }
+.xui-w-full { width: 100%; }
+
+.xui-field { display: grid; gap: 6px; }
+.xui-field-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+.xui-field-label { font-size: 13px; opacity: 0.8; }
+.xui-field-help { font-size: 12px; opacity: 0.65; }
+.xui-field-trailing { opacity: 0.8; font-size: 12px; }
+.xui-input { width: 100%; border: 1px solid var(--xui-border); background: color-mix(in oklab, var(--xui-bg) 95%, transparent); color: var(--xui-fg); border-radius: 12px; padding: 10px 12px; outline: none; }
+.xui-input:focus { border-color: color-mix(in oklab, var(--xui-primary) 60%, var(--xui-border)); box-shadow: 0 0 0 4px color-mix(in oklab, var(--xui-primary) 20%, transparent); }
+
+.xui-hero { display: grid; gap: 18px; align-items: center; padding: 48px 0 10px; text-align: center; }
+.xui-hero h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.xui-hero p { opacity: 0.8; }
+
