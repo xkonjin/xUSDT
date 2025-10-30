@@ -194,8 +194,8 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             s=submitted.signature.s,
         )
         token_id = None
-        if res.success:
-            # Mint NFT to payer ("to" address) after confirmed payment
+        if res.success and getattr(settings, "NFT_MINT_ON_PAY", False):
+            # Optional NFT receipt minting (explicitly enabled only)
             try:
                 minter = PlasmaMinter()
                 # Token URI strategy: env template or default by invoiceId
@@ -210,7 +210,6 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
                 if mr.success:
                     token_id = mr.token_id
                 else:
-                    # Attach mint error to receipt for debugging; settlement remains confirmed
                     if res.receipt is None:
                         res.receipt = {}
                     res.receipt["mint_error"] = mr.error
