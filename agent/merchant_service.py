@@ -115,7 +115,14 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         return {"ok": False, "error": f"invalid_signature: {e}"}
 
     if recovered.lower() != body.payer.lower():
-        return {"ok": False, "error": "signature_mismatch"}
+        return {
+            "ok": False,
+            "error": "signature_mismatch",
+            "recovered": recovered,
+            "expected": body.payer,
+            "chainId": body.chainId,
+            "channel": body.channel,
+        }
 
     rec = {
         "payer": body.payer,
