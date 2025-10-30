@@ -6,7 +6,7 @@ describe("PlasmaPaymentRouter - fee deduction", function () {
     const [deployer, payer, merchant, feeCollector] = await ethers.getSigners();
 
     // Deploy mock token (6 decimals like USDT)
-    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    const MockUSDT = await ethers.getContractFactory("contracts/MockUSDT.sol:MockUSDT");
     const usdt = await MockUSDT.deploy("Mock USDT", "mUSDT", 6);
     await usdt.waitForDeployment();
 

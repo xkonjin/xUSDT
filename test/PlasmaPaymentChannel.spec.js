@@ -27,7 +27,7 @@ describe("PlasmaPaymentChannel", function () {
     const [deployer, payer, merchant, feeCollector] = await ethers.getSigners();
 
     // Token
-    const MockUSDT = await ethers.getContractFactory("MockUSDT");
+    const MockUSDT = await ethers.getContractFactory("contracts/MockUSDT.sol:MockUSDT");
     const usdt = await MockUSDT.deploy("Mock USDT", "mUSDT", 6);
     await usdt.waitForDeployment();
 
