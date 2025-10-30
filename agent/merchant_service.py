@@ -171,20 +171,7 @@ def post_channel_settle() -> dict:
     res = fac.settle_plasma_channel(receipts, sigs, channel_address=channel_addr)
     if res.success:
         _PENDING_CHANNEL_RECEIPTS.clear()
-        out_receipt = res.receipt
-        try:
-            from web3 import Web3
-            out_receipt = Web3.toJSON(out_receipt)
-        except Exception:
-            try:
-                import json as _json
-                out_receipt = _json.loads(Web3.toJSON(out_receipt))  # type: ignore[name-defined]
-            except Exception:
-                try:
-                    out_receipt = dict(out_receipt) if isinstance(out_receipt, dict) else str(out_receipt)
-                except Exception:
-                    out_receipt = str(out_receipt)
-        return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": out_receipt}
+        return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": {"status": True}}
     return {"ok": False, "error": res.error}
 
 
