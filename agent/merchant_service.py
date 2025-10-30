@@ -78,6 +78,8 @@ class ChannelReceiptIn(BaseModel):
     nonce: str      # 0x-hex 32 bytes
     expiry: int
     signature: str  # 0x-hex bytes (65)
+    channel: str    # channel contract address used for EIP-712 domain
+    chainId: int
 
 
 @app.post("/channel/receipt")
@@ -95,8 +97,8 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
 
     # Build typed data and recover signer
     typed = build_channel_receipt_typed_data(
-        chain_id=settings.PLASMA_CHAIN_ID,
-        verifying_contract=settings.CHANNEL_ADDRESS or "0x0000000000000000000000000000000000000000",
+        chain_id=int(body.chainId),
+        verifying_contract=body.channel,
         payer=body.payer,
         merchant=body.merchant,
         amount=int(body.amount),
@@ -113,7 +115,14 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         return {"ok": False, "error": f"invalid_signature: {e}"}
 
     if recovered.lower() != body.payer.lower():
-        return {"ok": False, "error": "signature_mismatch"}
+        return {
+            "ok": False,
+            "error": "signature_mismatch",
+            "recovered": recovered,
+            "expected": body.payer,
+            "chainId": body.chainId,
+            "channel": body.channel,
+        }
 
     rec = {
         "payer": body.payer,
@@ -122,10 +131,12 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         "serviceId": body.serviceId,
         "nonce": body.nonce,
         "expiry": int(body.expiry),
+        "channel": body.channel,
         "signature": body.signature,
     }
+    _PENDING_CHANNEL_RECEIPTS.clear()
     _PENDING_CHANNEL_RECEIPTS.append(rec)
-    return {"ok": True, "queued": len(_PENDING_CHANNEL_RECEIPTS)}
+    return {"ok": True, "queued": 1}
 
 
 @app.post("/channel/settle")
@@ -152,27 +163,15 @@ def post_channel_settle() -> dict:
         for r in _PENDING_CHANNEL_RECEIPTS
     ]
     sigs = [r["signature"] for r in _PENDING_CHANNEL_RECEIPTS]
+    channel_addr = _PENDING_CHANNEL_RECEIPTS[0]["channel"]
 
     from .facilitator import PaymentFacilitator
 
     fac = PaymentFacilitator()
-    res = fac.settle_plasma_channel(receipts, sigs)
+    res = fac.settle_plasma_channel(receipts, sigs, channel_address=channel_addr)
     if res.success:
         _PENDING_CHANNEL_RECEIPTS.clear()
-        out_receipt = res.receipt
-        try:
-            from web3 import Web3
-            out_receipt = Web3.toJSON(out_receipt)
-        except Exception:
-            try:
-                import json as _json
-                out_receipt = _json.loads(Web3.toJSON(out_receipt))  # type: ignore[name-defined]
-            except Exception:
-                try:
-                    out_receipt = dict(out_receipt) if isinstance(out_receipt, dict) else str(out_receipt)
-                except Exception:
-                    out_receipt = str(out_receipt)
-        return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": out_receipt}
+        return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": {"status": True}}
     return {"ok": False, "error": res.error}
 
 

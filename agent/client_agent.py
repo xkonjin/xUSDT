@@ -93,6 +93,8 @@ class ClientAgent:
             "nonce": nonce32,
             "expiry": expiry,
             "signature": sig_bytes_hex,
+            "channel": settings.CHANNEL_ADDRESS,
+            "chainId": chain_id,
         }
 
     def _fetch_router_nonce(self, payer: str, router: str) -> int:
