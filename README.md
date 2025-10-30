@@ -221,12 +221,42 @@ PAY_AMOUNT_ATOMIC=100000  # 0.1 USDT0
 Start merchant server (FastAPI):
 ```bash
 source .venv/bin/activate
-uvicorn agent.merchant_service:app --host 0.0.0.0 --port 8000
+python -m uvicorn agent.merchant_service:app --host 0.0.0.0 --port 8000
 ```
 Run client agent:
 ```bash
 MERCHANT_URL=http://127.0.0.1:8000 python scripts/client_http.py
 ```
+
+### Channel-first live local test (recommended)
+This exercises the 0.1% fee with channel batching and no floor.
+
+```bash
+# 1) Start a local JSON-RPC node
+npx hardhat node
+
+# 2) In a new terminal, bootstrap token + channel and open a funded channel (prints exports)
+CLIENT_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+RELAYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+npx hardhat run scripts/local_channel_bootstrap.js --network localhost
+
+# 3) Export the printed env (PLASMA_RPC, CHANNEL_ADDRESS, MERCHANT_ADDRESS, RELAYER_PRIVATE_KEY, CLIENT_PRIVATE_KEY)
+export ETH_RPC=http://127.0.0.1:8545
+export PLASMA_CHAIN_ID=31337
+export PREFER_PLASMA=true
+
+# 4) Start the merchant server in this shell (inherits CHANNEL_ADDRESS)
+python -m uvicorn agent.merchant_service:app --host 127.0.0.1 --port 8000
+
+# 5) In another shell, run the client (channel-first)
+PYTHONPATH=. USE_CHANNEL=true MERCHANT_URL=http://127.0.0.1:8000 python scripts/client_http.py
+# Expected: { ok: true, txHash: 0x..., settled: 1 }
+```
+
+Notes:
+- The client embeds `channel` and `chainId` in the receipt so the server verifies the exact EIP‑712 domain.
+- If you re-deploy a channel, re-export the new `CHANNEL_ADDRESS` and restart the server.
+- For direct on-chain settles (no channel), keep `PLATFORM_FEE_BPS=10` and calibrate `DIRECT_SETTLE_FLOOR_ATOMIC` before enabling a floor.
 
 ## MCP server (Claude tools) for Plasma NFT checkout
 
