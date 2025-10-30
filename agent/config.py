@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     PLASMA_CHAIN_ID: int = Field(default=9745)
     # Feature flags
     PREFER_PLASMA: bool = Field(default=False, description="Prefer Plasma for payments when true")
+    NFT_MINT_ON_PAY: bool = Field(default=False, description="When true, mint an NFT receipt after successful Plasma payment")
 
     # Token addresses
     USDT_ADDRESS: str = Field(
@@ -80,7 +81,7 @@ class Settings(BaseSettings):
     )
 
     # Pydantic v2 settings config
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 
 @lru_cache(maxsize=1)
