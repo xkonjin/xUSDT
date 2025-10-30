@@ -4,7 +4,7 @@ xUSDT is an x402-compatible agent-to-agent (A2A) payment system that enables aut
 - Ethereum mainnet: USD₮ (USDT contract) via gasless pull-payments using an EIP‑712 router
 - Plasma Layer 1: USD₮0 via native EIP‑3009 `transferWithAuthorization`
 
-References: x402 spec and examples https://github.com/coinbase/x402, Plasma network docs https://docs.plasma.to/
+References: x402 spec and examples [github.com/coinbase/x402](https://github.com/coinbase/x402), Plasma network docs [docs.plasma.to](https://docs.plasma.to/)
 
 ## Features
 - x402-style 3-step handshake (Payment Required → Payment Submitted → Payment Completed)
@@ -47,7 +47,7 @@ References: x402 spec and examples https://github.com/coinbase/x402, Plasma netw
   - Typehash: `Transfer(address token,address from,address to,uint256 amount,uint256 nonce,uint256 deadline)`
   - Stateless: never holds funds; executes `IERC20(token).transferFrom(from, to, amount)` if signature is valid
 - Plasma (direct or channel):
-  - Direct: call USD₮0 token’s `transferWithAuthorization` (EIP‑3009)
+  - Direct: call USDT0 token’s `transferWithAuthorization` (EIP‑3009)
   - Channel-first: `contracts/plasma/PlasmaPaymentChannel.sol` amortizes micropayments with 0.1% protocol fee (no floor)
   - Direct settle with fee: `contracts/plasma/PlasmaPaymentRouter.sol` pulls tokens and deducts 0.1% to fee collector
 - Off-chain services (Python):
@@ -56,13 +56,13 @@ References: x402 spec and examples https://github.com/coinbase/x402, Plasma netw
   - `agent/facilitator.py`: submits on-chain transactions (router/USDT on Ethereum, EIP‑3009 on Plasma)
   - `agent/crypto.py`: typed‑data builders and signers
 
-### Sequence (Plasma USD₮0)
+### Sequence (Plasma USDT0)
 ```mermaid
 sequenceDiagram
     participant C as Client Agent
     participant M as Merchant Service (HTTP)
     participant F as Facilitator
-    participant P as Plasma (USDT₀)
+    participant P as Plasma (USDT0)
 
     C->>M: GET /premium
     M-->>C: 402 + PaymentRequired (Plasma-only when PREFER_PLASMA=true)
@@ -80,7 +80,7 @@ sequenceDiagram
 flowchart LR
     C[Client Agent] -->|HTTP (x402 JSON)| M[Merchant Service]
     M -->|verify/settle| F[Facilitator]
-    F -->|JSON-RPC| T[USDT₀ (EIP-3009) on Plasma]
+    F -->|JSON-RPC| T[USDT0 (EIP-3009) on Plasma]
 ```
 ## Directory quick map
 - contracts/ — Solidity sources (Ethereum + Plasma)
@@ -118,7 +118,7 @@ PLASMA_RPC=https://rpc.plasma.to
 ROUTER_ADDRESS=0xPaymentRouterAddress
 
 # Token addresses
-USDT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7  # USD₮ (USDT) on Ethereum
+USDT_ADDRESS=0xdAC17F958D2ee523a2206206994597C13D831ec7  # USDT on Ethereum
 USDT0_ADDRESS=0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb  # USD₮0 on Plasma (TetherTokenOFTExtension)
 
 # Chain IDs
@@ -145,7 +145,7 @@ DIRECT_SETTLE_FLOOR_ATOMIC=0        # static floor in token atomic units (set >0
 # Safety (true skips chain submission)
 DRY_RUN=true
 
-# Preference flag (when true, prefer Plasma USD₮0 when configured)
+# Preference flag (when true, prefer Plasma USDT0 when configured)
 PREFER_PLASMA=false
 ```
 
@@ -175,7 +175,7 @@ RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... python test_flow.py
 
 Notes:
 - Ethereum path: payer must have approved the router; relayer pays gas
-- Plasma path: uses USD₮0 EIP‑3009; facilitator first tries bytes signature variant of `transferWithAuthorization`, then falls back to `(v,r,s)` signature when needed.
+- Plasma path: uses USDT0 EIP‑3009; facilitator first tries bytes signature variant of `transferWithAuthorization`, then falls back to `(v,r,s)` signature when needed.
 
 ## Arbitrum (cheaper gas) quickstart
 1) Deploy router to Arbitrum
@@ -201,7 +201,7 @@ RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... \
 python test_flow.py
 ```
 
-## Plasma quickstart (USD₮0 EIP‑3009)
+## Plasma quickstart (USDT0 EIP‑3009)
 1) Configure environment
 ```bash
 PLASMA_RPC=https://rpc.plasma.to
@@ -300,8 +300,8 @@ WC_PROJECT_ID=... MERCHANT_URL=http://127.0.0.1:8000 npm start
 ```
 
 Notes:
-- The server builds EIP‑3009 typed data for Plasma USD₮0 and requests an `eth_signTypedData_v4` signature from the linked wallet. It then POSTs `/pay` to the merchant.
-- Configure token domain overrides if your USD₮0 token does not expose name/version on-chain: set `USDT0_NAME` and `USDT0_VERSION`.
+- The server builds EIP‑3009 typed data for Plasma USDT0 and requests an `eth_signTypedData_v4` signature from the linked wallet. It then POSTs `/pay` to the merchant.
+- Configure token domain overrides if your USDT0 token does not expose name/version on-chain: set `USDT0_NAME` and `USDT0_VERSION`.
 
 References
 - Coinbase org (x402, agentkit, payments-mcp, etc.): [https://github.com/coinbase](https://github.com/coinbase)
@@ -382,13 +382,13 @@ PaymentCompleted (server → client):
 
 ## EIP‑712 / EIP‑3009 Details
 - Router (Ethereum, typed data `Transfer`): binds token, from, to, amount, nonce, deadline to prevent parameter tampering and replay
-- USD₮0 (Plasma, EIP‑3009 `TransferWithAuthorization`): uses `from, to, value, validAfter, validBefore, nonce` with token’s domain (name, version, chainId, verifyingContract)
+- USDT0 (Plasma, EIP‑3009 `TransferWithAuthorization`): uses `from, to, value, validAfter, validBefore, nonce` with token’s domain (name, version, chainId, verifyingContract)
 
 ## Operational Guidance
 - Nonces: router keeps `nonces[from]` (sequential). Clients should query via `eth_call` before signing; the contract enforces on-chain.
 - Deadlines: keep short (e.g., 5–10 minutes) and reject expired authorizations server-side.
 - Idempotency: map `invoiceId → txHash`; ignore duplicate submissions after confirmed settlement.
-- Gas: relayer pays ETH gas for Ethereum; Plasma USD₮0 is gasless for transfers.
+- Gas: relayer pays ETH gas for Ethereum; Plasma USDT0 is gasless for transfers.
 
 ## Security
 - Never commit private keys; use a secure vault in production
@@ -425,13 +425,13 @@ PaymentCompleted (server → client):
     - `payAndMintReceiveAuth(from, toNFT, value, validAfter, validBefore, nonce, signatureBytes)` using token.receiveWithAuthorization(to=router)
     - `payAndMintVRS(from, toNFT, value, validAfter, validBefore, nonce, v, r, s)` using token.transferWithAuthorization(to=treasury)
   - FastAPI endpoints for the router flow:
-    - `GET /premium-nft` → 402 PaymentRequired for 0.01 USDT₀ (10,000 atomic), scheme `eip3009-receive`, includes `routerContract` and `nftCollection`.
+    - `GET /premium-nft` → 402 PaymentRequired for 0.01 USDT0 (10,000 atomic), scheme `eip3009-receive`, includes `routerContract` and `nftCollection`.
     - `POST /pay-nft` → settles via router and returns `PaymentCompleted` with `txHash` and a JSON‑safe receipt.
   - Client agent signs EIP‑3009 ReceiveWithAuthorization typed data to the router; server assembles a 65‑byte signature as `r||s||v` (r/s left‑padded to 32 bytes).
 
 Deployed demo (Plasma mainnet):
 - Chain ID: 9745, RPC: `https://rpc.plasma.to`
-- USD₮0 token: `0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb`
+- USDT0 token: `0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb`
 - Treasury (merchant): `0xdec34d821a100ae7a632caf36161c5651d0d5df9`
 - PlasmaReceipt721: `0xD4d9640F089DE66D00ff0242BFFE1a4377c71b50`
 - MerchantNFTRouter: `0x3fB9F749f17634312Cb2C1d3340061A504DDC991`
@@ -443,7 +443,7 @@ Server serialization hardening:
 - `/pay-nft` now returns JSONResponse and converts web3 AttributeDict/HexBytes to JSON‑safe primitives to avoid 500s from pydantic serialization.
 
 ### New endpoints
-- `GET /premium-nft` → 402 PaymentRequired (Plasma EIP‑3009 router option) for a 0.01 USDT₀ NFT.
+- `GET /premium-nft` → 402 PaymentRequired (Plasma EIP‑3009 router option) for a 0.01 USDT0 NFT.
 - `POST /pay-nft` → processes `PaymentSubmitted` signed for ReceiveWithAuthorization; on success, calls the router to forward funds to treasury and mints the Smiley NFT.
 - `GET /invoice/{invoice_id}` → returns `{ status: "pending" }` or the stored `PaymentCompleted`.
 
