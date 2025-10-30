@@ -14,6 +14,33 @@ References: x402 spec and examples https://github.com/coinbase/x402, Plasma netw
 - Replay protection (per‑payer nonces), deadlines, strict parameter binding
 - Python agents (client/merchant) + facilitator for on-chain settlement
 
+## Module overview
+- agent/
+  - client_agent.py — client-side flow: selects network, builds EIP‑712/EIP‑3009 payloads, submits payments
+  - merchant_service.py — FastAPI server exposing x402 HTTP endpoints (`/premium`, `/pay`, `/premium-nft`, `/pay-nft`)
+  - merchant_agent.py — verifies authorizations, computes fees, and coordinates settlement; returns PaymentCompleted
+  - facilitator.py — on-chain caller for Ethereum router and Plasma EIP‑3009 transfers
+  - crypto.py — typed-data builders, signature helpers, hashing utilities
+  - minter.py — NFT minting helpers for the Plasma NFT receipt flow
+  - x402_models.py — Pydantic models for x402-style request/response shapes
+- contracts/
+  - PaymentRouter.sol — Ethereum EIP‑712 “pull” router for USD₮
+  - plasma/PlasmaPaymentRouter.sol — Plasma allowance-based settle with 0.1% protocol fee
+  - plasma/PlasmaPaymentChannel.sol — channel receipts (EIP‑712), batch settle, 0.1% fee
+  - plasma/PlasmaReceipt721.sol — ERC‑721 “receipt” NFT (onlyMinter) for paid purchases
+  - plasma/MerchantNFTRouter.sol — pay‑and‑mint in a single Plasma tx (EIP‑3009)
+- scripts/ — deploy and demo utilities
+  - deploy.js, deploy_channel.js, deploy_nft.js, deploy_router.js — Hardhat deploys
+  - approve-usdt.js — one‑time USDT allowance approval (payer → router)
+  - local_channel_bootstrap.js — local JSON‑RPC bootstrap (token + channel)
+  - e2e-local-mock.js — full local E2E with MockUSDT
+  - client_http.py — HTTP client agent demo
+- mcp/ — minimal MCP server exposing wallet-link + buy NFT tools for Claude
+- test/ — Hardhat tests and fixtures
+- tests/ — Python unit tests (fees/crypto) and `test_flow.py` end‑to‑end demo
+- hardhat.config.js — Hardhat configuration
+- requirements.txt — pinned Python dependencies
+
 ## Architecture
 - Smart contract (Ethereum): `contracts/PaymentRouter.sol`
   - EIP‑712 domain: `{ name: "PaymentRouter", version: "1", chainId, verifyingContract }`
@@ -55,20 +82,13 @@ flowchart LR
     M -->|verify/settle| F[Facilitator]
     F -->|JSON-RPC| T[USDT₀ (EIP-3009) on Plasma]
 ```
-
-- Repo map:
-- contracts/PaymentRouter.sol — EIP‑712 router (Ethereum)
-- contracts/plasma/PlasmaPaymentRouter.sol — allowance-based settle with 0.1% fee (Plasma)
-- contracts/plasma/PlasmaPaymentChannel.sol — EIP‑712 receipts, batch settle, 0.1% fee (Plasma)
-- hardhat.config.js, scripts/deploy.js — build/deploy
-- scripts/approve-usdt.js — approve router allowance from payer (Arbitrum/Ethereum)
-- scripts/e2e-local-mock.js — full local E2E with MockUSDT (no real funds)
-- scripts/client_http.py — simple HTTP client agent for agent-to-agent demo
-- agent/config.py — env-driven settings
-- agent/*.py — agents, facilitator, crypto, models
-- agent/merchant_service.py — FastAPI server exposing `/premium` (402) and `/pay`
-- test_flow.py — end‑to‑end demo script
-- requirements.txt — pinned Python deps
+## Directory quick map
+- contracts/ — Solidity sources (Ethereum + Plasma)
+- agent/ — Python agents and FastAPI service
+- scripts/ — deployment + demo tooling (JS and Python)
+- mcp/ — Claude MCP server for wallet link + NFT checkout
+- test/, tests/ — JS and Python tests
+- artifacts/, cache/ — Hardhat build outputs (generated)
 
 ## Requirements
 - Node.js ≥ 18 (Hardhat), npm ≥ 9

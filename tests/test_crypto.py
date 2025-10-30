@@ -3,7 +3,7 @@ from __future__ import annotations
 from eth_account import Account
 from eth_account.messages import encode_structured_data
 
-from agent.crypto import build_router_typed_data, build_eip3009_typed_data, random_nonce32
+from agent_local.crypto import build_router_typed_data, build_eip3009_typed_data, random_nonce32
 
 
 def test_eip712_router_sign_and_recover():
