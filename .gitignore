@@ -1,0 +1,23 @@
+# Node and Next.js artifacts
+node_modules/
+v0/node_modules/
+v0/.next/
+
+# Python artifacts
+.venv/
+__pycache__/
+
+# Environment files (never commit secrets)
+.env
+.env.*
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+merchant.log
+
+
