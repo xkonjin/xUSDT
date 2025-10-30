@@ -79,6 +79,7 @@ class ChannelReceiptIn(BaseModel):
     expiry: int
     signature: str  # 0x-hex bytes (65)
     channel: str    # channel contract address used for EIP-712 domain
+    chainId: int
 
 
 @app.post("/channel/receipt")
@@ -96,7 +97,7 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
 
     # Build typed data and recover signer
     typed = build_channel_receipt_typed_data(
-        chain_id=settings.PLASMA_CHAIN_ID,
+        chain_id=int(body.chainId),
         verifying_contract=body.channel,
         payer=body.payer,
         merchant=body.merchant,
@@ -126,8 +127,9 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         "channel": body.channel,
         "signature": body.signature,
     }
+    _PENDING_CHANNEL_RECEIPTS.clear()
     _PENDING_CHANNEL_RECEIPTS.append(rec)
-    return {"ok": True, "queued": len(_PENDING_CHANNEL_RECEIPTS)}
+    return {"ok": True, "queued": 1}
 
 
 @app.post("/channel/settle")
