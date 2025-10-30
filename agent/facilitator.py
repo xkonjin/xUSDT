@@ -326,16 +326,45 @@ class PaymentFacilitator:
         except Exception as e:
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
-    def settle_plasma_channel(self, receipts: list[dict], signatures: list[str]) -> SettlementResult:
+    def settle_plasma_channel(self, receipts: list[dict], signatures: list[str], channel_address: str | None = None) -> SettlementResult:
         """Batch-settle channel receipts on Plasma.
 
         `receipts` is a list of dicts matching the Solidity struct fields.
         `signatures` are 0x-prefixed bytes signatures for the EIP-712 receipts.
         """
-        if self.channel is None:
-            return SettlementResult(success=False, tx_hash=None, error="channel_not_configured", receipt=None)
+        # Prefer explicit address if provided; else fall back to configured channel
+        if channel_address:
+            channel_abi = [
+                {
+                    "inputs": [
+                        {
+                            "components": [
+                                {"internalType": "address", "name": "payer", "type": "address"},
+                                {"internalType": "address", "name": "merchant", "type": "address"},
+                                {"internalType": "uint256", "name": "amount", "type": "uint256"},
+                                {"internalType": "bytes32", "name": "serviceId", "type": "bytes32"},
+                                {"internalType": "bytes32", "name": "nonce", "type": "bytes32"},
+                                {"internalType": "uint64", "name": "expiry", "type": "uint64"},
+                            ],
+                            "internalType": "struct PlasmaPaymentChannel.Receipt[]",
+                            "name": "receipts",
+                            "type": "tuple[]",
+                        },
+                        {"internalType": "bytes[]", "name": "signatures", "type": "bytes[]"},
+                    ],
+                    "name": "settleBatch",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                }
+            ]
+            channel = self.w3_plasma.eth.contract(address=Web3.to_checksum_address(channel_address), abi=channel_abi)
+        else:
+            if self.channel is None:
+                return SettlementResult(success=False, tx_hash=None, error="channel_not_configured", receipt=None)
+            channel = self.channel
         try:
-            tx = self.channel.functions.settleBatch(receipts, signatures).build_transaction(
+            tx = channel.functions.settleBatch(receipts, signatures).build_transaction(
                 {
                     "from": self.plasma_account.address,
                     "nonce": self.w3_plasma.eth.get_transaction_count(self.plasma_account.address),

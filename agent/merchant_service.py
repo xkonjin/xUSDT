@@ -78,6 +78,7 @@ class ChannelReceiptIn(BaseModel):
     nonce: str      # 0x-hex 32 bytes
     expiry: int
     signature: str  # 0x-hex bytes (65)
+    channel: str    # channel contract address used for EIP-712 domain
 
 
 @app.post("/channel/receipt")
@@ -96,7 +97,7 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
     # Build typed data and recover signer
     typed = build_channel_receipt_typed_data(
         chain_id=settings.PLASMA_CHAIN_ID,
-        verifying_contract=settings.CHANNEL_ADDRESS or "0x0000000000000000000000000000000000000000",
+        verifying_contract=body.channel,
         payer=body.payer,
         merchant=body.merchant,
         amount=int(body.amount),
@@ -122,6 +123,7 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         "serviceId": body.serviceId,
         "nonce": body.nonce,
         "expiry": int(body.expiry),
+        "channel": body.channel,
         "signature": body.signature,
     }
     _PENDING_CHANNEL_RECEIPTS.append(rec)
@@ -152,11 +154,12 @@ def post_channel_settle() -> dict:
         for r in _PENDING_CHANNEL_RECEIPTS
     ]
     sigs = [r["signature"] for r in _PENDING_CHANNEL_RECEIPTS]
+    channel_addr = _PENDING_CHANNEL_RECEIPTS[0]["channel"]
 
     from .facilitator import PaymentFacilitator
 
     fac = PaymentFacilitator()
-    res = fac.settle_plasma_channel(receipts, sigs)
+    res = fac.settle_plasma_channel(receipts, sigs, channel_address=channel_addr)
     if res.success:
         _PENDING_CHANNEL_RECEIPTS.clear()
         out_receipt = res.receipt
