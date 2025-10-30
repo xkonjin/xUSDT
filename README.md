@@ -78,9 +78,9 @@ sequenceDiagram
 ### Components
 ```mermaid
 flowchart LR
-    C[Client Agent] -->|HTTP (x402 JSON)| M[Merchant Service]
+    C[Client Agent] -->|HTTP x402 JSON| M[Merchant Service]
     M -->|verify/settle| F[Facilitator]
-    F -->|JSON-RPC| T[USDT0 (EIP-3009) on Plasma]
+    F -->|JSON-RPC| T[USDT0 EIP-3009 on Plasma]
 ```
 ## Directory quick map
 - contracts/ — Solidity sources (Ethereum + Plasma)
