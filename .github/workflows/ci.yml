@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, chore/**, docs/**, feat/** ]
+  pull_request:
+
+jobs:
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx hardhat compile
+      - run: npx hardhat test
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - run: pip install -r requirements.txt
+      - name: Run pytest
+        env:
+          ETH_RPC: https://ethereum.publicnode.com
+          PLASMA_RPC: https://rpc.plasma.to
+          MERCHANT_ADDRESS: 0x000000000000000000000000000000000000dEaD
+          RELAYER_PRIVATE_KEY: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          CLIENT_PRIVATE_KEY: 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          PREFER_PLASMA: 'true'
+          DRY_RUN: 'true'
+        run: python -m pytest -q

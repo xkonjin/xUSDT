@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
@@ -78,11 +79,24 @@ class Settings(BaseSettings):
         description="Static floor in token atomic units; overrides computed floor when >0",
     )
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    # Pydantic v2 settings config
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 
-settings = Settings()  # Singleton-style settings object
+@lru_cache(maxsize=1)
+def _load_settings() -> Settings:
+    """Load and cache Settings once. Avoids import-time validation failures in tests.
+    """
+    return Settings()
+
+
+class _LazySettingsProxy:
+    def __getattr__(self, name: str):  # type: ignore[override]
+        return getattr(_load_settings(), name)
+
+
+# Backwards-compatible import style: `from agent.config import settings`
+# This proxy defers environment validation until first attribute access.
+settings = _LazySettingsProxy()  # type: ignore[assignment]
 
 
