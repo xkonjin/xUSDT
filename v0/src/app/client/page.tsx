@@ -153,7 +153,8 @@ export default function ClientPage() {
       : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
     const validAfter = Math.floor(Date.now() / 1000) - 1;
     const validBefore = deadline;
-    const value = amountAtomic;
+    // Use the invoiced amount when present; fall back to local override input
+    const value = Number(plasmaOption.amount ?? amountAtomic);
 
     const { name, version } = await fetchTokenNameAndVersion(DEFAULTS.PLASMA_RPC, token).catch(() => ({ name: "USDTe", version: "1" }));
     const typed = buildTransferWithAuthorization(name, version, chainId, token, from, to, value, validAfter, validBefore, nonce32);

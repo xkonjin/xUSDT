@@ -12,12 +12,13 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
       cache: "no-store",
     });
+    // Read body once, then attempt to JSON-parse
+    const raw = await res.text();
     let data: unknown = null;
     try {
-      data = await res.json();
+      data = raw ? JSON.parse(raw) : null;
     } catch {
-      const txt = await res.text();
-      data = txt || null;
+      data = raw || null;
     }
     return NextResponse.json(data ?? { error: "empty upstream response" }, { status: res.status });
   } catch (e) {

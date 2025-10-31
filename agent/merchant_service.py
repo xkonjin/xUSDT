@@ -42,15 +42,33 @@ def get_premium(invoiceId: Optional[str] = None) -> Response:
                 status_code=200,
             )
     # Otherwise advertise a new invoice (402)
-    pr = build_payment_required(amount_atomic=1_000_000, description="Premium API access", deadline_secs=600)
+    # Premium price -> 0.1 USDT0 (100_000 atomic)
+    pr = build_payment_required(amount_atomic=100_000, description="Premium API access", deadline_secs=600)
     return JSONResponse(content=pr.model_dump(), status_code=402)
 
 
 @app.post("/pay")
 def post_pay(submitted: PaymentSubmitted) -> dict:
+    # Normalize web3-native types (AttributeDict, HexBytes, bytes) so FastAPI can serialize
+    from hexbytes import HexBytes
+    from web3.datastructures import AttributeDict
+
+    def _jsonify(obj):
+        if isinstance(obj, AttributeDict):
+            return {k: _jsonify(v) for k, v in obj.items()}
+        if isinstance(obj, HexBytes):
+            return Web3.to_hex(obj)
+        if isinstance(obj, (bytes, bytearray)):
+            return Web3.to_hex(obj)
+        if isinstance(obj, (list, tuple)):
+            return [_jsonify(v) for v in obj]
+        if isinstance(obj, dict):
+            return {k: _jsonify(v) for k, v in obj.items()}
+        return obj
+
     completed = verify_and_settle(submitted)
-    out = completed.model_dump()
-    if not isinstance(out.get("receipt"), dict):
+    out = _jsonify(completed.model_dump())
+    if not isinstance(out.get("receipt"), dict):  # final guard
         out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
     return out
 
@@ -59,13 +77,14 @@ def post_pay(submitted: PaymentSubmitted) -> dict:
 def get_product_invoice(sku: str) -> Response:
     # Minimal SKU catalog (atomic amounts, 6 decimals); extend as needed
     catalog = {
-        "premium": {"amount": 1_000_000, "description": "Premium API access"},
+        # Premium price -> 0.1 USDT0
+        "premium": {"amount": 100_000, "description": "Premium API access"},
         "vip-pass": {"amount": 3_000_000, "description": "VIP Access NFT"},
     }
     item = catalog.get(sku, None)
     if item is None:
-        # Default to 402 for unknown SKU with generic description and nominal price
-        item = {"amount": int(1_000_00), "description": f"Order {sku}"}
+        # Default price -> 0.01 USDT0 (10_000 atomic)
+        item = {"amount": 10_000, "description": f"Order {sku}"}
     pr = build_payment_required(amount_atomic=int(item["amount"]), description=str(item["description"]), deadline_secs=600)
     # Force Plasma-only by preference if configured; build_payment_required handles that flag
     return JSONResponse(content=pr.model_dump(), status_code=402)
