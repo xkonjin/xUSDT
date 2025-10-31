@@ -6,8 +6,9 @@ async function main() {
 
   const Factory = await hre.ethers.getContractFactory("TrillionaireToys");
   const nft = await Factory.deploy();
-  await nft.deployed();
-  console.log("TrillionaireToys deployed:", nft.address);
+  await nft.waitForDeployment();
+  const addr = await nft.getAddress();
+  console.log("TrillionaireToys deployed:", addr);
 
   if (process.env.MERCHANT_ADDRESS) {
     const tx = await nft.setMinter(process.env.MERCHANT_ADDRESS);
