@@ -68,6 +68,7 @@ export default function ClientPage() {
   const [sku, setSku] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [completed, setCompleted] = useState<PaymentCompleted | null>(null);
+  const [premium, setPremium] = useState<unknown | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -103,6 +104,7 @@ export default function ClientPage() {
     setBusy(true);
     setPr(null);
     setCompleted(null);
+    setPremium(null);
     setTxHash(null);
     setTxStatus("idle");
     setErrorMsg("");
@@ -110,14 +112,19 @@ export default function ClientPage() {
       const url = new URL("/api/premium", window.location.origin);
       url.searchParams.set("merchantUrl", merchantUrl);
       if (sku.trim()) url.searchParams.set("sku", sku.trim());
+      if (completed?.invoiceId) url.searchParams.set("invoiceId", completed.invoiceId);
       const r = await fetch(url.toString(), { cache: "no-store" });
       const raw = await r.text();
       let parsed: unknown = null;
       try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
-      if (r.status !== 402) {
-        setErrorMsg(`Unexpected status ${r.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
-      } else {
+      if (r.status === 402) {
         setPr(parsed as PaymentRequired);
+      } else if (r.ok) {
+        setPr(null);
+        setPremium(parsed);
+        setErrorMsg("");
+      } else {
+        setErrorMsg(`Unexpected status ${r.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
       }
     } finally {
       setBusy(false);
@@ -139,7 +146,10 @@ export default function ClientPage() {
     const to = plasmaOption.recipient;
     const chainId = plasmaOption.chainId || DEFAULTS.PLASMA_CHAIN_ID;
     const deadline = plasmaOption.deadline;
-    const nonce32 = (typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")));
+    const providedNonce = typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : undefined;
+    const nonce32 = providedNonce
+      ? (providedNonce.startsWith("0x") ? providedNonce : ("0x" + providedNonce))
+      : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
     const validAfter = Math.floor(Date.now() / 1000) - 1;
     const validBefore = deadline;
     const value = amountAtomic;
@@ -261,6 +271,7 @@ export default function ClientPage() {
         <div className="xui-grid">
           {pr ? <JsonCard title="PaymentRequired" data={pr} /> : null}
           {completed ? <JsonCard title="PaymentCompleted" data={completed} /> : null}
+          {premium ? <JsonCard title="Resource" data={premium} /> : null}
           <div className="xui-grid">
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
               <span>Tx status:</span>
