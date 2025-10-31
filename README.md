@@ -1,4 +1,4 @@
-# xUSDT — x402 A2A payments on Ethereum + Plasma (USD₮/USD₮0)
+# xUSDT — x402 A2A payments on Plasma (USD₮/USD₮0)
 
 NOTE: Plasma payloads work.
 Ux still very buggy.
