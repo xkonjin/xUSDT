@@ -2,10 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const merchantUrl = searchParams.get("merchantUrl") || "http://127.0.0.1:8000";
-  const url = `${merchantUrl.replace(/\/$/, "")}/health`;
+  const requestedUrl = searchParams.get("merchantUrl") || "http://127.0.0.1:8000";
+
+  // Allowlist of permitted merchant base URLs
+  const allowedMerchants = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    process.env.MERCHANT_URL,
+  ].filter(Boolean) as string[];
+
+  // Validate requestedUrl against allowlist
+  if (!allowedMerchants.includes(requestedUrl)) {
+    return NextResponse.json({ error: "Invalid merchant URL" }, { status: 400 });
+  }
+
+  const base = requestedUrl.replace(/\/$/, "");
+  const url = `${base}/health`;
+
   try {
-    const res = await fetch(url, { method: "GET", cache: "no-store" });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
     let body: unknown = null;
     try {
       body = await res.json();
@@ -15,7 +38,11 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json(body ?? { error: "empty upstream response" }, { status: res.status });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 502 });
+    console.error("Health check failed:", e);
+    return NextResponse.json(
+      { error: "Failed to reach upstream service" },
+      { status: 502 }
+    );
   }
 }
 

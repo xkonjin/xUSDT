@@ -45,6 +45,7 @@ type PaymentCompleted = {
   status: string;
   network: string;
   receipt?: unknown;
+  invoiceId?: string;
 };
 
 function JsonCard({ title, data }: { title: string; data: unknown }) {
@@ -129,7 +130,7 @@ export default function ClientPage() {
     } finally {
       setBusy(false);
     }
-  }, [merchantUrl, sku]);
+  }, [merchantUrl, sku, completed]);
 
   const signAndPay = useCallback(async () => {
     setErrorMsg("");

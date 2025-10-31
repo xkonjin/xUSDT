@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Card } from "../../components/ui/Card";
 import { Field } from "../../components/ui/Field";
 import { Button } from "../../components/ui/Button";
@@ -99,7 +100,7 @@ export default function MerchantPage() {
         <div className="xui-grid">
           <KeyValueCard title="Resolved" items={configItems} />
           <div>
-            <a href="/client"><Button variant="outline">Go to Client Demo →</Button></a>
+            <Link href="/client"><Button variant="outline">Go to Client Demo →</Button></Link>
           </div>
         </div>
       </Card>

@@ -33,6 +33,7 @@ export function Button({
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
       className={[base, map[variant], widthCls, className].filter(Boolean).join(" ")}
+      type="button"
       {...props}
     >
       {children}
