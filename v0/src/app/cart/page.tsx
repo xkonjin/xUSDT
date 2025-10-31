@@ -1,10 +1,19 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
+type Toy = {
+  toyId: number;
+  emoji: string;
+  name: string;
+  minPrice: number;
+  maxPrice: number;
+  r: number;
+};
+
 export default function CartPage() {
-  const [catalog, setCatalog] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<Toy[]>([]);
   const [prices, setPrices] = useState<Record<number, number>>({});
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [cart] = useState<Record<number, number>>({});
 
   useEffect(() => { fetch("/api/toys").then(r => r.json()).then(d => setCatalog(d.toys || [])); }, []);
   useEffect(() => {

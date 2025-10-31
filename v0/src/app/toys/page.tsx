@@ -1,6 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
+type Toy = {
+  toyId: number;
+  emoji: string;
+  name: string;
+  minPrice: number;
+  maxPrice: number;
+  r: number;
+};
+
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="space-y-2">
@@ -12,9 +21,9 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 }
 
 export default function ToysPage() {
-  const [catalog, setCatalog] = useState<Array<any>>([]);
+  const [catalog, setCatalog] = useState<Toy[]>([]);
   const [prices, setPrices] = useState<Record<number, number>>({});
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [, setCart] = useState<Record<number, number>>({});
 
   useEffect(() => {
     fetch("/api/toys").then(r => r.json()).then(d => setCatalog(d.toys || []));
