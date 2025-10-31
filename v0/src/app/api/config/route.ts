@@ -6,5 +6,6 @@ export async function GET() {
     token: process.env.USDT0_ADDRESS || null,
     nft: process.env.NFT_CONTRACT || null,
     rpc: process.env.PLASMA_RPC || null,
+    prefer3009: true,
   });
 }

@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { encodeApprove, signTypedDataV4, type EthereumProvider } from "@/app/lib/rpc";
+import { useCart } from "@/app/lib/cart";
+import { useWallet } from "@/app/lib/wallet";
 
 type Toy = {
   toyId: number;
@@ -24,11 +26,15 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
 export default function ToysPage() {
   const [catalog, setCatalog] = useState<Toy[]>([]);
   const [prices, setPrices] = useState<Record<number, number>>({});
-  const [, setCart] = useState<Record<number, number>>({});
-  const [account, setAccount] = useState<string>("");
+  const { add } = useCart();
+  const { account, connect, connected } = useWallet();
+  const [cfg, setCfg] = useState<{ router?: string; token?: string; prefer3009?: boolean } | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [allowance, setAllowance] = useState<number>(0);
 
   useEffect(() => {
     fetch("/api/toys").then(r => r.json()).then(d => setCatalog(d.toys || []));
+    fetch("/api/config").then(r => r.json()).then(setCfg);
   }, []);
 
   useEffect(() => {
@@ -44,32 +50,51 @@ export default function ToysPage() {
     if (catalog.length) load();
   }, [catalog]);
 
-  async function connect() {
-    const eth = (window as unknown as { ethereum?: EthereumProvider }).ethereum;
-    if (!eth) return alert("Install Rabby/MetaMask");
-    const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
-    setAccount(accounts[0]);
-    // ensure Plasma chain
-    try {
-      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2611" }] }); // 9745
-    } catch {
-      await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: "0x2611", chainName: "Plasma", nativeCurrency: { name: "XPL", symbol: "XPL", decimals: 18 }, rpcUrls: ["https://rpc.plasma.to"], blockExplorerUrls: [] }] });
-    }
+  async function refreshAllowance(addr: string) {
+    const r = await fetch(`/api/allowance?owner=${addr}`, { cache: "no-store" });
+    const d = await r.json();
+    if (!d.error && typeof d.allowanceFloat === "number") setAllowance(d.allowanceFloat);
   }
+
+  useEffect(() => {
+    if (connected && account && !cfg?.prefer3009) refreshAllowance(account);
+  }, [connected, account, cfg?.prefer3009]);
 
   async function approve() {
     const eth = (window as unknown as { ethereum?: EthereumProvider }).ethereum;
     if (!eth || !account) return alert("Connect wallet first");
-    const cfg = await (await fetch("/api/config", { cache: "no-store" })).json();
-    if (!cfg.token || !cfg.router) return alert("Server missing config");
-    const data = encodeApprove(cfg.router, (2n ** 256n - 1n));
-    const tx = (await eth.request({ method: "eth_sendTransaction", params: [{ from: account, to: cfg.token as string, data }] })) as string;
-    alert(`Approve sent: ${tx}`);
+    if (!cfg?.token || !cfg?.router) return alert("Server missing config");
+    setApproving(true);
+    try {
+      const data = encodeApprove(cfg.router, (2n ** 256n - 1n));
+      const tx = (await eth.request({ method: "eth_sendTransaction", params: [{ from: account, to: cfg.token as string, data }] })) as string;
+      await refreshAllowance(account);
+      alert(`Approve sent: ${tx}`);
+    } catch (e) {
+      alert(String(e));
+    } finally {
+      setApproving(false);
+    }
   }
 
   async function checkout(toyId: number) {
     const eth = (window as unknown as { ethereum?: EthereumProvider }).ethereum;
     if (!eth || !account) return alert("Connect wallet first");
+
+    if (!cfg || cfg.prefer3009) {
+      // EIP-3009 flow (no-approve)
+      const res = await fetch("/api/checkout3009", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ toyId, buyer: account }) });
+      const { typedData, amount, validAfter, validBefore, nonce, error } = await res.json();
+      if (error || !typedData) return alert(error || "Server failed to prepare checkout (3009)");
+      const sig = await signTypedDataV4(account, typedData);
+      const relay = await fetch("/api/relay3009", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ toyId, buyer: account, amount, validAfter, validBefore, nonce, signature: sig }) });
+      const body = await relay.json();
+      if (body.error) return alert(body.error);
+      alert(`Paid & minted. Transfer tx: ${body.transferTx}\nMint tx: ${body.mintTx}`);
+      return;
+    }
+
+    // Fallback: router flow (requires approval)
     const res = await fetch("/api/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ toyId, buyer: account }) });
     const { typedData, amount, deadline, error } = await res.json();
     if (error || !typedData) return alert(error || "Server failed to prepare checkout");
@@ -80,7 +105,9 @@ export default function ToysPage() {
     alert(`Paid & minted. Router tx: ${body.routerTx}\nMint tx: ${body.mintTx}`);
   }
 
-  const addToCart = (toyId: number) => setCart(c => ({ ...c, [toyId]: (c[toyId] || 0) + 1 }));
+  const approved = allowance > 1;
+  const showApprove = cfg?.prefer3009 === false;
+  const cfgReady = Boolean(cfg);
 
   return (
     <div className="px-16 py-8 space-y-8">
@@ -97,20 +124,32 @@ export default function ToysPage() {
             <div className="text-5xl">{t.emoji}</div>
             <div className="text-neutral-300 text-xl font-light">{t.name}</div>
             <div className="text-neutral-400 text-sm">Bonding curve pricing</div>
-            <div className="text-emerald-400">{prices[t.toyId] ? `${prices[t.toyId].toFixed(6)} USDT0` : "—"}</div>
+            <div className="text-emerald-400 h-6">
+              {prices[t.toyId] ? `${prices[t.toyId].toFixed(6)} USDT0` : <span className="inline-block h-4 w-24 bg-neutral-700 rounded animate-pulse" />}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => addToCart(t.toyId)} className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-md py-2">Add to cart</button>
-              <button onClick={() => checkout(t.toyId)} className="w-full bg-emerald-600/20 border border-emerald-400/30 hover:bg-emerald-600/30 text-emerald-300 rounded-md py-2">Buy now</button>
+              <button onClick={() => add(t.toyId, 1)} className="w-full bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-md py-2">Add to cart</button>
+              <button disabled={!cfgReady} onClick={() => checkout(t.toyId)} className="w-full bg-emerald-600/20 border border-emerald-400/30 hover:bg-emerald-600/30 text-emerald-300 rounded-md py-2 disabled:opacity-50">Buy now</button>
             </div>
           </div>
         ))}
       </div>
-      <div className="bg-neutral-800/20 border border-neutral-700/50 rounded p-4 text-neutral-400 text-sm">
-        Tip: Approve USDT0 to the router once, then purchases won’t prompt approvals.
-        <div className="mt-3">
-          <button onClick={approve} className="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-md py-2 px-4">Approve USDT0</button>
+      {showApprove ? (
+        <div className="bg-neutral-800/20 border border-neutral-700/50 rounded p-4 text-neutral-400 text-sm">
+          <div className="flex items-center justify-between">
+            <span>USDT0 Allowance for Router</span>
+            <span className={approved ? "text-emerald-400" : "text-amber-400"}>{approved ? `Approved ✓ (${allowance.toFixed(2)} USDT0)` : "Needs approval"}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <button disabled={approving || approved} onClick={approve} className="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-md py-2 px-4 disabled:opacity-50">{approving ? "Approving…" : approved ? "Approved" : "Approve USDT0"}</button>
+            <button onClick={() => account && refreshAllowance(account)} className="bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 rounded-md py-2 px-4">Refresh</button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-neutral-800/20 border border-neutral-700/50 rounded p-4 text-neutral-400 text-sm">
+          No approval needed — purchases use EIP‑3009 signed authorization.
+        </div>
+      )}
     </div>
   );
 }

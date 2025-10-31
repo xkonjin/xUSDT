@@ -1,17 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import type { EthereumProvider } from "@/app/lib/rpc";
+import { useWallet } from "@/app/lib/wallet";
 
 export default function InventoryPage() {
-  const [account, setAccount] = useState<string>("");
+  const { account, connect } = useWallet();
   const [tokens, setTokens] = useState<Array<{ tokenId: string; toyId: number; version: number; price: number }>>([]);
-
-  async function connect() {
-    const eth = (window as unknown as { ethereum?: EthereumProvider }).ethereum;
-    if (!eth) return alert("Install Rabby/MetaMask");
-    const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
-    setAccount(accounts[0]);
-  }
 
   useEffect(() => {
     if (!account) return;

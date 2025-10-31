@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
 
     const client = createPublicClient({ transport: http(rpc) });
 
-    const [nonce, price] = await Promise.all([
+    const [nonceBn, priceBn] = await Promise.all([
       client.readContract({ address: router, abi, functionName: "nonces", args: [getAddress(buyer)] }) as Promise<bigint>,
       client.readContract({ address: nft, abi, functionName: "currentPrice", args: [BigInt(toyId)] }) as Promise<bigint>,
     ]);
 
     const now = Math.floor(Date.now() / 1000);
-    const deadline = BigInt(now + 10 * 60);
-    const amount = price; // 6dp USDT0
+    const deadlineBn = BigInt(now + 10 * 60);
+    const amountBn = priceBn; // 6dp USDT0
 
     const domain = {
       name: "PaymentRouter",
@@ -60,9 +60,9 @@ export async function POST(req: NextRequest) {
       token,
       from: getAddress(buyer),
       to: merchant,
-      amount,
-      nonce,
-      deadline,
+      amount: amountBn.toString(),
+      nonce: nonceBn.toString(),
+      deadline: deadlineBn.toString(),
     } as const;
 
     return NextResponse.json({
@@ -71,9 +71,9 @@ export async function POST(req: NextRequest) {
       router,
       token,
       merchant,
-      amount: amount.toString(),
-      nonce: nonce.toString(),
-      deadline: deadline.toString(),
+      amount: amountBn.toString(),
+      nonce: nonceBn.toString(),
+      deadline: deadlineBn.toString(),
       typedData: { domain, types, primaryType: "Transfer", message },
     });
   } catch (e) {
