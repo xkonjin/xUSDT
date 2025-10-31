@@ -50,4 +50,34 @@ export async function callContractString(rpcUrl: string, to: string, data: strin
   }
 }
 
+// Minimal ABI encoding helpers
+export function encodeUint(value: bigint | number): string {
+  const v = typeof value === "number" ? BigInt(value) : value;
+  return v.toString(16).padStart(64, "0");
+}
+
+export function encodeAddress(addr: string): string {
+  return addr.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+}
+
+export function encodeApprove(spender: string, amount: bigint): string {
+  const selector = "0x095ea7b3"; // approve(address,uint256)
+  return selector + encodeAddress(spender) + encodeUint(amount);
+}
+
+export type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+export async function signTypedDataV4(address: string, typedData: unknown): Promise<string> {
+  const w = globalThis as unknown as { ethereum?: EthereumProvider };
+  const provider = w.ethereum;
+  if (!provider) throw new Error("No injected wallet");
+  const result = await provider.request({
+    method: "eth_signTypedData_v4",
+    params: [address, JSON.stringify(typedData)],
+  });
+  return result as string;
+}
+
 
