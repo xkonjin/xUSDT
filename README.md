@@ -248,6 +248,47 @@ Run client agent:
 MERCHANT_URL=http://127.0.0.1:8000 python scripts/client_http.py
 ```
 
+## Browser UI quickstart (v0)
+This repo bundles a Next.js demo at `v0/` to exercise the flow from a browser with a real wallet.
+
+1) Start merchant (Plasma, live or dry-run)
+```bash
+# In repo root
+source .venv/bin/activate
+PYTHONNOUSERSITE=1 PYTHONPATH=. \
+ETH_RPC=https://ethereum.publicnode.com \
+PLASMA_RPC=https://rpc.plasma.to \
+MERCHANT_ADDRESS=0x000000000000000000000000000000000000dEaD \
+RELAYER_PRIVATE_KEY=0x1111...1111 \
+CLIENT_PRIVATE_KEY=0x2222...2222 \
+PREFER_PLASMA=true \
+DRY_RUN=false \
+python -m uvicorn agent.merchant_service:app --host 127.0.0.1 --port 8000
+```
+
+2) Start the Next.js app
+```bash
+cd v0
+npm run dev
+# open http://localhost:3000
+```
+
+3) Test the flow
+- Merchant page: set Merchant URL to `http://127.0.0.1:8000` → Health should be green.
+- Client page:
+  - Click “Request resource (402)” → shows PaymentRequired (Plasma option).
+  - Click “Sign & Pay (EIP‑3009)” → your wallet will request an `eth_signTypedData_v4` signature.
+  - After success, click “Request resource (402)” again → the app passes `invoiceId` to `/premium` and shows a 200 “Resource” block when unlocked.
+
+Endpoints used by the UI:
+- `GET /api/health` → proxies to merchant `/health` (avoids CORS).
+- `GET /api/premium?merchantUrl=...&invoiceId=...&sku?=...` → proxies to merchant `/premium` (and `/product/{sku}`) with optional `invoiceId` to unlock content.
+- `POST /api/pay { merchantUrl, payload }` → proxies to merchant `/pay`.
+
+Notes:
+- The merchant `/premium` now accepts `?invoiceId=...` and returns 200 with a JSON payload when the referenced invoice is confirmed. Otherwise it returns 402 with a fresh PaymentRequired.
+- Nonce handling: the browser ensures the nonce from PaymentRequired is 0x‑prefixed 32‑byte hex before signing, to match backend expectations.
+
 ### Channel-first live local test (recommended)
 This exercises the 0.1% fee with channel batching and no floor.
 

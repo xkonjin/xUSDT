@@ -3,6 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { buildTransferWithAuthorization, fetchTokenNameAndVersion, splitSignature } from "../lib/eip3009";
 import { waitForReceipt } from "../lib/rpc";
+import { Card } from "../../components/ui/Card";
+import { Field } from "../../components/ui/Field";
+import { Button } from "../../components/ui/Button";
 
 const DEFAULTS = {
   PLASMA_RPC: "https://rpc.plasma.to",
@@ -42,6 +45,7 @@ type PaymentCompleted = {
   status: string;
   network: string;
   receipt?: unknown;
+  invoiceId?: string;
 };
 
 function JsonCard({ title, data }: { title: string; data: unknown }) {
@@ -65,6 +69,7 @@ export default function ClientPage() {
   const [sku, setSku] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [completed, setCompleted] = useState<PaymentCompleted | null>(null);
+  const [premium, setPremium] = useState<unknown | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "confirmed" | "failed">("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -76,19 +81,31 @@ export default function ClientPage() {
     return pr.paymentOptions.find((o) => o.network === "plasma");
   }, [pr]);
 
+  const toMessage = (e: unknown): string => {
+    if (!e) return "Unknown error";
+    if (e instanceof Error && e.message) return e.message;
+    try { return JSON.stringify(e); } catch { return String(e); }
+  };
+
   const connectWallet = useCallback(async () => {
-    const eth = window.ethereum;
-    if (!eth) throw new Error("No injected wallet found");
-    const addrs = (await eth.request({ method: "eth_requestAccounts" })) as string[];
-    const addr = addrs[0];
-    setAccount(addr || null);
-    return addr || null;
+    try {
+      const eth = window.ethereum;
+      if (!eth) throw new Error("No injected wallet found");
+      const addrs = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+      const addr = addrs[0];
+      setAccount(addr || null);
+      return addr || null;
+    }
+    catch (err) {
+      throw new Error(`Wallet connect failed: ${toMessage(err)}`);
+    }
   }, []);
 
   const requestResource = useCallback(async () => {
     setBusy(true);
     setPr(null);
     setCompleted(null);
+    setPremium(null);
     setTxHash(null);
     setTxStatus("idle");
     setErrorMsg("");
@@ -96,48 +113,59 @@ export default function ClientPage() {
       const url = new URL("/api/premium", window.location.origin);
       url.searchParams.set("merchantUrl", merchantUrl);
       if (sku.trim()) url.searchParams.set("sku", sku.trim());
+      if (completed?.invoiceId) url.searchParams.set("invoiceId", completed.invoiceId);
       const r = await fetch(url.toString(), { cache: "no-store" });
       const raw = await r.text();
       let parsed: unknown = null;
       try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
-      if (r.status !== 402) {
-        setErrorMsg(`Unexpected status ${r.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
-      } else {
+      if (r.status === 402) {
         setPr(parsed as PaymentRequired);
+      } else if (r.ok) {
+        setPr(null);
+        setPremium(parsed);
+        setErrorMsg("");
+      } else {
+        setErrorMsg(`Unexpected status ${r.status}: ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
       }
     } finally {
       setBusy(false);
     }
-  }, [merchantUrl, sku]);
+  }, [merchantUrl, sku, completed]);
 
   const signAndPay = useCallback(async () => {
-    if (!plasmaOption) throw new Error("No Plasma option in PaymentRequired");
+    setErrorMsg("");
+    if (!plasmaOption) { setErrorMsg("No Plasma option in PaymentRequired"); setTxStatus("failed"); return; }
     const eth = window.ethereum;
-    if (!eth) throw new Error("No injected wallet");
-    const fromMaybe = account || (await connectWallet());
-    if (!fromMaybe) throw new Error("Wallet not connected");
+    if (!eth) { setErrorMsg("No injected wallet"); setTxStatus("failed"); return; }
+    const fromMaybe = (account || (await connectWallet())) as string | null;
+    if (!fromMaybe) { setErrorMsg("Wallet not connected"); setTxStatus("failed"); return; }
     const from = fromMaybe as string;
 
-    // Pull fields from PR
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2611" }] }).catch(() => {});
+
     const token = plasmaOption.token;
-    const to = plasmaOption.recipient; // merchant
+    const to = plasmaOption.recipient;
     const chainId = plasmaOption.chainId || DEFAULTS.PLASMA_CHAIN_ID;
     const deadline = plasmaOption.deadline;
-    const nonce32 = (typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : undefined) ||
-      ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
+    const providedNonce = typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : undefined;
+    const nonce32 = providedNonce
+      ? (providedNonce.startsWith("0x") ? providedNonce : ("0x" + providedNonce))
+      : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
     const validAfter = Math.floor(Date.now() / 1000) - 1;
     const validBefore = deadline;
     const value = amountAtomic;
 
-    // Fetch token name/version (fallback to USDTe/1)
     const { name, version } = await fetchTokenNameAndVersion(DEFAULTS.PLASMA_RPC, token).catch(() => ({ name: "USDTe", version: "1" }));
     const typed = buildTransferWithAuthorization(name, version, chainId, token, from, to, value, validAfter, validBefore, nonce32);
 
-    // Request signature (EIP-712)
-    const sigHex = (await eth.request({
-      method: "eth_signTypedData_v4",
-      params: [from, JSON.stringify(typed)],
-    })) as string;
+    let sigHex: string;
+    try {
+      sigHex = (await eth.request({ method: "eth_signTypedData_v4", params: [from, JSON.stringify(typed)] })) as string;
+    } catch (e) {
+      setErrorMsg(`Signature rejected: ${toMessage(e)}`);
+      setTxStatus("failed");
+      return;
+    }
     const { v, r, s } = splitSignature(sigHex);
 
     const payload = {
@@ -159,7 +187,6 @@ export default function ClientPage() {
       scheme: "eip3009-transfer-with-auth",
     };
 
-    // Proxy to merchant
     const resp = await fetch("/api/pay", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -170,12 +197,19 @@ export default function ClientPage() {
     try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
     if (!resp.ok) {
       setErrorMsg(`Payment failed (${resp.status}): ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+      setTxStatus("failed");
+      return;
     }
     setCompleted(parsed as PaymentCompleted);
-    const txh = (parsed as { txHash?: string } | null | undefined)?.txHash as string | undefined;
+    const p: Partial<PaymentCompleted> = (parsed || {}) as Partial<PaymentCompleted>;
+    const statusFromServer = typeof p.status === "string" ? p.status.toLowerCase() : null;
+    if (statusFromServer === "confirmed" || statusFromServer === "failed") {
+      setTxStatus(statusFromServer as "confirmed" | "failed");
+    }
+    const txh = (p.txHash as string | undefined) || undefined;
     if (txh && txh !== "0x0") {
       setTxHash(txh);
-      setTxStatus("pending");
+      if (!statusFromServer) setTxStatus("pending");
       try {
         const receipt = (await waitForReceipt(DEFAULTS.PLASMA_RPC, txh, 60, 1500)) as { status: string | number };
         const st = typeof receipt.status === "string" ? parseInt(receipt.status, 16) : Number(receipt.status);
@@ -192,103 +226,73 @@ export default function ClientPage() {
   }, [explorerBase, txHash]);
 
   return (
-    <main className="flex min-h-screen flex-col gap-6 p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold">Client Demo</h1>
-      <div className="grid gap-4">
-        <div className="grid gap-2 md:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Merchant URL</span>
-            <input
-              value={merchantUrl}
-              onChange={(e) => setMerchantUrl(e.target.value)}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-              placeholder="http://127.0.0.1:8000"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Amount (atomic, 6 decimals)</span>
-            <input
-              type="number"
-              value={amountAtomic}
-              onChange={(e) => setAmountAtomic(parseInt(e.target.value || "0", 10))}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-              placeholder="100000"
-            />
-            <span className="text-xs opacity-60">{(amountAtomic / 1_000_000).toFixed(6)} USDT0</span>
-          </label>
-        </div>
-        <label className="grid gap-1">
-          <span className="text-sm opacity-80">SKU (optional, e.g., premium)</span>
-          <input
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
-            placeholder="premium"
+    <main className="xui-grid" style={{ paddingTop: 16, paddingBottom: 32 }}>
+      <h1 className="xui-card-title" style={{ fontSize: 22 }}>Client Demo</h1>
+      <Card>
+        <div className="xui-grid cols-2">
+          <Field
+            label="Merchant URL"
+            placeholder="http://127.0.0.1:8000"
+            value={merchantUrl}
+            onChange={(e) => setMerchantUrl((e.target as HTMLInputElement).value)}
           />
-        </label>
+          <Field
+            type="number"
+            label="Amount (atomic, 6 decimals)"
+            placeholder="100000"
+            value={amountAtomic}
+            onChange={(e) => setAmountAtomic(parseInt((e.target as HTMLInputElement).value || "0", 10))}
+            helpText={`${(amountAtomic / 1_000_000).toFixed(6)} USDT0`}
+          />
+        </div>
+        <div className="xui-grid" style={{ marginTop: 8 }}>
+          <Field
+            label="SKU (optional, e.g., premium)"
+            placeholder="premium"
+            value={sku}
+            onChange={(e) => setSku((e.target as HTMLInputElement).value)}
+          />
+        </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={connectWallet}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30"
-          >
-            {account ? `Wallet: ${account.slice(0, 6)}…${account.slice(-4)}` : "Connect Wallet"}
-          </button>
-          <button
-            onClick={requestResource}
-            disabled={busy}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30 disabled:opacity-50"
-          >
-            {busy ? "Requesting…" : "Request resource (402)"}
-          </button>
-          <button
-            onClick={signAndPay}
-            disabled={!pr || !plasmaOption}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30 disabled:opacity-50"
-          >
-            Sign & Pay (EIP‑3009)
-          </button>
-          <button
-            onClick={() => { setPr(null); setCompleted(null); setTxHash(null); setTxStatus("idle"); setErrorMsg(""); }}
-            className="rounded-md border px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30"
-          >
-            Reset
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+          <Button onClick={connectWallet}>{account ? `Wallet: ${account.slice(0, 6)}…${account.slice(-4)}` : "Connect Wallet"}</Button>
+          <Button onClick={requestResource} disabled={busy} variant="outline">{busy ? "Requesting…" : "Request resource (402)"}</Button>
+          <Button onClick={signAndPay} disabled={!pr || !plasmaOption} variant="primary">Sign & Pay (EIP‑3009)</Button>
+          <Button onClick={() => { setPr(null); setCompleted(null); setTxHash(null); setTxStatus("idle"); setErrorMsg(""); }} variant="ghost">Reset</Button>
         </div>
 
         {errorMsg ? (
-          <div className="rounded-md border border-red-600/40 bg-red-600/10 text-red-700 dark:text-red-300 px-3 py-2 text-sm">
-            {errorMsg}
+          <div className="xui-card" style={{ padding: 12, borderColor: "#ef4444" }}>
+            <div style={{ color: "#ef4444" }}>{errorMsg}</div>
           </div>
         ) : null}
+      </Card>
 
-        <div className="grid gap-4">
+      <Card title="Debug">
+        <div className="xui-grid">
           {pr ? <JsonCard title="PaymentRequired" data={pr} /> : null}
           {completed ? <JsonCard title="PaymentCompleted" data={completed} /> : null}
-        </div>
-
-        <div className="grid gap-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span>Tx status:</span>
-            <StatusLamp status={txStatus} />
-            <code className="text-xs">{txHash || "—"}</code>
-          </div>
-          <label className="grid gap-1">
-            <span className="text-sm opacity-80">Explorer base URL (optional)</span>
-            <input
-              value={explorerBase}
-              onChange={(e) => setExplorerBase(e.target.value)}
-              className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
+          {premium ? <JsonCard title="Resource" data={premium} /> : null}
+          <div className="xui-grid">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+              <span>Tx status:</span>
+              <StatusLamp status={txStatus} />
+              <code style={{ fontSize: 12 }}>{txHash || "—"}</code>
+            </div>
+            <Field
+              label="Explorer base URL (optional)"
               placeholder="https://explorer.plasma.to"
+              value={explorerBase}
+              onChange={(e) => setExplorerBase((e.target as HTMLInputElement).value)}
             />
-          </label>
-          {explorerHref ? (
-            <a href={explorerHref} target="_blank" className="text-blue-600 underline text-sm">
-              Open in explorer ↗
-            </a>
-          ) : null}
+            {explorerHref ? (
+              <a href={explorerHref} target="_blank" className="xui-link" rel="noreferrer">
+                Open in explorer ↗
+              </a>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </Card>
     </main>
   );
 }

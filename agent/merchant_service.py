@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import json
 from web3 import Web3
+from typing import Optional
 
 from .merchant_agent import build_payment_required, verify_and_settle
 from .x402_models import PaymentSubmitted
@@ -22,7 +23,25 @@ def health() -> dict:
 
 
 @app.get("/premium")
-def get_premium() -> Response:
+def get_premium(invoiceId: Optional[str] = None) -> Response:
+    # If an invoiceId is provided and marked confirmed, grant access (200)
+    if invoiceId:
+        from .merchant_agent import get_invoice_record
+        rec = get_invoice_record(invoiceId)
+        if rec and str(rec.status).lower() == "confirmed":
+            return JSONResponse(
+                content={
+                    "type": "premium",
+                    "invoiceId": invoiceId,
+                    "granted": True,
+                    "resource": {
+                        "message": "Premium content unlocked",
+                        "ts": int(time.time()),
+                    },
+                },
+                status_code=200,
+            )
+    # Otherwise advertise a new invoice (402)
     pr = build_payment_required(amount_atomic=1_000_000, description="Premium API access", deadline_secs=600)
     return JSONResponse(content=pr.model_dump(), status_code=402)
 

@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Card } from "../../components/ui/Card";
+import { Field } from "../../components/ui/Field";
+import { Button } from "../../components/ui/Button";
 
 const DEFAULTS = {
   PLASMA_RPC: "https://rpc.plasma.to",
@@ -57,7 +61,9 @@ export default function MerchantPage() {
     async function check() {
       setChecking(true);
       try {
-        const r = await fetch(`${merchantUrl.replace(/\/$/, "")}/health`, { cache: "no-store" });
+        const url = new URL("/api/health", window.location.origin);
+        url.searchParams.set("merchantUrl", merchantUrl);
+        const r = await fetch(url.toString(), { cache: "no-store" });
         const j = await r.json();
         if (!aborted) setHealth({ ok: Boolean(j?.ok), ts: Number(j?.ts) || undefined });
       } catch {
@@ -73,29 +79,31 @@ export default function MerchantPage() {
   }, [merchantUrl]);
 
   return (
-    <main className="flex min-h-screen flex-col gap-6 p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold">Merchant</h1>
-      <div className="grid gap-4">
-        <label className="grid gap-1">
-          <span className="text-sm opacity-80">Merchant URL</span>
-          <input
-            value={merchantUrl}
-            onChange={(e) => setMerchantUrl(e.target.value)}
-            className="border border-gray-300 dark:border-neutral-700 rounded-md px-3 py-2 bg-transparent"
+    <main className="xui-grid" style={{ paddingTop: 16, paddingBottom: 32 }}>
+      <h1 className="xui-card-title" style={{ fontSize: 22 }}>Merchant</h1>
+      <Card>
+        <div className="xui-grid">
+          <Field
+            label="Merchant URL"
             placeholder="http://127.0.0.1:8000"
+            value={merchantUrl}
+            onChange={(e) => setMerchantUrl((e.target as HTMLInputElement).value)}
           />
-        </label>
-        <div className="flex items-center gap-3">
-          <StatusLamp ok={Boolean(health?.ok)} message={checking ? "Checking..." : health?.ok ? "Merchant API reachable" : "Merchant offline"} />
-          {health?.ts ? <span className="text-xs opacity-60">ts={health.ts}</span> : null}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <StatusLamp ok={Boolean(health?.ok)} message={checking ? "Checking..." : health?.ok ? "Merchant API reachable" : "Merchant offline"} />
+            {health?.ts ? <span className="xui-field-help">ts={health.ts}</span> : null}
+          </div>
         </div>
-        <KeyValueCard title="Config" items={configItems} />
-        <div>
-          <a href="/client" className="inline-block rounded-md border px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800/30">
-            Go to Client Demo →
-          </a>
+      </Card>
+
+      <Card title="Config">
+        <div className="xui-grid">
+          <KeyValueCard title="Resolved" items={configItems} />
+          <div>
+            <Link href="/client"><Button variant="outline">Go to Client Demo →</Button></Link>
+          </div>
         </div>
-      </div>
+      </Card>
     </main>
   );
 }
