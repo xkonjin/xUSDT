@@ -173,12 +173,19 @@ export default function ClientPage() {
     try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw || null; }
     if (!resp.ok) {
       setErrorMsg(`Payment failed (${resp.status}): ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+      setTxStatus("failed");
+      return;
     }
     setCompleted(parsed as PaymentCompleted);
-    const txh = (parsed as { txHash?: string } | null | undefined)?.txHash as string | undefined;
+    const p: Partial<PaymentCompleted> = (parsed || {}) as Partial<PaymentCompleted>;
+    const statusFromServer = typeof p.status === "string" ? p.status.toLowerCase() : null;
+    if (statusFromServer === "confirmed" || statusFromServer === "failed") {
+      setTxStatus(statusFromServer as "confirmed" | "failed");
+    }
+    const txh = (p.txHash as string | undefined) || undefined;
     if (txh && txh !== "0x0") {
       setTxHash(txh);
-      setTxStatus("pending");
+      if (!statusFromServer) setTxStatus("pending");
       try {
         const receipt = (await waitForReceipt(DEFAULTS.PLASMA_RPC, txh, 60, 1500)) as { status: string | number };
         const st = typeof receipt.status === "string" ? parseInt(receipt.status, 16) : Number(receipt.status);
