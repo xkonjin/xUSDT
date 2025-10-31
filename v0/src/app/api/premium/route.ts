@@ -10,12 +10,12 @@ export async function GET(req: NextRequest) {
   const url = base.toString();
   try {
     const res = await fetch(url, { method: "GET", cache: "no-store" });
+    const raw = await res.text();
     let body: unknown = null;
     try {
-      body = await res.json();
+      body = raw ? JSON.parse(raw) : null;
     } catch {
-      const txt = await res.text();
-      body = txt || null;
+      body = raw || null;
     }
     return NextResponse.json(body ?? { error: "empty upstream response" }, { status: res.status });
   } catch (e) {
