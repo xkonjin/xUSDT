@@ -79,13 +79,24 @@ export default function ClientPage() {
     return pr.paymentOptions.find((o) => o.network === "plasma");
   }, [pr]);
 
+  const toMessage = (e: unknown): string => {
+    if (!e) return "Unknown error";
+    if (e instanceof Error && e.message) return e.message;
+    try { return JSON.stringify(e); } catch { return String(e); }
+  };
+
   const connectWallet = useCallback(async () => {
-    const eth = window.ethereum;
-    if (!eth) throw new Error("No injected wallet found");
-    const addrs = (await eth.request({ method: "eth_requestAccounts" })) as string[];
-    const addr = addrs[0];
-    setAccount(addr || null);
-    return addr || null;
+    try {
+      const eth = window.ethereum;
+      if (!eth) throw new Error("No injected wallet found");
+      const addrs = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+      const addr = addrs[0];
+      setAccount(addr || null);
+      return addr || null;
+    }
+    catch (err) {
+      throw new Error(`Wallet connect failed: ${toMessage(err)}`);
+    }
   }, []);
 
   const requestResource = useCallback(async () => {
@@ -114,33 +125,36 @@ export default function ClientPage() {
   }, [merchantUrl, sku]);
 
   const signAndPay = useCallback(async () => {
-    if (!plasmaOption) throw new Error("No Plasma option in PaymentRequired");
+    setErrorMsg("");
+    if (!plasmaOption) { setErrorMsg("No Plasma option in PaymentRequired"); setTxStatus("failed"); return; }
     const eth = window.ethereum;
-    if (!eth) throw new Error("No injected wallet");
-    const fromMaybe = account || (await connectWallet());
-    if (!fromMaybe) throw new Error("Wallet not connected");
+    if (!eth) { setErrorMsg("No injected wallet"); setTxStatus("failed"); return; }
+    const fromMaybe = (account || (await connectWallet())) as string | null;
+    if (!fromMaybe) { setErrorMsg("Wallet not connected"); setTxStatus("failed"); return; }
     const from = fromMaybe as string;
 
-    // Pull fields from PR
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2611" }] }).catch(() => {});
+
     const token = plasmaOption.token;
-    const to = plasmaOption.recipient; // merchant
+    const to = plasmaOption.recipient;
     const chainId = plasmaOption.chainId || DEFAULTS.PLASMA_CHAIN_ID;
     const deadline = plasmaOption.deadline;
-    const nonce32 = (typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : undefined) ||
-      ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
+    const nonce32 = (typeof plasmaOption.nonce === "string" ? plasmaOption.nonce : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "")));
     const validAfter = Math.floor(Date.now() / 1000) - 1;
     const validBefore = deadline;
     const value = amountAtomic;
 
-    // Fetch token name/version (fallback to USDTe/1)
     const { name, version } = await fetchTokenNameAndVersion(DEFAULTS.PLASMA_RPC, token).catch(() => ({ name: "USDTe", version: "1" }));
     const typed = buildTransferWithAuthorization(name, version, chainId, token, from, to, value, validAfter, validBefore, nonce32);
 
-    // Request signature (EIP-712)
-    const sigHex = (await eth.request({
-      method: "eth_signTypedData_v4",
-      params: [from, JSON.stringify(typed)],
-    })) as string;
+    let sigHex: string;
+    try {
+      sigHex = (await eth.request({ method: "eth_signTypedData_v4", params: [from, JSON.stringify(typed)] })) as string;
+    } catch (e) {
+      setErrorMsg(`Signature rejected: ${toMessage(e)}`);
+      setTxStatus("failed");
+      return;
+    }
     const { v, r, s } = splitSignature(sigHex);
 
     const payload = {
@@ -162,7 +176,6 @@ export default function ClientPage() {
       scheme: "eip3009-transfer-with-auth",
     };
 
-    // Proxy to merchant
     const resp = await fetch("/api/pay", {
       method: "POST",
       headers: { "content-type": "application/json" },
