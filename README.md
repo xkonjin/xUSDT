@@ -1,5 +1,9 @@
 # xUSDT — x402 A2A payments on Ethereum + Plasma (USD₮/USD₮0)
 
+NOTE: Plasma payloads work.
+Ux still very buggy.
+Not tested the MCP / NFT / ETH / ARB sections yet enough to be fully satisfactory.
+
 Minimal, production‑leaning reference for x402‑style agent‑to‑agent payments:
 - Ethereum: USD₮ via EIP‑712 gasless router (pull)
 - Plasma (Layer 1): USD₮0 via EIP‑3009 `transferWithAuthorization` (push)
