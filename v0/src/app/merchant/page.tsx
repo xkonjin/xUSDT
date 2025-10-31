@@ -60,7 +60,9 @@ export default function MerchantPage() {
     async function check() {
       setChecking(true);
       try {
-        const r = await fetch(`${merchantUrl.replace(/\/$/, "")}/health`, { cache: "no-store" });
+        const url = new URL("/api/health", window.location.origin);
+        url.searchParams.set("merchantUrl", merchantUrl);
+        const r = await fetch(url.toString(), { cache: "no-store" });
         const j = await r.json();
         if (!aborted) setHealth({ ok: Boolean(j?.ok), ts: Number(j?.ts) || undefined });
       } catch {
