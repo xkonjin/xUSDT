@@ -36,6 +36,11 @@ def sdk_js() -> Response:
     return FileResponse(str(_SDK_DIR / "sdk.js"), media_type="application/javascript")
 
 
+@app.get("/demo")
+def demo_html() -> Response:
+    return FileResponse(str(_SDK_DIR / "demo.html"), media_type="text/html")
+
+
 @app.get("/health")
 def health() -> dict:
     return {"ok": True, "ts": int(time.time())}

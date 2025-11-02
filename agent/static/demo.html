@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Plasma Checkout — Demo</title>
+    <link rel="stylesheet" href="/sdk/styles.css">
+    <meta name="theme-color" content="#0a0a0b">
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Checkout</h1>
+        <p class="sub">Test the full flow. Enter a cart total, then click Pay with Plasma.</p>
+
+        <div class="row" style="margin-bottom: 12px;">
+          <div>
+            <label for="cart-total">Cart total (USD₮)</label><br>
+            <input id="cart-total" class="amount" type="text" inputmode="decimal" placeholder="0.10" value="0.10">
+          </div>
+
+          <div class="price-pill" id="pill">Total: 0.10 USD₮</div>
+        </div>
+
+        <div class="btn-row">
+          <button id="plasma-btn" class="plasma-button brand" data-plasma-pay data-amount-selector="#cart-total" data-rpc="https://rpc.plasma.to">
+            <span class="brand-mark"></span>
+            <span>Pay with Plasma</span>
+          </button>
+          <span class="hint">You’ll be asked to approve on first use, then it’s 1‑click.</span>
+        </div>
+
+        <div id="status" class="status" style="margin-top: 14px;"></div>
+        <div id="tx" class="hint" style="margin-top: 6px;"></div>
+
+        <div class="footer-note">Plasma is a Layer 1 blockchain. Payments settle in USD₮0.</div>
+      </div>
+    </div>
+
+    <!-- Serve the SDK from the same server so CORS is a non-issue -->
+    <script src="/sdk.js" data-server=""></script>
+    <script>
+      const input = document.getElementById('cart-total');
+      const pill = document.getElementById('pill');
+      const btn = document.getElementById('plasma-btn');
+      const statusEl = document.getElementById('status');
+      const txEl = document.getElementById('tx');
+
+      function format(v) {
+        const n = Number(v || 0);
+        return (isFinite(n) ? n : 0).toFixed(2);
+      }
+
+      function updatePill() {
+        pill.textContent = 'Total: ' + format(input.value) + ' USD₮';
+      }
+      input.addEventListener('input', updatePill);
+      updatePill();
+
+      btn.addEventListener('plasma:paid', (e) => {
+        statusEl.textContent = 'Success';
+        txEl.innerHTML = 'Tx: ' + (e.detail && e.detail.routerTx ? e.detail.routerTx : '');
+      });
+      btn.addEventListener('plasma:error', (e) => {
+        statusEl.textContent = 'Error: ' + (e.detail || '');
+        txEl.textContent = '';
+      });
+    </script>
+  </body>
+  </html>
+
+
