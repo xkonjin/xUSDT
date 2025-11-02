@@ -120,20 +120,51 @@ NEXT_PUBLIC_PLASMA_CHAIN_ID=9745
 NEXT_PUBLIC_PLASMA_RPC=https://rpc.plasma.to
 ```
 
-## Pay with Plasma Button (SDK v0)
-- Demo page: `v0/src/app/checkout/page.tsx`
-- Component: `v0/src/components/PayWithPlasmaButton.tsx`
+## Pay with Plasma Button (Server‑only API)
 
-Usage (in any page):
-```tsx
-<PayWithPlasmaButton defaultAmount="0.10" />
+If you don't want to run the Next.js demo (`v0/`), you can hit the FastAPI server directly:
+
+- `POST /router/checkout_total` → Build EIP‑712 typed data for totals
+  - Body: `{ buyer: "0x...", amountDecimal?: "0.10", amountAtomic?: 100000 }`
+  - Reply: `{ domain, types, message, amount, deadline }`
+
+- `POST /router/relay_total` → Relay signed `gaslessTransfer`
+  - Body: `{ buyer: "0x...", amount: 100000, deadline: 1730..., signature: "0x..." }`
+  - Reply: `{ routerTx, status }`
+
+Minimal browser snippet (vanilla) that uses only the FastAPI server:
+```html
+<script>
+async function plasmaPayTotal(serverBase, amountDec) {
+  if (!window.ethereum) throw new Error('No wallet available');
+  const [buyer] = await ethereum.request({ method: 'eth_requestAccounts' });
+
+  // 1) Build typed data on the server
+  const ch = await fetch(serverBase + '/router/checkout_total', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ buyer, amountDecimal: amountDec })
+  }).then(r => r.json());
+
+  // 2) Ensure allowance >= amount; if not, send approve(router, amount)
+  const token = ch.message.token, router = ch.domain.verifyingContract;
+  const pad32 = x => x.replace(/^0x/, '').padStart(64, '0');
+  const allowanceData = '0xdd62ed3e' + pad32(buyer) + pad32(router);
+  const allowanceHex = await ethereum.request({ method: 'eth_call', params: [{ to: token, data: allowanceData }, 'latest'] });
+  if (BigInt(allowanceHex) < BigInt(ch.amount)) {
+    const approveData = '0x095ea7b3' + pad32(router) + pad32(BigInt(ch.amount).toString(16));
+    await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: buyer, to: token, value: '0x0', data: approveData }] });
+  }
+
+  // 3) Sign typed data and relay
+  const signature = await ethereum.request({ method: 'eth_signTypedData_v4', params: [buyer, JSON.stringify({ domain: ch.domain, types: ch.types, primaryType: 'Transfer', message: ch.message })] });
+  const relayed = await fetch(serverBase + '/router/relay_total', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ buyer, amount: ch.amount, deadline: ch.deadline, signature })
+  }).then(r => r.json());
+  return relayed;
+}
+</script>
 ```
-
-Flow:
-- Ensures Plasma chain; asks for allowance if needed (ERC20 approve to router)
-- Builds EIP‑712 payload via `/api/checkout_total`
-- User signs in wallet (eth_signTypedData_v4)
-- Server relays via `/api/relay_total` (uses RELAYER_PRIVATE_KEY)
 
 ## Endpoints (merchant)
 - GET `/health` → `{ ok, ts }`
