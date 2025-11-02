@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import time
 from fastapi import FastAPI, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 from web3 import Web3
@@ -14,7 +16,24 @@ from .config import settings
 from .x402_models import PaymentOption, PaymentRequired
 import uuid
 
+from pathlib import Path
+
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve SDK JS for drop-in integration
+_SDK_DIR = Path(__file__).parent / "static"
+app.mount("/sdk", StaticFiles(directory=str(_SDK_DIR), html=False), name="sdk")
+
+@app.get("/sdk.js")
+def sdk_js() -> Response:
+    return FileResponse(str(_SDK_DIR / "sdk.js"), media_type="application/javascript")
 
 
 @app.get("/health")

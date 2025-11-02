@@ -134,6 +134,14 @@ If you don't want to run the Next.js demo (`v0/`), you can hit the FastAPI serve
 
 Minimal browser snippet (vanilla) that uses only the FastAPI server:
 ```html
+<!-- 1) Add a button and (optional) amount input on your site -->
+<input id="cart-total" value="0.10" />
+<button data-plasma-pay data-server="http://127.0.0.1:8000" data-amount-selector="#cart-total">Pay with Plasma</button>
+
+<!-- 2) Include the SDK (auto‑attaches to any element with data-plasma-pay) -->
+<script src="http://127.0.0.1:8000/sdk.js" data-server="http://127.0.0.1:8000"></script>
+
+<!-- Optional: use the helper directly -->
 <script>
 async function plasmaPayTotal(serverBase, amountDec) {
   if (!window.ethereum) throw new Error('No wallet available');
