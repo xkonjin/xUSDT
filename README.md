@@ -38,7 +38,7 @@ Alternatively, you can place these in a `.env` and source them before running (f
 2) Start Next.js:
 ```bash
 cd v0 && npm run dev
-# open http://localhost:3000/client
+# open http://localhost:3000/checkout
 ```
 3) In the UI:
 - Connect Wallet → Request resource (402) → Sign & Pay (EIP‑3009)
@@ -113,6 +113,27 @@ CLIENT_PRIVATE_KEY=0x...(never commit)
 PREFER_PLASMA=true
 ```
 Optional (token domain overrides when name/version aren’t callable): `USDT0_NAME=USDTe`, `USDT0_VERSION=1`.
+
+### Client hints (optional)
+```env
+NEXT_PUBLIC_PLASMA_CHAIN_ID=9745
+NEXT_PUBLIC_PLASMA_RPC=https://rpc.plasma.to
+```
+
+## Pay with Plasma Button (SDK v0)
+- Demo page: `v0/src/app/checkout/page.tsx`
+- Component: `v0/src/components/PayWithPlasmaButton.tsx`
+
+Usage (in any page):
+```tsx
+<PayWithPlasmaButton defaultAmount="0.10" />
+```
+
+Flow:
+- Ensures Plasma chain; asks for allowance if needed (ERC20 approve to router)
+- Builds EIP‑712 payload via `/api/checkout_total`
+- User signs in wallet (eth_signTypedData_v4)
+- Server relays via `/api/relay_total` (uses RELAYER_PRIVATE_KEY)
 
 ## Endpoints (merchant)
 - GET `/health` → `{ ok, ts }`
