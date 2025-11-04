@@ -3,7 +3,7 @@
 import { motion, type HTMLMotionProps } from "framer-motion";
 import React from "react";
 
-type ButtonVariant = "primary" | "outline" | "ghost";
+type ButtonVariant = "primary" | "outline" | "ghost" | "premium";
 
 export interface ButtonProps extends HTMLMotionProps<"button"> {
   variant?: ButtonVariant;
@@ -25,6 +25,7 @@ export function Button({
     primary: "xui-btn--primary",
     outline: "xui-btn--outline",
     ghost: "xui-btn--ghost",
+    premium: "xui-btn--premium",
   };
   const widthCls = fullWidth ? "xui-w-full" : "";
 

@@ -1,0 +1,113 @@
+/* Plasma brand-inspired styles (lightweight, no frameworks) */
+:root {
+  --plasma-bg: #0a0a0b;
+  --plasma-card: #0f1115;
+  --plasma-text: #e6f1ff;
+  --plasma-muted: #96a2b4;
+  --plasma-accent-1: #7c4dff; /* plasma purple */
+  --plasma-accent-2: #00e5ff; /* plasma cyan */
+  --plasma-accent-3: #00ffd5; /* teal glow */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--plasma-text);
+  background: radial-gradient(1200px 800px at 10% 10%, rgba(0,229,255,0.08), transparent 60%),
+              radial-gradient(1000px 700px at 90% 10%, rgba(124,77,255,0.10), transparent 60%),
+              var(--plasma-bg);
+}
+
+.container {
+  max-width: 880px;
+  margin: 40px auto;
+  padding: 24px;
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 120px rgba(0,229,255,0.06) inset;
+}
+
+.row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+
+h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  letter-spacing: 0.2px;
+}
+
+p.sub { color: var(--plasma-muted); margin: 0 0 20px 0; }
+
+label { font-size: 14px; color: var(--plasma-muted); }
+
+input.amount {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 12px 14px;
+  min-width: 160px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(9, 12, 16, 0.8);
+  color: var(--plasma-text);
+  outline: none;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+input.amount:focus {
+  border-color: rgba(0,229,255,0.6);
+  box-shadow: 0 0 0 4px rgba(0,229,255,0.15);
+}
+
+.price-pill {
+  padding: 10px 14px;
+  background: rgba(0,229,255,0.08);
+  border: 1px solid rgba(0,229,255,0.25);
+  color: var(--plasma-text);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.plasma-button {
+  position: relative;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--plasma-accent-1), var(--plasma-accent-2));
+  box-shadow: 0 8px 24px rgba(124,77,255,0.35), 0 0 0 2px rgba(255,255,255,0.06) inset;
+  transition: transform 120ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+.plasma-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(124,77,255,0.40), 0 0 0 2px rgba(255,255,255,0.08) inset;
+  filter: saturate(1.08);
+}
+.plasma-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-row { display: flex; gap: 10px; align-items: center; }
+.hint { font-size: 12px; color: var(--plasma-muted); }
+.status { font-size: 13px; color: #9be7ff; }
+
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  user-select: none;
+}
+.brand-mark {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(from 180deg, var(--plasma-accent-2), var(--plasma-accent-1), var(--plasma-accent-3), var(--plasma-accent-2));
+  box-shadow: 0 0 18px rgba(0,229,255,0.55);
+}
+
+.footer-note { margin-top: 24px; font-size: 12px; color: var(--plasma-muted); }
+

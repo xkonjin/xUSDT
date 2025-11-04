@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const merchantUrl: string = body.merchantUrl || "http://127.0.0.1:8000";
+    const merchantUrl: string = body.merchantUrl || process.env.MERCHANT_URL || process.env.NEXT_PUBLIC_MERCHANT_URL || "";
     const payload = body.payload;
     if (!payload) return NextResponse.json({ error: "missing payload" }, { status: 400 });
     const res = await fetch(`${merchantUrl.replace(/\/$/, "")}/pay`, {
@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(data ?? { error: "empty upstream response" }, { status: res.status });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 502 });
+    const hint = typeof process !== "undefined" ? (process.env.MERCHANT_URL || process.env.NEXT_PUBLIC_MERCHANT_URL || "") : "";
+    return NextResponse.json({ error: String(e), hint }, { status: 502 });
   }
 }
 
