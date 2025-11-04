@@ -1,6 +1,32 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
+import { buildTransferWithAuthorization, fetchTokenNameAndVersion, splitSignature } from "../app/lib/eip3009";
+import { waitForReceipt } from "../app/lib/rpc";
+import Field from "./ui/Field";
+import Button from "./ui/Button";
+
+type RequestParams = { method: string; params?: unknown[] | Record<string, unknown> };
+type EthereumProvider = { request: (args: RequestParams) => Promise<unknown> };
+
+type PaymentOption = {
+  network: string;
+  chainId?: number | string;
+  token: string;
+  recipient: string;
+  deadline: number | string;
+  nonce?: string;
+};
+
+type PaymentRequired = {
+  invoiceId: string;
+  paymentOptions: PaymentOption[];
+};
+
+type PayResponse = {
+  status?: string;
+  txHash?: string;
+};
 
 type Props = {
   defaultAmount?: string; // decimal string, e.g. "0.10"
@@ -13,23 +39,38 @@ function toAtomic(amountDecimal: string): bigint {
   return BigInt(s.length ? s : "0");
 }
 
-function to0xHex(value: bigint): `0x${string}` {
-  return ("0x" + value.toString(16)) as `0x${string}`;
+// Type guards to validate unknown JSON structures
+function isPaymentOption(value: unknown): value is PaymentOption {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.network === "string" && typeof v.token === "string" && typeof v.recipient === "string";
 }
 
-function pad32(hexNo0x: string): string {
-  return hexNo0x.padStart(64, "0");
+function isPaymentRequired(value: unknown): value is PaymentRequired {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  const opts = v.paymentOptions as unknown;
+  return typeof v.invoiceId === "string" && Array.isArray(opts) && opts.every(isPaymentOption);
+}
+
+function isPayResponse(value: unknown): value is PayResponse {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  const st = v.status;
+  const th = v.txHash;
+  return (st === undefined || typeof st === "string") && (th === undefined || typeof th === "string");
 }
 
 async function ensureChain(targetChainIdDec: number, rpcUrl?: string) {
-  const eth = (globalThis as any).ethereum;
+  const eth = (globalThis as unknown as { ethereum?: EthereumProvider }).ethereum;
   if (!eth) throw new Error("No wallet (window.ethereum) detected");
   const targetHex = "0x" + targetChainIdDec.toString(16);
   try {
     await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: targetHex }] });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // 4902 = unknown chain; try to add
-    if (e?.code === 4902 && rpcUrl) {
+    const code = typeof e === "object" && e && "code" in e ? Number((e as { code?: unknown }).code) : undefined;
+    if (code === 4902 && rpcUrl) {
       await eth.request({
         method: "wallet_addEthereumChain",
         params: [{ chainId: targetHex, chainName: "Plasma", rpcUrls: [rpcUrl], nativeCurrency: { name: "XPL", symbol: "XPL", decimals: 18 } }],
@@ -59,121 +100,131 @@ export default function PayWithPlasmaButton({ defaultAmount = "0.10" }: Props) {
     setStatus("");
     setTxHash("");
     try {
-      const eth = (globalThis as any).ethereum;
+      const eth = (globalThis as unknown as { ethereum?: EthereumProvider }).ethereum;
       if (!eth) throw new Error("Wallet not found");
 
-      // Optional: use NEXT_PUBLIC vars for client-side chain hints
-      const chainIdHint = Number(process.env.NEXT_PUBLIC_PLASMA_CHAIN_ID || 9745);
-      const rpcHint = process.env.NEXT_PUBLIC_PLASMA_RPC as string | undefined;
-      await ensureChain(chainIdHint, rpcHint);
-
       // Get account
-      const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
+      const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
       const buyer = accounts[0];
       if (!buyer) throw new Error("No account");
 
       if (atomic <= 0n) throw new Error("Amount must be > 0");
 
+      // Fetch PaymentRequired (402) for invoice and plasma option
       setStatus("Preparing checkout…");
-      const checkoutRes = await fetch("/api/checkout_total", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buyer, amountAtomic: atomic.toString() }),
-      });
-      if (!checkoutRes.ok) throw new Error(await checkoutRes.text());
-      const payload = await checkoutRes.json();
+      const prRes = await fetch("/api/premium", { method: "GET", cache: "no-store" });
+      const prRaw = await prRes.text();
+      let prUnknown: unknown = null; try { prUnknown = prRaw ? JSON.parse(prRaw) : null; } catch { prUnknown = null; }
+      if (!isPaymentRequired(prUnknown)) throw new Error("Merchant did not return PaymentRequired");
+      const pr = prUnknown;
+      const plasmaOpt = pr.paymentOptions.find((o) => o.network === "plasma");
+      if (!plasmaOpt) throw new Error("No Plasma option available");
 
-      const token: string = payload?.message?.token;
-      const router: string = payload?.domain?.verifyingContract;
-      const deadline: string = payload?.message?.deadline;
-      if (!token || !router || !deadline) throw new Error("Malformed checkout payload");
+      // Ensure chain
+      const chainId = Number(plasmaOpt.chainId || process.env.NEXT_PUBLIC_PLASMA_CHAIN_ID || 9745);
+      const rpcHint = process.env.NEXT_PUBLIC_PLASMA_RPC as string | undefined;
+      await ensureChain(chainId, rpcHint);
 
-      // Step 1: ensure allowance >= amount
-      setStatus("Checking allowance…");
-      const allowanceData =
-        "0xdd62ed3e" + // allowance(address,address)
-        pad32((buyer as string).toLowerCase().replace(/^0x/, "")) +
-        pad32((router as string).toLowerCase().replace(/^0x/, ""));
-      const allowanceHex: `0x${string}` = await eth.request({
-        method: "eth_call",
-        params: [{ to: token, data: allowanceData }, "latest"],
-      });
-      const allowance = BigInt(allowanceHex);
-      if (allowance < atomic) {
-        setStatus("Approving spending…");
-        const approveData =
-          "0x095ea7b3" + // approve(address,uint256)
-          pad32((router as string).toLowerCase().replace(/^0x/, "")) +
-          pad32(atomic.toString(16));
-        const approveTx = await eth.request({
-          method: "eth_sendTransaction",
-          params: [{ from: buyer, to: token, value: "0x0", data: approveData }],
-        });
-        // eslint-disable-next-line no-console
-        console.log("approve tx:", approveTx);
-      }
+      // Build EIP-3009 typed data
+      const token = plasmaOpt.token as string;
+      const to = plasmaOpt.recipient as string;
+      const deadline = Number(plasmaOpt.deadline);
+      const validAfter = Math.floor(Date.now() / 1000) - 1;
+      const validBefore = deadline;
+      const nonce32: string = typeof plasmaOpt.nonce === "string" && plasmaOpt.nonce
+        ? (plasmaOpt.nonce.startsWith("0x") ? plasmaOpt.nonce : ("0x" + plasmaOpt.nonce))
+        : ("0x" + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), ""));
 
-      // Step 2: sign typed data
+      setStatus("Fetching token metadata…");
+      const { name, version } = await fetchTokenNameAndVersion(process.env.NEXT_PUBLIC_PLASMA_RPC || "https://rpc.plasma.to", token).catch(() => ({ name: "USDTe", version: "1" }));
+      const typed = buildTransferWithAuthorization(name, version, chainId, token, buyer, to, atomic.toString(), validAfter, validBefore, nonce32);
+
       setStatus("Awaiting signature…");
-      const typedData = {
-        domain: payload.domain,
-        types: payload.types,
-        primaryType: "Transfer",
-        message: payload.message,
-      };
-      const signature: string = await eth.request({
-        method: "eth_signTypedData_v4",
-        params: [buyer, JSON.stringify(typedData)],
-      });
+      let sigHex: string;
+      try {
+        sigHex = (await eth.request({ method: "eth_signTypedData_v4", params: [buyer, JSON.stringify(typed)] })) as string;
+      } catch {
+        try {
+          sigHex = (await eth.request({ method: "eth_signTypedData", params: [buyer, typed as unknown as object] })) as string;
+        } catch {
+          sigHex = (await eth.request({ method: "eth_signTypedData", params: [buyer, JSON.stringify(typed)] })) as string;
+        }
+      }
+      const { v, r, s } = splitSignature(sigHex);
 
-      // Step 3: relay
+      // Relay via /api/pay
       setStatus("Relaying payment…");
-      const relayRes = await fetch("/api/relay_total", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ buyer, amount: atomic.toString(), deadline, signature }),
-      });
-      if (!relayRes.ok) throw new Error(await relayRes.text());
-      const relayed = await relayRes.json();
-      setTxHash(relayed?.routerTx || "");
-      setStatus("Success");
-    } catch (e: any) {
-      setStatus(e?.message || String(e));
+      const payload = {
+        type: "payment-submitted",
+        invoiceId: pr.invoiceId,
+        chosenOption: {
+          network: "plasma",
+          chainId,
+          token,
+          amount: atomic.toString(),
+          from: buyer,
+          to,
+          nonce: nonce32,
+          deadline: validBefore,
+          validAfter,
+          validBefore,
+        },
+        signature: { v, r, s },
+        scheme: "eip3009-transfer-with-auth",
+      };
+
+      const payRes = await fetch("/api/pay", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ merchantUrl: undefined, payload }) });
+      const payRaw = await payRes.text();
+      let completedUnknown: unknown = null; try { completedUnknown = payRaw ? JSON.parse(payRaw) : null; } catch { completedUnknown = null; }
+      if (!isPayResponse(completedUnknown)) throw new Error("Empty or invalid response from server");
+      const completed = completedUnknown;
+      const txh = completed.txHash;
+      if (txh) setTxHash(txh);
+      setStatus(completed.status === "confirmed" ? "Success" : completed.status || "Pending");
+
+      if (txh && (!completed.status || completed.status === "pending")) {
+        try {
+          const receipt = await waitForReceipt(process.env.NEXT_PUBLIC_PLASMA_RPC || "https://rpc.plasma.to", txh, 60, 1500);
+          const statusUnknown = (receipt as { status?: string | number } | undefined)?.status;
+          const st = typeof statusUnknown === "string" ? parseInt(statusUnknown, 16) : Number(statusUnknown);
+          setStatus(st === 1 ? "Success" : "Failed");
+        } catch {
+          setStatus("Failed");
+        }
+      }
+    } catch (e: unknown) {
+      const msg = typeof e === "object" && e && "message" in e ? String((e as { message?: unknown }).message) : String(e);
+      setStatus(msg);
     } finally {
       setBusy(false);
     }
-  }, [amount, atomic]);
+  }, [atomic]);
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <input
-        type="text"
+    <div className="xui-grid" style={{ alignItems: "end" }}>
+      <Field
+        label="Amount (USD₮)"
+        placeholder="0.10"
         inputMode="decimal"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        placeholder="Amount in USD₮ (e.g. 0.10)"
-        style={{ padding: 8, border: "1px solid #ddd", borderRadius: 6, minWidth: 160 }}
+        onChange={(e) => setAmount((e.target as HTMLInputElement).value)}
+        trailing={<span style={{ opacity: 0.8 }}>USDT0</span>}
       />
-      <button
-        onClick={onPay}
-        disabled={busy || atomic <= 0n}
-        style={{
-          padding: "10px 16px",
-          background: "black",
-          color: "white",
-          borderRadius: 8,
-          border: 0,
-          cursor: busy ? "not-allowed" : "pointer",
-        }}
-      >
-        {busy ? "Processing…" : "Pay with Plasma"}
-      </button>
-      {status && <span style={{ fontSize: 12, color: status === "Success" ? "#0a0" : "#555" }}>{status}</span>}
-      {txHash && (
-        <div style={{ width: "100%", fontSize: 12, color: "#333" }}>
-          Tx: {txHash}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <Button onClick={onPay} disabled={busy || atomic <= 0n} variant="premium">
+          {busy ? "Processing…" : "Pay with Plasma"}
+        </Button>
+        {status ? (
+          <span className="xui-status">{status}</span>
+        ) : null}
+      </div>
+      {txHash ? (
+        <div className="xui-chip success">
+          <span className="dot" />
+          <span>Tx</span>
+          <code style={{ fontSize: 12 }}>{txHash}</code>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
