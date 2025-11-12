@@ -11,7 +11,19 @@ import { query } from "@/lib/api/db";
 export async function GET() {
   try {
     // Get all toys with mint counts
-    const toysResult = await query(`
+    interface ToyRow {
+      id: number;
+      name: string;
+      description: string;
+      base_price_usdt0: string;
+      icon_name: string;
+      stat_categories: string[];
+      rarity_distribution: Record<string, number>;
+      max_mint_per_type: number;
+      current_mint_count: string;
+    }
+
+    const toysResult = await query<ToyRow>(`
       SELECT 
         t.id,
         t.name,
@@ -28,19 +40,7 @@ export async function GET() {
       ORDER BY t.id
     `);
 
-    interface ToyRow {
-      id: number;
-      name: string;
-      description: string;
-      base_price_usdt0: string;
-      icon_name: string;
-      stat_categories: string[];
-      rarity_distribution: Record<string, number>;
-      max_mint_per_type: number;
-      current_mint_count: string;
-    }
-
-    const toys = toysResult.rows.map((toy: ToyRow) => ({
+    const toys = toysResult.rows.map((toy) => ({
       id: toy.id,
       name: toy.name,
       description: toy.description,
