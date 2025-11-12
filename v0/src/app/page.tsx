@@ -18,13 +18,23 @@ export default function Home() {
       </section>
 
       <div className="xui-grid cols-2">
-        <Card title="Merchant" subtitle="Inspect config & health">
-          <p style={{ opacity: 0.8, marginBottom: 12 }}>Connect to your merchant API and verify readiness.</p>
-          <Link href="/merchant"><Button variant="primary">Open Merchant →</Button></Link>
+        <Card title="Trillionaire Toy Store" subtitle="Collect toys, play games, climb leaderboard">
+          <p style={{ opacity: 0.8, marginBottom: 12 }}>Purchase rare toy NFTs, compete in skill and chance games, and earn USDT0 prizes.</p>
+          <Link href="/store"><Button variant="primary">Visit Store →</Button></Link>
+        </Card>
+        <Card title="My Inventory" subtitle="Manage your toy collection">
+          <p style={{ opacity: 0.8, marginBottom: 12 }}>Equip toys to boost your game performance and climb the leaderboard.</p>
+          <Link href="/inventory"><Button variant="outline">View Inventory →</Button></Link>
         </Card>
         <Card title="Client Demo" subtitle="Sign & pay with EIP‑3009">
           <p style={{ opacity: 0.8, marginBottom: 12 }}>Request PaymentRequired, sign in-wallet, and settle on Plasma.</p>
           <Link href="/client"><Button variant="outline">Open Client →</Button></Link>
+        </Card>
+      </div>
+      <div className="xui-grid" style={{ marginTop: 16 }}>
+        <Card title="Merchant" subtitle="Inspect config & health">
+          <p style={{ opacity: 0.8, marginBottom: 12 }}>Connect to your merchant API and verify readiness.</p>
+          <Link href="/merchant"><Button variant="outline">Open Merchant →</Button></Link>
         </Card>
       </div>
     </main>

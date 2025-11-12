@@ -80,6 +80,26 @@ class Settings(BaseSettings):
         description="Static floor in token atomic units; overrides computed floor when >0",
     )
 
+    # Game database (supports Vercel Postgres DATABASE_URL)
+    GAME_DATABASE_URL: Optional[str] = Field(
+        default=None, description="PostgreSQL connection URL for game database. Falls back to DATABASE_URL env var."
+    )
+    
+    # Vercel Postgres support
+    DATABASE_URL: Optional[str] = Field(
+        default=None, description="Vercel Postgres connection URL (used if GAME_DATABASE_URL not set)"
+    )
+    
+    # Redis for caching
+    REDIS_URL: Optional[str] = Field(
+        default=None, description="Redis connection URL for caching (e.g., redis://localhost:6379)"
+    )
+    
+    # NFT contract for toys
+    TOY_NFT_CONTRACT_ADDRESS: Optional[str] = Field(
+        default=None, description="ERC-721 NFT contract address for toys on Plasma"
+    )
+    
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 

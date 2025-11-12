@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { buildTransferWithAuthorization, fetchTokenNameAndVersion, splitSignature } from "../lib/eip3009";
 import { waitForReceipt } from "../lib/rpc";
 import { Card } from "../../components/ui/Card";
@@ -62,7 +63,8 @@ function StatusLamp({ status }: { status: "idle" | "pending" | "confirmed" | "fa
   return <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />;
 }
 
-export default function ClientPage() {
+function ClientPageContent() {
+  const searchParams = useSearchParams();
   const [merchantUrl, setMerchantUrl] = useState(DEFAULTS.MERCHANT_URL);
   const [amountAtomic, setAmountAtomic] = useState<number>(DEFAULTS.PAY_AMOUNT_ATOMIC);
   const [pr, setPr] = useState<PaymentRequired | null>(null);
@@ -75,6 +77,14 @@ export default function ClientPage() {
   const [account, setAccount] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [explorerBase, setExplorerBase] = useState<string>("");
+
+  // Read SKU from URL parameters (e.g., when navigating from products page)
+  useEffect(() => {
+    const skuParam = searchParams.get("sku");
+    if (skuParam) {
+      setSku(skuParam);
+    }
+  }, [searchParams]);
 
   const plasmaOption = useMemo(() => {
     if (!pr) return null;
@@ -295,6 +305,20 @@ export default function ClientPage() {
         </div>
       </Card>
     </main>
+  );
+}
+
+/**
+ * ClientPage: Wrapped with Suspense for useSearchParams
+ * 
+ * This component handles the client-side payment flow with wallet integration.
+ * It can receive SKU parameters from the products page via URL search params.
+ */
+export default function ClientPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: "32px", textAlign: "center" }}>Loading...</div>}>
+      <ClientPageContent />
+    </Suspense>
   );
 }
 

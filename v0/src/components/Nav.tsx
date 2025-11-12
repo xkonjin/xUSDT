@@ -16,6 +16,12 @@ export function Nav() {
           <span className="xui-brand-mark" /> xUSDT Demo
         </Link>
         <div className="xui-nav-links">
+          <Link href="/store" className="xui-link">Store</Link>
+          <Link href="/play" className="xui-link">Play</Link>
+          <Link href="/inventory" className="xui-link">Inventory</Link>
+          <Link href="/leaderboard" className="xui-link">Leaderboard</Link>
+          <Link href="/marketplace" className="xui-link">Marketplace</Link>
+          <Link href="/products" className="xui-link">Products</Link>
           <Link href="/client" className="xui-link">Client</Link>
           <Link href="/merchant" className="xui-link">Merchant</Link>
           <a href="https://github.com/xkonjin/xUSDT" target="_blank" rel="noopener noreferrer" className="xui-link">GitHub ↗</a>
