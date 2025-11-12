@@ -100,6 +100,48 @@ class Settings(BaseSettings):
         default=None, description="ERC-721 NFT contract address for toys on Plasma"
     )
     
+    # Polymarket API Configuration
+    POLYMARKET_API_KEY: str = Field(
+        default="", description="Polymarket API key for CLOB API authentication"
+    )
+    POLYMARKET_SECRET: str = Field(
+        default="", description="Polymarket API secret for signature generation"
+    )
+    POLYMARKET_PASSPHRASE: str = Field(
+        default="", description="Polymarket API passphrase for authentication"
+    )
+    POLYMARKET_API_URL: str = Field(
+        default="https://clob.polymarket.com", description="Polymarket CLOB API base URL"
+    )
+    POLYMARKET_BUILDER_KEY: Optional[str] = Field(
+        default=None, description="Polymarket Builder Program key for order attribution"
+    )
+    
+    # Polygon Network Configuration (for USDC conversion)
+    POLYGON_RPC: str = Field(
+        default="https://polygon-rpc.com", description="Polygon mainnet RPC URL"
+    )
+    POLYGON_CHAIN_ID: int = Field(default=137, description="Polygon mainnet chain ID")
+    USDC_POLYGON_ADDRESS: str = Field(
+        default="0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        description="USDC token address on Polygon (6 decimals)",
+    )
+    
+    # Conversion Service Configuration
+    CONVERSION_METHOD: str = Field(
+        default="dex", description="Conversion method: 'bridge', 'dex', or 'cex'"
+    )
+    DEX_AGGREGATOR_URL: str = Field(
+        default="https://api.1inch.io/v5.0/137",
+        description="DEX aggregator API URL (1inch) for token swaps",
+    )
+    BRIDGE_CONTRACT_ADDRESS: Optional[str] = Field(
+        default=None, description="Bridge contract address for cross-chain transfers"
+    )
+    CONVERSION_PRIVATE_KEY: Optional[str] = Field(
+        default=None, description="Private key for conversion service wallet (must hold USDC on Polygon)"
+    )
+    
     # Pydantic v2 settings config
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 

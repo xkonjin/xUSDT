@@ -307,6 +307,156 @@ class WeeklyPrize(Base):
     player = relationship("Player", back_populates="weekly_prizes")
 
 
+class Prediction(Base):
+    """
+    Polymarket predictions - tracks user predictions and bets on Polymarket markets.
+    
+    Each prediction represents a user's bet on a Polymarket market outcome.
+    Tracks the bet amount, conversion details, Polymarket order ID, and resolution.
+    """
+    __tablename__ = "predictions"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_address = Column(String(42), nullable=False, index=True)  # Wallet address
+    market_id = Column(String(100), nullable=False, index=True)  # Polymarket market ID
+    market_question = Column(Text, nullable=True)  # Market question for display
+    outcome = Column(String(50), nullable=False)  # YES/NO or outcome ID
+    predicted_price = Column(Numeric(10, 4), nullable=True)  # User's predicted price (0-1)
+    bet_amount_usdt0 = Column(BigInteger, nullable=False)  # Amount in USDT0 atomic units (6 decimals)
+    bet_amount_usdc = Column(BigInteger, nullable=True)  # Converted amount in USDC atomic units (6 decimals)
+    polymarket_order_id = Column(String(100), nullable=True, unique=True, index=True)  # Order ID from Polymarket API
+    status = Column(String(20), nullable=False, default="pending", index=True)  # pending, placed, filled, cancelled, resolved
+    conversion_tx_hash = Column(String(66), nullable=True)  # Transaction hash for USDT0→USDC conversion
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    resolved_at = Column(DateTime, nullable=True)  # When market resolved
+    outcome_result = Column(String(50), nullable=True)  # Actual outcome when resolved
+    profit_loss = Column(Numeric(20, 6), nullable=True)  # P&L when resolved (can be negative)
+    resolved_price = Column(Numeric(10, 4), nullable=True)  # Final market price (0-1)
+
+
+class PredictionLeaderboard(Base):
+    """
+    Prediction leaderboards - tracks user rankings based on prediction accuracy.
+    
+    Calculates rankings for different time periods (daily, weekly, monthly, all-time)
+    based on accuracy percentage, total volume, and profit/loss.
+    """
+    __tablename__ = "prediction_leaderboards"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_address = Column(String(42), nullable=False, index=True)  # Wallet address
+    period = Column(String(20), nullable=False, index=True)  # daily, weekly, monthly, alltime
+    period_start = Column(Date, nullable=False, index=True)  # Start date of period
+    total_predictions = Column(Integer, nullable=False, default=0)  # Total predictions made
+    correct_predictions = Column(Integer, nullable=False, default=0)  # Correct predictions
+    accuracy_percentage = Column(Numeric(5, 2), nullable=False, default=0)  # Win rate percentage
+    total_volume_usdt0 = Column(BigInteger, nullable=False, default=0)  # Total volume bet in USDT0
+    total_profit_loss = Column(Numeric(20, 6), nullable=False, default=0)  # Total P&L
+    rank = Column(Integer, nullable=True, index=True)  # Calculated rank (1, 2, 3, ...)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Constraints
+    __table_args__ = (
+        Index("idx_user_period", "user_address", "period", "period_start", unique=True),
+    )
+
+
+class UserBalance(Base):
+    """
+    User balances - tracks pre-converted USDC balances for instant betting.
+    
+    Users deposit USDT0, which gets converted to USDC in the background.
+    The USDC balance is credited and can be used immediately for betting.
+    """
+    __tablename__ = "user_balances"
+    
+    user_address = Column(String(42), primary_key=True, index=True)  # Wallet address
+    usdc_balance = Column(BigInteger, nullable=False, default=0)  # Balance in USDC atomic units (6 decimals)
+    pending_deposits = Column(BigInteger, nullable=False, default=0)  # USDT0 awaiting conversion
+    total_deposited = Column(BigInteger, nullable=False, default=0)  # Lifetime deposits in USDT0
+    total_withdrawn = Column(BigInteger, nullable=False, default=0)  # Lifetime withdrawals in USDT0
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Deposit(Base):
+    """
+    Deposits - tracks USDT0 deposits and their conversion to USDC.
+    
+    Each deposit represents a user's USDT0 payment that needs to be converted.
+    Tracks the conversion status and transaction hashes.
+    """
+    __tablename__ = "deposits"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_address = Column(String(42), nullable=False, index=True)  # Wallet address
+    invoice_id = Column(String(100), nullable=True, unique=True, index=True)  # x402 invoice ID
+    usdt0_amount = Column(BigInteger, nullable=False)  # Deposited amount in USDT0 atomic units
+    usdc_amount = Column(BigInteger, nullable=True)  # Converted amount in USDC atomic units
+    conversion_tx_hash = Column(String(66), nullable=True)  # Polygon conversion transaction
+    status = Column(String(20), nullable=False, default="pending", index=True)  # pending, converting, completed, failed
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime, nullable=True)  # When conversion completed
+
+
+class UserProfile(Base):
+    """
+    User profiles - stores display names and profile information.
+    
+    Users can set display names that appear on leaderboards instead of wallet addresses.
+    Display names are unique and 3-20 characters long.
+    """
+    __tablename__ = "user_profiles"
+    
+    wallet_address = Column(String(42), primary_key=True, index=True)  # Wallet address
+    display_name = Column(String(20), nullable=True, unique=True, index=True)  # 3-20 characters, unique
+    avatar_url = Column(String(500), nullable=True)  # Optional avatar image URL
+    bio = Column(Text, nullable=True)  # Optional bio text
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class LiquidityBuffer(Base):
+    """
+    Global liquidity buffer - tracks USDC balance on Polygon for instant betting.
+    
+    This is a singleton table (only one row) that tracks the available liquidity pool.
+    The buffer balance limits the maximum bet amount globally across all users.
+    When users bet, the buffer is deducted. When conversions complete, the buffer is replenished.
+    
+    Flow:
+    1. User deposits USDT0 → Conversion completes → Buffer replenished
+    2. User places bet → Buffer deducted → Bet placed on Polymarket
+    3. Max bet = min(user_balance, buffer_balance)
+    """
+    __tablename__ = "liquidity_buffer"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    buffer_id = Column(String(50), nullable=False, unique=True, default="global", index=True)  # Singleton identifier
+    usdc_balance = Column(BigInteger, nullable=False, default=0)  # Current USDC balance on Polygon (atomic units, 6 decimals)
+    min_buffer_size = Column(BigInteger, nullable=False, default=10_000_000_000)  # Minimum buffer size (10,000 USDC default)
+    max_buffer_size = Column(BigInteger, nullable=True)  # Maximum buffer size (optional cap)
+    total_deposited = Column(BigInteger, nullable=False, default=0)  # Lifetime total deposited to buffer
+    total_withdrawn = Column(BigInteger, nullable=False, default=0)  # Lifetime total withdrawn from buffer
+    last_replenished_at = Column(DateTime, nullable=True)  # Last time buffer was replenished
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for API responses."""
+        return {
+            "buffer_id": self.buffer_id,
+            "usdc_balance": int(self.usdc_balance),
+            "usdc_balance_formatted": float(self.usdc_balance / 1_000_000),  # Convert to decimal
+            "min_buffer_size": int(self.min_buffer_size),
+            "min_buffer_size_formatted": float(self.min_buffer_size / 1_000_000),
+            "max_buffer_size": int(self.max_buffer_size) if self.max_buffer_size else None,
+            "max_buffer_size_formatted": float(self.max_buffer_size / 1_000_000) if self.max_buffer_size else None,
+            "total_deposited": int(self.total_deposited),
+            "total_withdrawn": int(self.total_withdrawn),
+            "last_replenished_at": self.last_replenished_at.isoformat() if self.last_replenished_at else None,
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+
 # Database connection and session management
 class GameDatabase:
     """

@@ -13,18 +13,13 @@ export function Nav() {
     >
       <div className="xui-nav-inner">
         <Link href="/" className="xui-brand">
-          <span className="xui-brand-mark" /> xUSDT Demo
+          <span className="xui-brand-mark" /> xUSDT
         </Link>
         <div className="xui-nav-links">
-          <Link href="/store" className="xui-link">Store</Link>
-          <Link href="/play" className="xui-link">Play</Link>
-          <Link href="/inventory" className="xui-link">Inventory</Link>
-          <Link href="/leaderboard" className="xui-link">Leaderboard</Link>
-          <Link href="/marketplace" className="xui-link">Marketplace</Link>
-          <Link href="/products" className="xui-link">Products</Link>
-          <Link href="/client" className="xui-link">Client</Link>
-          <Link href="/merchant" className="xui-link">Merchant</Link>
-          <a href="https://github.com/xkonjin/xUSDT" target="_blank" rel="noopener noreferrer" className="xui-link">GitHub ↗</a>
+          <Link href="/predictions" className="xui-link">Markets</Link>
+          <Link href="/predictions/leaderboard" className="xui-link">Leaderboard</Link>
+          <Link href="/predictions/my" className="xui-link">My Bets</Link>
+          <Link href="/predictions/profile" className="xui-link">Profile</Link>
         </div>
       </div>
     </motion.nav>
