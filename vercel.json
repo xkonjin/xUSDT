@@ -1,0 +1,23 @@
+{
+  "buildCommand": "cd v0 && npm run build",
+  "outputDirectory": "v0/.next",
+  "framework": "nextjs",
+  "functions": {
+    "v0/src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "crons": [
+    {
+      "path": "/api/cron/weekly-prizes",
+      "schedule": "0 0 * * 5"
+    },
+    {
+      "path": "/api/cron/daily-bonuses",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
