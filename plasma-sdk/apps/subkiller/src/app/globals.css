@@ -125,6 +125,68 @@ body {
     background-clip: text;
   }
 
+  /* ============================================================================
+     Buttons (unified with other apps)
+     ============================================================================ */
+  .btn-primary {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--plasma-cyan)) 0%,
+      rgb(0, 180, 220) 100%
+    );
+    color: black;
+    font-weight: 600;
+    border-radius: 1rem;
+    padding: 1rem 2rem;
+    min-height: 44px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(var(--plasma-cyan), 0.4),
+      0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(var(--plasma-cyan), 0.5),
+      0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ============================================================================
+     Inputs (unified with other apps)
+     ============================================================================ */
+  .input-glass {
+    background: rgba(var(--glass-white), 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--glass-white), 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+    color: white;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .input-glass:focus {
+    outline: none;
+    border-color: rgba(var(--plasma-cyan), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--plasma-cyan), 0.1);
+  }
+
+  .input-glass::placeholder {
+    color: rgba(var(--glass-white), 0.4);
+  }
+
   .gradient-text-shimmer {
     background: linear-gradient(
       90deg,

@@ -1,33 +1,42 @@
-'use client';
+/**
+ * Root Layout for Bill Split (Splitzy) App
+ * 
+ * Server component that wraps the app with client-side providers.
+ * Requires NEXT_PUBLIC_PRIVY_APP_ID environment variable for production.
+ * 
+ * Note: This is a SERVER component (no 'use client' directive) to enable
+ * proper Next.js metadata export for SEO and title rendering.
+ */
 
 import { ReactNode } from 'react';
-import { PlasmaPrivyProvider } from '@plasma-pay/privy-auth';
+import { Metadata } from 'next';
 import './globals.css';
+import { Providers } from './providers';
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+/**
+ * Metadata configuration for the Bill Split app
+ * This only works in server components (without 'use client')
+ */
+export const metadata: Metadata = {
+  title: 'Splitzy - Split Bills with Crypto',
+  description: 'Split bills instantly with friends. Pay with any crypto - ETH, SOL, USDC. Zero gas fees on Plasma.',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+};
 
+/**
+ * Root Layout Component
+ * 
+ * Wraps all pages with:
+ * - HTML/body structure with dark theme styling
+ * - Providers component for authentication context
+ */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <title>Splitzy - Split Bills with Crypto</title>
-        <meta name="description" content="Split bills instantly with friends. Pay with any crypto - ETH, SOL, USDC. Zero gas fees on Plasma." />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </head>
       <body className="min-h-screen bg-black text-white antialiased">
-        <PlasmaPrivyProvider
-          config={{
-            appId: PRIVY_APP_ID,
-            loginMethods: ['email', 'sms', 'google', 'apple'],
-            appearance: {
-              theme: 'dark',
-              accentColor: '#00d4ff',
-            },
-          }}
-        >
+        <Providers>
           {children}
-        </PlasmaPrivyProvider>
+        </Providers>
       </body>
     </html>
   );

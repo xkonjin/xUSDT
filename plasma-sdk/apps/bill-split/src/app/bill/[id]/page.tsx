@@ -51,14 +51,10 @@ interface BillData {
 export default function BillPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  // Resolve params
-  const [billId, setBillId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    params.then(p => setBillId(p.id));
-  }, [params]);
+  // Extract bill ID from route params (Next.js 14 synchronous pattern)
+  const billId = params.id;
 
   const { wallet } = usePlasmaWallet();
   

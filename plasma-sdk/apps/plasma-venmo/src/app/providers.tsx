@@ -9,6 +9,7 @@
 
 import { ReactNode, useState, useEffect } from 'react';
 import { PlasmaPrivyProvider } from '@plasma-pay/privy-auth';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -32,11 +33,12 @@ export function Providers({ children }: ProvidersProps) {
     setIsMounted(true);
   }, []);
   
-  // Show loading state during hydration
+  // Show loading spinner during hydration - DO NOT render children here
+  // as they may call Privy hooks before the provider is ready
   if (!isMounted) {
     return (
-      <div className="min-h-screen bg-black">
-        {children}
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-[rgb(0,212,255)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -56,19 +58,22 @@ export function Providers({ children }: ProvidersProps) {
   }
   
   // Render with Privy provider when app ID is available
+  // Wrap with ErrorBoundary to catch any rendering errors
   return (
-    <PlasmaPrivyProvider
-      config={{
-        appId: privyAppId,
-        loginMethods: ['email', 'sms', 'google', 'apple'],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#00d4ff',
-        },
-      }}
-    >
-      {children}
-    </PlasmaPrivyProvider>
+    <ErrorBoundary>
+      <PlasmaPrivyProvider
+        config={{
+          appId: privyAppId,
+          loginMethods: ['email', 'sms', 'google', 'apple'],
+          appearance: {
+            theme: 'dark',
+            accentColor: '#00d4ff',
+          },
+        }}
+      >
+        {children}
+      </PlasmaPrivyProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -1,8 +1,11 @@
 /**
- * Client-side Providers for Plasma Stream
+ * Client-side Providers for Bill Split (Splitzy)
  * 
  * Handles Privy initialization with graceful fallback when
  * NEXT_PUBLIC_PRIVY_APP_ID is not configured (e.g., during build).
+ * 
+ * This is a client component that provides authentication context
+ * to the entire app via PlasmaPrivyProvider.
  */
 
 'use client';
@@ -26,7 +29,7 @@ export function Providers({ children }: ProvidersProps) {
   // Check if Privy app ID is configured
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
   
-  // State to handle client-side rendering
+  // State to handle client-side rendering (prevents hydration mismatch)
   const [isMounted, setIsMounted] = useState(false);
   
   useEffect(() => {
@@ -64,7 +67,7 @@ export function Providers({ children }: ProvidersProps) {
       <PlasmaPrivyProvider
         config={{
           appId: privyAppId,
-          loginMethods: ['email', 'google', 'wallet'],
+          loginMethods: ['email', 'sms', 'google', 'apple'],
           appearance: {
             theme: 'dark',
             accentColor: '#00d4ff',

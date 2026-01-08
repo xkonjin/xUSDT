@@ -1,3 +1,35 @@
+/**
+ * Bill Split Zustand Store
+ * 
+ * ============================================================================
+ * IMPORTANT: This store is currently NOT USED in the production app.
+ * ============================================================================
+ * 
+ * The Bill Split app was refactored to use API-based state management instead
+ * of client-side zustand. Bills are now stored in the database via:
+ * - POST /api/bills - Create bills
+ * - GET /api/bills - List bills
+ * - GET /api/bills/[id] - Get bill details
+ * 
+ * This store remains as a reference implementation and can be used for:
+ * 1. Offline-first functionality (future enhancement)
+ * 2. Optimistic UI updates before server confirmation
+ * 3. Local bill drafts before saving to server
+ * 
+ * To use this store, import and call the appropriate actions:
+ * ```typescript
+ * import { useBillStore } from '@/lib/store';
+ * 
+ * function Component() {
+ *   const { currentBill, createBill, addItem } = useBillStore();
+ *   // ...
+ * }
+ * ```
+ * 
+ * The store persists data to localStorage under the key 'splitzy-bills'.
+ * ============================================================================
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuid } from 'uuid';
