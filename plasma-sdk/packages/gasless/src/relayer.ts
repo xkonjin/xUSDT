@@ -3,18 +3,22 @@
  * 
  * Submits signed authorizations to a relayer service for execution.
  * 
- * PLASMA GASLESS API - FREE TRANSACTIONS
+ * PLASMA GASLESS API (FREE TRANSACTIONS)
  * ======================================
- * api.plasma.to executes EIP-3009 transfers with Plasma paying gas.
+ * The Plasma gasless relayer at https://api.plasma.to enables FREE transactions
+ * where Plasma pays gas instead of the user or a backend relayer wallet.
  * 
- * Rate Limits:
- * - 10 transfers/day per address
- * - 10,000 USDT0/day per address
- * - 20 transfers/day per IP
- * - Minimum: 1 USDT0
- * - Resets 00:00 UTC
+ * Rate Limits (per Plasma API docs):
+ * - 10 transfers per day per address
+ * - 10,000 USDT0 daily volume per address
+ * - 20 transfers per day per IP
+ * - Minimum transfer: 1 USDT0
+ * - Resets at 00:00 UTC
  * 
- * Usage: Call /api/relay backend route (adds X-Internal-Secret header)
+ * Usage:
+ * - Call your backend /api/relay endpoint which forwards to api.plasma.to
+ * - Backend adds X-Internal-Secret header (never expose in client code!)
+ * - Backend forwards X-User-IP for rate limiting
  */
 
 import type { Address, Hex, PublicClient, WalletClient, Hash } from 'viem';
@@ -31,14 +35,21 @@ import { plasmaMainnet } from '@plasma-pay/core';
 // =============================================================================
 // Plasma Gasless API Configuration
 // =============================================================================
-/** Official Plasma gasless relayer URL - use server-side only with secret */
+// The official Plasma gasless relayer API URL. This API enables FREE transactions
+// where Plasma covers the gas cost. Authentication requires X-Internal-Secret
+// header which should only be used server-side (never expose in client code).
+// =============================================================================
 export const PLASMA_GASLESS_API = 'https://api.plasma.to';
 
-/** Rate limit constants for UI feedback */
+// Rate limit constants for UI feedback
 export const PLASMA_GASLESS_LIMITS = {
+  /** Maximum transfers per address per day */
   DAILY_TRANSFERS_PER_ADDRESS: 10,
-  DAILY_VOLUME_PER_ADDRESS: 10_000_000_000n, // 10,000 USDT0 (6 decimals)
+  /** Maximum USDT0 volume per address per day (in atomic units, 6 decimals) */
+  DAILY_VOLUME_PER_ADDRESS: 10_000_000_000n, // 10,000 USDT0
+  /** Maximum transfers per IP per day */
   DAILY_TRANSFERS_PER_IP: 20,
+  /** Minimum transfer amount in atomic units */
   MINIMUM_AMOUNT: 1_000_000n, // 1 USDT0
 } as const;
 

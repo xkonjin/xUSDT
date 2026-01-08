@@ -54,23 +54,24 @@ class Settings(BaseSettings):
     )
 
     # -------------------------------------------------------------------------
-    # Plasma Gasless Relayer API (FREE TRANSACTIONS)
+    # Plasma Gasless API Configuration
     # -------------------------------------------------------------------------
-    # The gasless relayer at api.plasma.to executes EIP-3009 transfers for free.
-    # Plasma pays the gas - users/merchants pay nothing.
-    # Rate limits: 10 tx/day per address, 10K USDT0/day, 20 tx/day per IP.
+    # The Plasma gasless relayer API enables free transactions where Plasma pays
+    # gas instead of the RELAYER wallet. Rate limits: 10 tx/day per address,
+    # 10,000 USDT0 daily volume, 20 tx/day per IP. Minimum: 1 USDT0.
+    # API Docs: https://api.plasma.to (internal-only, requires secret)
     # -------------------------------------------------------------------------
     PLASMA_RELAYER_URL: str = Field(
         default="https://api.plasma.to",
-        description="Plasma gasless relayer API URL"
+        description="Plasma gasless relayer API base URL"
     )
     PLASMA_RELAYER_SECRET: Optional[str] = Field(
         default=None,
-        description="API auth secret for Plasma gasless relayer (X-Internal-Secret header)"
+        description="Internal secret for authenticating with Plasma gasless API (X-Internal-Secret header)"
     )
     USE_GASLESS_API: bool = Field(
         default=True,
-        description="Use Plasma gasless API when available; fallback to RELAYER wallet if not"
+        description="When true, use Plasma gasless API for free tx; falls back to RELAYER wallet if unavailable"
     )
 
     # Merchant receiving address (same EOA can be used on both networks)
