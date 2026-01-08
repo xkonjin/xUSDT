@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     # Supports both MVP mode (mock orders) and production mode (real CLOB).
     # API Docs: https://docs.polymarket.com
     # -------------------------------------------------------------------------
-    
+
     # Gamma API (public, no auth required)
     POLYMARKET_GAMMA_API_URL: str = Field(
         default="https://gamma-api.polymarket.com",
@@ -107,7 +107,7 @@ class Settings(BaseSettings):
         default=30.0,
         description="HTTP timeout in seconds for Polymarket API requests"
     )
-    
+
     # CLOB API (requires authentication)
     POLYMARKET_CLOB_API_URL: str = Field(
         default="https://clob.polymarket.com",
@@ -117,7 +117,7 @@ class Settings(BaseSettings):
         default=False,
         description="When true, enable real order placement on CLOB (requires auth)"
     )
-    
+
     # Authentication (optional - only needed for trading)
     POLYMARKET_PRIVATE_KEY: Optional[str] = Field(
         default=None,
@@ -131,7 +131,7 @@ class Settings(BaseSettings):
         default=2,
         description="Wallet type: 0=EOA, 1=POLY_PROXY (Magic Link), 2=GNOSIS_SAFE"
     )
-    
+
     # Pre-generated API credentials (optional - can be derived from private key)
     POLYMARKET_API_KEY: Optional[str] = Field(
         default=None,
@@ -145,14 +145,14 @@ class Settings(BaseSettings):
         default=None,
         description="Pre-generated L2 API passphrase"
     )
-    
+
     # Polygon Network Configuration
     POLYGON_RPC: str = Field(
         default="https://polygon-rpc.com",
         description="Polygon mainnet RPC URL for USDC.e operations"
     )
     POLYGON_CHAIN_ID: int = Field(default=137)
-    
+
     # Contract addresses (Polygon mainnet)
     POLYMARKET_CTF_ADDRESS: str = Field(
         default="0x4D97DCd97eC945f40cF65F87097ACe5EA0476045",
