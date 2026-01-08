@@ -8,7 +8,10 @@ import os
 from .config import settings
 from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted, FeeBreakdown
 from .facilitator import PaymentFacilitator
-from .minter import PlasmaMinter
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    # Only for type hints; runtime import is lazy and optional.
+    from .minter import PlasmaMinter  # pragma: no cover
 
 
 def _now() -> int:
@@ -197,6 +200,8 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
         if res.success and getattr(settings, "NFT_MINT_ON_PAY", False):
             # Optional NFT receipt minting (explicitly enabled only)
             try:
+                # Lazy import to avoid hard dependency when minter module is absent
+                from .minter import PlasmaMinter  # type: ignore
                 minter = PlasmaMinter()
                 # Token URI strategy: env template or default by invoiceId
                 base_uri = getattr(settings, "NFT_BASE_URI", None) or os.environ.get("NFT_BASE_URI")

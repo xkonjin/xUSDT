@@ -8,10 +8,10 @@ import { Field } from "../../components/ui/Field";
 import { Button } from "../../components/ui/Button";
 
 const DEFAULTS = {
-  PLASMA_RPC: "https://rpc.plasma.to",
-  PLASMA_CHAIN_ID: 9745,
+  PLASMA_RPC: process.env.NEXT_PUBLIC_PLASMA_RPC || "https://rpc.plasma.to",
+  PLASMA_CHAIN_ID: Number(process.env.NEXT_PUBLIC_PLASMA_CHAIN_ID || 9745),
   USDT0_ADDRESS: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
-  MERCHANT_URL: "http://127.0.0.1:8000",
+  MERCHANT_URL: process.env.NEXT_PUBLIC_MERCHANT_URL || "http://127.0.0.1:8000",
   PAY_AMOUNT_ATOMIC: 100000, // 0.1 USDT0
 };
 

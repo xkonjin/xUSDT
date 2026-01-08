@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import time
 from fastapi import FastAPI, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 from web3 import Web3
@@ -14,7 +16,29 @@ from .config import settings
 from .x402_models import PaymentOption, PaymentRequired
 import uuid
 
+from pathlib import Path
+
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve SDK JS for drop-in integration
+_SDK_DIR = Path(__file__).parent / "static"
+app.mount("/sdk", StaticFiles(directory=str(_SDK_DIR), html=False), name="sdk")
+
+@app.get("/sdk.js")
+def sdk_js() -> Response:
+    return FileResponse(str(_SDK_DIR / "sdk.js"), media_type="application/javascript")
+
+
+@app.get("/demo")
+def demo_html() -> Response:
+    return FileResponse(str(_SDK_DIR / "demo.html"), media_type="text/html")
 
 
 @app.get("/health")
@@ -89,6 +113,154 @@ def get_product_invoice(sku: str) -> Response:
     # Force Plasma-only by preference if configured; build_payment_required handles that flag
     return JSONResponse(content=pr.model_dump(), status_code=402)
 
+
+# ---------------- Router (EIP-712 gasless) endpoints -----------------
+
+class CheckoutTotalIn(BaseModel):
+    buyer: str
+    amountDecimal: Optional[str] = None  # e.g., "0.10" (6 dp max)
+    amountAtomic: Optional[int] = None   # e.g., 100000 (6 dp atomic)
+
+
+def _to_atomic_6dp(amount_decimal: str) -> int:
+    """Convert a decimal string (e.g., "0.10") into 6‑decimal atomic units.
+
+    - Pads/truncates fractional part to 6 digits.
+    - Accepts integer strings ("1") and returns e.g., 1000000 for 6dp.
+    """
+    s = amount_decimal.strip()
+    if not s:
+        return 0
+    if "." in s:
+        i, f = s.split(".", 1)
+    else:
+        i, f = s, ""
+    f = (f + "000000")[:6]
+    digits = (i + f).lstrip("0")
+    return int(digits or "0")
+
+
+@app.post("/router/checkout_total")
+def router_checkout_total(body: CheckoutTotalIn) -> dict:
+    """Build EIP‑712 typed data for PaymentRouter.gaslessTransfer for an arbitrary total.
+
+    - Resolves buyer nonce from router contract (to prevent replay).
+    - Uses USDT₀ token and Plasma chain settings by default.
+    """
+    from .crypto import build_router_typed_data
+
+    router_addr = Web3.to_checksum_address(settings.ROUTER_ADDRESS)
+    token_addr = Web3.to_checksum_address(settings.USDT0_ADDRESS)
+    merchant_addr = Web3.to_checksum_address(settings.MERCHANT_ADDRESS)
+
+    # Compute amount in atomic units (6 dp)
+    if body.amountAtomic is not None:
+        amount_atomic = int(body.amountAtomic)
+    else:
+        amount_atomic = _to_atomic_6dp(str(body.amountDecimal or "0"))
+    if amount_atomic <= 0:
+        return {"error": "amount must be > 0"}
+
+    # Read current nonce for buyer from router
+    w3 = Web3(Web3.HTTPProvider(settings.PLASMA_RPC))
+    router_abi = [
+        {"type": "function", "name": "nonces", "stateMutability": "view", "inputs": [{"name": "", "type": "address"}], "outputs": [{"name": "", "type": "uint256"}]}
+    ]
+    router = w3.eth.contract(address=router_addr, abi=router_abi)
+    buyer_addr = Web3.to_checksum_address(body.buyer)
+    nonce = int(router.functions.nonces(buyer_addr).call())
+
+    now = int(time.time())
+    deadline = now + 10 * 60
+
+    typed = build_router_typed_data(
+        chain_id=int(settings.PLASMA_CHAIN_ID),
+        verifying_contract=router_addr,
+        token=token_addr,
+        from_addr=buyer_addr,
+        to_addr=merchant_addr,
+        amount=amount_atomic,
+        nonce=nonce,
+        deadline=deadline,
+    )
+
+    return {
+        "domain": typed["domain"],
+        "types": typed["types"],
+        "message": typed["message"],
+        "amount": str(amount_atomic),
+        "deadline": str(deadline),
+    }
+
+
+class RelayTotalIn(BaseModel):
+    buyer: str
+    amount: int
+    deadline: int
+    signature: str  # 0x + 65 bytes (r,s,v)
+
+
+@app.post("/router/relay_total")
+def router_relay_total(body: RelayTotalIn) -> dict:
+    """Relay a signed EIP‑712 PaymentRouter.gaslessTransfer using the relayer key.
+
+    Expects signature as a 65‑byte 0x hex string; splits into v/r/s and submits the tx.
+    """
+    router_addr = Web3.to_checksum_address(settings.ROUTER_ADDRESS)
+    token_addr = Web3.to_checksum_address(settings.USDT0_ADDRESS)
+    merchant_addr = Web3.to_checksum_address(settings.MERCHANT_ADDRESS)
+
+    # Split signature into r, s, v
+    hex_sig = body.signature[2:] if body.signature.startswith("0x") else body.signature
+    r = Web3.to_hex(bytes.fromhex(hex_sig[0:64]))
+    s = Web3.to_hex(bytes.fromhex(hex_sig[64:128]))
+    v_raw = int(hex_sig[128:130], 16)
+    v = v_raw if v_raw in (27, 28) else (v_raw + 27)
+
+    w3 = Web3(Web3.HTTPProvider(settings.PLASMA_RPC))
+    acct = w3.eth.account.from_key(settings.RELAYER_PRIVATE_KEY)
+
+    router_abi = [
+        {
+            "type": "function",
+            "name": "gaslessTransfer",
+            "stateMutability": "nonpayable",
+            "inputs": [
+                {"name": "token", "type": "address"},
+                {"name": "from", "type": "address"},
+                {"name": "to", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "deadline", "type": "uint256"},
+                {"name": "v", "type": "uint8"},
+                {"name": "r", "type": "bytes32"},
+                {"name": "s", "type": "bytes32"},
+            ],
+            "outputs": [],
+        }
+    ]
+    router = w3.eth.contract(address=router_addr, abi=router_abi)
+
+    tx = router.functions.gaslessTransfer(
+        token_addr,
+        Web3.to_checksum_address(body.buyer),
+        merchant_addr,
+        int(body.amount),
+        int(body.deadline),
+        int(v),
+        r,
+        s,
+    ).build_transaction({
+        "from": acct.address,
+        "nonce": w3.eth.get_transaction_count(acct.address),
+        "gas": 150000,
+        "gasPrice": w3.eth.gas_price,
+        "chainId": int(settings.PLASMA_CHAIN_ID),
+    })
+
+    signed = w3.eth.account.sign_transaction(tx, private_key=settings.RELAYER_PRIVATE_KEY)
+    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    rcpt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    return {"routerTx": Web3.to_hex(tx_hash), "status": bool(rcpt.status)}
 
 @app.get("/invoice/{invoice_id}")
 def get_invoice(invoice_id: str) -> dict:
