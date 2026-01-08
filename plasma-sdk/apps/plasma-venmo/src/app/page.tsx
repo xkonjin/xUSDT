@@ -1,40 +1,50 @@
-'use client';
+"use client";
 
-import { usePlasmaWallet, useUSDT0Balance } from '@plasma-pay/privy-auth';
-import { SendMoneyForm } from '@/components/SendMoneyForm';
-import { TransactionHistory } from '@/components/TransactionHistory';
-import { formatUnits } from 'viem';
+import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
+import { SendMoneyForm } from "@/components/SendMoneyForm";
+import { TransactionHistory } from "@/components/TransactionHistory";
+import { formatUnits } from "viem";
 
 export default function HomePage() {
-  const { user, authenticated, ready, wallet, login, logout } = usePlasmaWallet();
+  const { user, authenticated, ready, wallet, login, logout } =
+    usePlasmaWallet();
   const { balance, formatted, refresh } = useUSDT0Balance();
 
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-plasma-500">Loading...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-2 border-[rgb(0,212,255)] border-t-transparent animate-spin" />
+          <span className="text-white/50">Loading...</span>
+        </div>
       </main>
     );
   }
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="text-plasma-500">Plasma</span> Venmo
-          </h1>
-          <p className="text-gray-400 mb-8">Send money to anyone via email or phone. Zero gas fees.</p>
+      <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.15)_0%,transparent_70%)] blur-3xl" />
+          <div className="absolute bottom-[-10%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.1)_0%,transparent_70%)] blur-3xl" />
         </div>
-        
-        <button
-          onClick={login}
-          className="bg-plasma-500 hover:bg-plasma-600 text-black font-semibold px-8 py-4 rounded-xl transition-colors"
-        >
+
+        <div className="text-center relative z-10">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
+            <span className="gradient-text">Plasma</span>{" "}
+            <span className="text-white">Venmo</span>
+          </h1>
+          <p className="text-white/50 text-lg max-w-md mx-auto leading-relaxed">
+            Send money to anyone via email or phone. Zero gas fees.
+          </p>
+        </div>
+
+        <button onClick={login} className="btn-primary relative z-10">
           Get Started
         </button>
-        
-        <div className="text-gray-500 text-sm mt-8">
+
+        <div className="text-white/40 text-sm mt-8 relative z-10 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-[rgb(0,212,255)]" />
           Powered by Plasma Chain - Gasless USDT0 transfers
         </div>
       </main>
@@ -42,41 +52,61 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <header className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold">
-          <span className="text-plasma-500">Plasma</span> Venmo
+    <main className="min-h-screen p-4 md:p-8 relative">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-30%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.08)_0%,transparent_70%)] blur-3xl" />
+      </div>
+
+      <header className="flex items-center justify-between mb-8 relative z-10">
+        <h1 className="text-2xl font-bold tracking-tight">
+          <span className="gradient-text">Plasma</span>{" "}
+          <span className="text-white">Venmo</span>
         </h1>
         <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm hidden sm:block">
+          <span className="text-white/40 text-sm hidden sm:block px-3 py-1.5 rounded-full liquid-glass-subtle">
             {wallet?.address?.slice(0, 6)}...{wallet?.address?.slice(-4)}
           </span>
           <button
             onClick={logout}
-            className="text-gray-400 hover:text-white text-sm transition-colors"
+            className="text-white/50 hover:text-white text-sm transition-colors duration-200 px-3 py-1.5 rounded-full hover:bg-white/10"
           >
             Logout
           </button>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto space-y-6">
-        <div className="bg-gray-900 rounded-2xl p-6">
-          <div className="text-gray-400 text-sm mb-1">Your Balance</div>
-          <div className="text-4xl font-bold">
-            ${formatted || '0.00'}
-            <span className="text-gray-500 text-lg ml-2">USDT0</span>
+      <div className="max-w-lg mx-auto space-y-6 relative z-10">
+        <div className="liquid-glass-elevated rounded-3xl p-8">
+          <div className="text-white/50 text-sm mb-2">Your Balance</div>
+          <div className="text-5xl font-bold tracking-tight">
+            <span className="gradient-text">${formatted || "0.00"}</span>
+            <span className="text-white/30 text-xl ml-3 font-medium">
+              USDT0
+            </span>
           </div>
           <button
             onClick={refresh}
-            className="text-plasma-500 text-sm mt-2 hover:underline"
+            className="text-[rgb(0,212,255)] text-sm mt-4 hover:underline transition-all duration-200 flex items-center gap-1"
           >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
             Refresh
           </button>
         </div>
 
         <SendMoneyForm wallet={wallet} onSuccess={refresh} />
-        
+
         <TransactionHistory address={wallet?.address} />
       </div>
     </main>
