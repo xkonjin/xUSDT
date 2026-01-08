@@ -19,14 +19,18 @@ Links: x402 spec and examples ([github.com/coinbase/x402](https://github.com/coi
 1) Start merchant (Plasma):
 ```bash
 # repo root
-PYTHONPATH=. \
-PLASMA_RPC=https://rpc.plasma.to PLASMA_CHAIN_ID=9745 \
-ETH_RPC=https://ethereum.publicnode.com \
-MERCHANT_ADDRESS=0xYourMerchant \
-RELAYER_PRIVATE_KEY=0x... CLIENT_PRIVATE_KEY=0x... \
-PREFER_PLASMA=true \
+export PYTHONPATH=.
+export PLASMA_RPC=https://rpc.plasma.to
+export PLASMA_CHAIN_ID=9745
+export ETH_RPC=https://ethereum.publicnode.com
+export MERCHANT_ADDRESS=0xYourMerchant
+export RELAYER_PRIVATE_KEY=0x...
+export CLIENT_PRIVATE_KEY=0x...
+export PREFER_PLASMA=true
+
 uvicorn agent.merchant_service:app --host 127.0.0.1 --port 8000
 ```
+Alternatively, you can place these in a `.env` and source them before running (for example: `set -a; . ./.env; set +a`), or keep them inline as a single-line prefix if you prefer a compact form.
 2) Start Next.js:
 ```bash
 cd v0 && npm run dev
