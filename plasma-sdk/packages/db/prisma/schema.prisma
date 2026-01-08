@@ -1,0 +1,307 @@
+// Prisma schema for Plasma Pay database
+// Handles payment links, requests, claims, notifications, and invoices
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// PAYMENT LINKS - Shareable URLs for receiving payments (pay.me/alice/10)
+// ============================================================================
+model PaymentLink {
+  id             String    @id @default(uuid())
+  
+  // Creator info - who will receive the payment
+  creatorAddress String    // Wallet address of the link creator (recipient)
+  creatorEmail   String?   // Optional email for notifications
+  
+  // Payment details
+  amount         Float?    // Amount in USDT0 (optional - payer can choose if null)
+  currency       String    @default("USDT0")
+  memo           String?   // Optional note/description
+  
+  // Status tracking
+  status         String    @default("active") // active, paid, expired, cancelled
+  expiresAt      DateTime?
+  
+  // Payment result
+  paidBy         String?   // Wallet address of payer
+  paidAt         DateTime?
+  txHash         String?   // On-chain transaction hash
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([creatorAddress])
+  @@index([status])
+}
+
+// ============================================================================
+// PAYMENT REQUESTS - Request money from specific users
+// ============================================================================
+model PaymentRequest {
+  id             String    @id @default(uuid())
+  
+  // Who is requesting payment
+  fromAddress    String    // Wallet address of requestor
+  fromEmail      String?   // Email of requestor for display
+  
+  // Who should pay
+  toIdentifier   String    // Email, phone, or wallet address
+  toAddress      String?   // Resolved wallet address (populated when known)
+  
+  // Payment details
+  amount         Float     // Amount in USDT0
+  currency       String    @default("USDT0")
+  memo           String?   // Reason for request
+  
+  // Status tracking
+  status         String    @default("pending") // pending, paid, declined, expired
+  expiresAt      DateTime
+  
+  // Payment result
+  paidAt         DateTime?
+  txHash         String?
+  declinedAt     DateTime?
+  declineReason  String?
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([toIdentifier])
+  @@index([status])
+}
+
+// ============================================================================
+// CLAIMS - Hold payments for unregistered recipients
+// ============================================================================
+model Claim {
+  id             String    @id @default(uuid())
+  
+  // Secret token for claiming (hashed)
+  tokenHash      String    @unique
+  
+  // Sender info
+  senderAddress  String
+  senderEmail    String?
+  
+  // Recipient info (pre-registration)
+  recipientEmail String?   // Email to send claim link
+  recipientPhone String?   // Phone to send claim link
+  
+  // The signed authorization (stored for later execution)
+  authorization  String    // JSON-encoded EIP-3009 authorization
+  
+  // Payment details
+  amount         Float
+  currency       String    @default("USDT0")
+  memo           String?
+  
+  // Status tracking
+  status         String    @default("pending") // pending, claimed, expired, cancelled
+  expiresAt      DateTime
+  
+  // Claim result
+  claimedBy      String?   // Wallet address of claimer
+  claimedAt      DateTime?
+  txHash         String?
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([senderAddress])
+  @@index([recipientEmail])
+  @@index([status])
+}
+
+// ============================================================================
+// NOTIFICATIONS - Track sent notifications
+// ============================================================================
+model Notification {
+  id             String    @id @default(uuid())
+  
+  // Recipient
+  recipientEmail String?
+  recipientPhone String?
+  recipientAddress String?
+  
+  // Notification details
+  type           String    // payment_received, payment_request, claim_available, etc.
+  title          String
+  body           String
+  data           String?   // JSON-encoded additional data
+  
+  // Delivery status
+  status         String    @default("pending") // pending, sent, failed, delivered
+  sentAt         DateTime?
+  failedAt       DateTime?
+  failureReason  String?
+  
+  // Reference to related entity
+  relatedType    String?   // payment_link, payment_request, claim
+  relatedId      String?
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  
+  @@index([recipientEmail])
+  @@index([recipientAddress])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// INVOICES - Track x402 payment invoices
+// ============================================================================
+model Invoice {
+  id             String    @id @default(uuid())
+  
+  // Invoice details
+  amount         Float
+  currency       String    @default("USDT0")
+  description    String?
+  
+  // Merchant info
+  merchantAddress String
+  
+  // Payment options (JSON-encoded)
+  paymentOptions String
+  
+  // Status tracking
+  status         String    @default("pending") // pending, paid, expired, failed
+  expiresAt      DateTime
+  
+  // Payment result
+  paidBy         String?
+  paidAt         DateTime?
+  txHash         String?
+  network        String?   // plasma, ethereum
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([merchantAddress])
+  @@index([status])
+}
+
+// ============================================================================
+// BILLS - For Bill Split app
+// ============================================================================
+model Bill {
+  id             String    @id @default(uuid())
+  
+  // Creator
+  creatorAddress String
+  
+  // Bill details
+  title          String
+  subtotal       Float
+  tax            Float     @default(0)
+  taxPercent     Float     @default(0)
+  tip            Float     @default(0)
+  tipPercent     Float     @default(0)
+  total          Float
+  currency       String    @default("USDT0")
+  
+  // Receipt image
+  receiptImageUrl String?
+  
+  // Status
+  status         String    @default("draft") // draft, active, completed
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Relations
+  items          BillItem[]
+  participants   BillParticipant[]
+  
+  @@index([creatorAddress])
+  @@index([status])
+}
+
+model BillItem {
+  id             String    @id @default(uuid())
+  
+  // Parent bill
+  billId         String
+  bill           Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  // Item details
+  name           String
+  price          Float
+  quantity       Int       @default(1)
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  
+  // Relations
+  assignments    BillItemAssignment[]
+  
+  @@index([billId])
+}
+
+model BillParticipant {
+  id             String    @id @default(uuid())
+  
+  // Parent bill
+  billId         String
+  bill           Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  // Participant details
+  name           String
+  email          String?
+  phone          String?
+  color          String    @default("#00d4ff")
+  
+  // Share calculation
+  share          Float     @default(0)
+  
+  // Payment status
+  paid           Boolean   @default(false)
+  paidAt         DateTime?
+  txHash         String?
+  
+  // Payment link for this participant
+  paymentLinkId  String?
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  
+  // Relations
+  assignments    BillItemAssignment[]
+  
+  @@index([billId])
+}
+
+model BillItemAssignment {
+  id             String    @id @default(uuid())
+  
+  // Item being assigned
+  itemId         String
+  item           BillItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  // Participant assigned to
+  participantId  String
+  participant    BillParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  
+  @@unique([itemId, participantId])
+  @@index([itemId])
+  @@index([participantId])
+}
+

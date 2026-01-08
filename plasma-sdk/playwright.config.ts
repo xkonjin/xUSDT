@@ -52,5 +52,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
+    {
+      // Start Bill Split dev server on port 3004
+      command: 'cd apps/bill-split && npm run dev',
+      url: 'http://localhost:3004',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
   ],
 });
