@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import requests
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
@@ -377,5 +378,191 @@ class PaymentFacilitator:
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
         except Exception as e:  # noqa: BLE001
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+
+    # -------------------------------------------------------------------------
+    # Plasma Gasless API Settlement (FREE TRANSACTIONS)
+    # -------------------------------------------------------------------------
+    # Uses api.plasma.to to execute EIP-3009 transfers with Plasma paying gas.
+    # Rate limits: 10 tx/day per address, 10K USDT0/day, 20 tx/day per IP.
+    # -------------------------------------------------------------------------
+
+    def settle_plasma_gasless_api(
+        self,
+        *,
+        from_addr: str,
+        to_addr: str,
+        value: int,
+        valid_after: int,
+        valid_before: int,
+        nonce32: str,
+        signature: str,
+        user_ip: str = "unknown",
+    ) -> SettlementResult:
+        """Submit EIP-3009 authorization to Plasma gasless API for FREE execution.
+
+        Plasma pays the gas - no cost to user or merchant.
+
+        Args:
+            from_addr: Sender address (signer)
+            to_addr: Recipient address
+            value: Amount in atomic units (6 decimals)
+            valid_after: Unix timestamp after which valid
+            valid_before: Unix timestamp before which valid
+            nonce32: 32-byte hex nonce (0x-prefixed)
+            signature: Full EIP-712 signature (0x + 65 bytes hex)
+            user_ip: User IP for rate limiting
+
+        Returns:
+            SettlementResult with success/tx_hash
+        """
+        # Verify gasless API is configured
+        if not getattr(settings, "PLASMA_RELAYER_SECRET", None):
+            return SettlementResult(
+                success=False, tx_hash=None,
+                error="PLASMA_RELAYER_SECRET not configured",
+                receipt=None,
+            )
+
+        nonce_hex = nonce32 if nonce32.startswith("0x") else f"0x{nonce32}"
+
+        try:
+            # POST /submit to gasless API
+            resp = requests.post(
+                f"{settings.PLASMA_RELAYER_URL}/submit",
+                headers={
+                    "X-Internal-Secret": settings.PLASMA_RELAYER_SECRET,
+                    "X-User-IP": user_ip,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "authorization": {
+                        "from": Web3.to_checksum_address(from_addr),
+                        "to": Web3.to_checksum_address(to_addr),
+                        "value": str(value),
+                        "validAfter": str(valid_after),
+                        "validBefore": str(valid_before),
+                        "nonce": nonce_hex,
+                    },
+                    "signature": signature,
+                },
+                timeout=30,
+            )
+
+            # Handle rate limiting
+            if resp.status_code == 429:
+                err = resp.json() if "application/json" in resp.headers.get("content-type", "") else {}
+                return SettlementResult(
+                    success=False, tx_hash=None,
+                    error=f"RATE_LIMIT: {err.get('error', {}).get('message', 'limit exceeded')}",
+                    receipt={"rate_limited": True},
+                )
+
+            if not resp.ok:
+                return SettlementResult(
+                    success=False, tx_hash=None,
+                    error=f"API error ({resp.status_code}): {resp.text}",
+                    receipt=None,
+                )
+
+            # Parse response - API returns {id, status: "queued"}
+            result = resp.json()
+            submission_id = result.get("id")
+
+            # Poll for confirmation (up to 60s)
+            tx_hash = None
+            final_status = result.get("status", "queued")
+            for _ in range(30):
+                time.sleep(2)
+                status_resp = requests.get(
+                    f"{settings.PLASMA_RELAYER_URL}/status/{submission_id}",
+                    headers={"X-Internal-Secret": settings.PLASMA_RELAYER_SECRET},
+                    timeout=10,
+                )
+                if status_resp.ok:
+                    data = status_resp.json()
+                    final_status = data.get("status", "pending")
+                    tx_hash = data.get("txHash")
+
+                    if final_status == "confirmed":
+                        return SettlementResult(
+                            success=True, tx_hash=tx_hash, error=None,
+                            receipt={"gasless": True, "submission_id": submission_id},
+                        )
+                    elif final_status == "failed":
+                        return SettlementResult(
+                            success=False, tx_hash=tx_hash,
+                            error=data.get("error", "failed"),
+                            receipt={"gasless": True, "submission_id": submission_id},
+                        )
+
+            # Timeout
+            return SettlementResult(
+                success=False, tx_hash=tx_hash,
+                error=f"Timeout (status: {final_status})",
+                receipt={"gasless": True, "submission_id": submission_id},
+            )
+
+        except requests.exceptions.Timeout:
+            return SettlementResult(success=False, tx_hash=None, error="API timeout", receipt=None)
+        except requests.exceptions.RequestException as e:
+            return SettlementResult(success=False, tx_hash=None, error=f"Connection error: {e}", receipt=None)
+        except Exception as e:  # noqa: BLE001
+            return SettlementResult(success=False, tx_hash=None, error=f"Unexpected: {e}", receipt=None)
+
+    def settle_plasma_with_fallback(
+        self,
+        *,
+        from_addr: str,
+        to_addr: str,
+        value: int,
+        valid_after: int,
+        valid_before: int,
+        nonce32: str,
+        v: int,
+        r: str,
+        s: str,
+        user_ip: str = "unknown",
+    ) -> SettlementResult:
+        """Smart settlement: gasless API first, RELAYER wallet fallback.
+
+        Tries FREE gasless API if configured, falls back to paid RELAYER execution.
+        """
+        use_gasless = getattr(settings, "USE_GASLESS_API", True)
+        has_secret = getattr(settings, "PLASMA_RELAYER_SECRET", None)
+
+        if use_gasless and has_secret:
+            # Build full signature from v,r,s: r(32) + s(32) + v(1)
+            r_hex = r[2:] if r.startswith("0x") else r
+            s_hex = s[2:] if s.startswith("0x") else s
+            v_hex = format(v, "02x")
+            full_sig = f"0x{r_hex}{s_hex}{v_hex}"
+
+            result = self.settle_plasma_gasless_api(
+                from_addr=from_addr,
+                to_addr=to_addr,
+                value=value,
+                valid_after=valid_after,
+                valid_before=valid_before,
+                nonce32=nonce32,
+                signature=full_sig,
+                user_ip=user_ip,
+            )
+
+            if result.success:
+                return result
+            # Gasless failed - fallback to RELAYER wallet
+
+        # Fallback: RELAYER wallet pays gas
+        return self.settle_plasma_eip3009(
+            from_addr=from_addr,
+            to_addr=to_addr,
+            value=value,
+            valid_after=valid_after,
+            valid_before=valid_before,
+            nonce32=nonce32,
+            v=v,
+            r=r,
+            s=s,
+        )
 
 

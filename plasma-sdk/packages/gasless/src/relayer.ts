@@ -1,7 +1,20 @@
 /**
  * Gasless Relayer Client
  * 
- * Submits signed authorizations to a relayer service for execution
+ * Submits signed authorizations to a relayer service for execution.
+ * 
+ * PLASMA GASLESS API - FREE TRANSACTIONS
+ * ======================================
+ * api.plasma.to executes EIP-3009 transfers with Plasma paying gas.
+ * 
+ * Rate Limits:
+ * - 10 transfers/day per address
+ * - 10,000 USDT0/day per address
+ * - 20 transfers/day per IP
+ * - Minimum: 1 USDT0
+ * - Resets 00:00 UTC
+ * 
+ * Usage: Call /api/relay backend route (adds X-Internal-Secret header)
  */
 
 import type { Address, Hex, PublicClient, WalletClient, Hash } from 'viem';
@@ -14,6 +27,20 @@ import {
   retry,
 } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
+
+// =============================================================================
+// Plasma Gasless API Configuration
+// =============================================================================
+/** Official Plasma gasless relayer URL - use server-side only with secret */
+export const PLASMA_GASLESS_API = 'https://api.plasma.to';
+
+/** Rate limit constants for UI feedback */
+export const PLASMA_GASLESS_LIMITS = {
+  DAILY_TRANSFERS_PER_ADDRESS: 10,
+  DAILY_VOLUME_PER_ADDRESS: 10_000_000_000n, // 10,000 USDT0 (6 decimals)
+  DAILY_TRANSFERS_PER_IP: 20,
+  MINIMUM_AMOUNT: 1_000_000n, // 1 USDT0
+} as const;
 
 /**
  * ABI for transferWithAuthorization function

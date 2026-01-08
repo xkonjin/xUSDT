@@ -1,0 +1,37 @@
+{
+  "name": "@plasma-pay/db",
+  "version": "0.1.0",
+  "description": "Database layer with Prisma for Plasma SDK - handles payment links, requests, claims, and notifications",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "prisma generate && tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prisma": "^5.22.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "files": ["dist", "prisma"],
+  "license": "MIT"
+}
+

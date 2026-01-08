@@ -1,14 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { SendMoneyForm } from "@/components/SendMoneyForm";
+import { RequestMoneyForm } from "@/components/RequestMoneyForm";
+import { PaymentRequests } from "@/components/PaymentRequests";
 import { TransactionHistory } from "@/components/TransactionHistory";
-import { formatUnits } from "viem";
+import { PaymentLinks } from "@/components/PaymentLinks";
+import { Send, HandCoins } from "lucide-react";
 
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } =
     usePlasmaWallet();
   const { balance, formatted, refresh } = useUSDT0Balance();
+  const [activeTab, setActiveTab] = useState<"send" | "request">("send");
+  
+  // Get user email from Privy user object
+  const userEmail = user?.email?.address;
 
   if (!ready) {
     return (
@@ -105,7 +113,43 @@ export default function HomePage() {
           </button>
         </div>
 
-        <SendMoneyForm wallet={wallet} onSuccess={refresh} />
+        {/* Pending payment requests (if any) */}
+        <PaymentRequests wallet={wallet} userEmail={userEmail} onRefresh={refresh} />
+
+        {/* Tab switcher for Send/Request */}
+        <div className="flex rounded-2xl p-1 liquid-glass-subtle">
+          <button
+            onClick={() => setActiveTab("send")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-200 ${
+              activeTab === "send"
+                ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
+                : "text-white/50 hover:text-white"
+            }`}
+          >
+            <Send className="w-4 h-4" />
+            Send
+          </button>
+          <button
+            onClick={() => setActiveTab("request")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-200 ${
+              activeTab === "request"
+                ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
+                : "text-white/50 hover:text-white"
+            }`}
+          >
+            <HandCoins className="w-4 h-4" />
+            Request
+          </button>
+        </div>
+
+        {/* Active form */}
+        {activeTab === "send" ? (
+          <SendMoneyForm wallet={wallet} onSuccess={refresh} />
+        ) : (
+          <RequestMoneyForm walletAddress={wallet?.address} userEmail={userEmail} onSuccess={refresh} />
+        )}
+
+        <PaymentLinks address={wallet?.address} onRefresh={refresh} />
 
         <TransactionHistory address={wallet?.address} />
       </div>

@@ -33,3 +33,39 @@ body {
 ::selection {
   background: rgba(0, 212, 255, 0.3);
 }
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Primary button */
+.btn-primary {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9) 0%, rgba(0, 186, 255, 0.9) 100%);
+  color: white;
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 24px rgba(0, 212, 255, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
