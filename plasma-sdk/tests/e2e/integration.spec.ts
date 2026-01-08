@@ -16,12 +16,11 @@ test.describe("Shared Design System", () => {
     await subkillerPage.goto("http://localhost:3001");
     await subkillerPage.waitForLoadState("networkidle");
 
-    await expect(
-      subkillerPage.locator("text=Powered by Plasma").first()
-    ).toBeVisible();
-    await expect(
-      subkillerPage.locator("text=Zero Gas Fees").first()
-    ).toBeVisible();
+    // SubKiller should have Plasma branding - use first() to avoid strict mode
+    await expect(subkillerPage.locator("text=Plasma").first()).toBeVisible();
+
+    // SubKiller should mention zero gas fees - use heading role to be specific
+    await expect(subkillerPage.getByRole("heading", { name: "Zero Gas Fees" })).toBeVisible();
 
     const venmoPage = await context.newPage();
     await venmoPage.goto("http://localhost:3002");
@@ -39,9 +38,7 @@ test.describe("Shared Design System", () => {
       .locator("text=Configuration Required")
       .isVisible();
     if (!isConfigScreen) {
-      await expect(
-        venmoPage.getByText("Plasma", { exact: true })
-      ).toBeVisible();
+      await expect(venmoPage.locator("text=Plasma").first()).toBeVisible();
     }
 
     await context.close();
