@@ -108,12 +108,14 @@ export async function verifyPayment(
       verifyingContract: tokenAddress,
     };
 
+    // Convert numeric values to bigint for EIP-712 signature verification
+    // viem's verifyTypedData expects uint256 fields as bigint
     const message = {
       from: authorization.from,
       to: authorization.to,
-      value: authorization.value,
-      validAfter: authorization.validAfter,
-      validBefore: authorization.validBefore,
+      value: BigInt(authorization.value),
+      validAfter: BigInt(authorization.validAfter),
+      validBefore: BigInt(authorization.validBefore),
       nonce: authorization.nonce,
     };
 

@@ -1,3 +1,12 @@
+/**
+ * Gmail API Integration - SERVER-SIDE ONLY
+ * 
+ * This module uses Node.js-specific googleapis library and should
+ * ONLY be imported in API routes (server components), not client components.
+ * 
+ * For client-safe email parsing utilities, use subscription-detector.ts
+ */
+
 import { google } from 'googleapis';
 import type { GmailMessage } from '@/types';
 
@@ -112,36 +121,6 @@ export async function fetchSubscriptionEmails(
   return messages;
 }
 
-export function extractSenderDomain(from: string): string {
-  const match = from.match(/<([^>]+)>/) || from.match(/([^\s]+@[^\s]+)/);
-  if (match) {
-    const email = match[1];
-    const domain = email.split('@')[1];
-    return domain;
-  }
-  return from;
-}
-
-export function extractSenderName(from: string): string {
-  // Extract name from "Name <email@domain.com>" format
-  const match = from.match(/^([^<]+)</);
-  if (match) {
-    return match[1].trim().replace(/"/g, '');
-  }
-  // If no name, use domain
-  return extractSenderDomain(from).split('.')[0];
-}
-
-export function groupEmailsBySender(messages: GmailMessage[]): Map<string, GmailMessage[]> {
-  const groups = new Map<string, GmailMessage[]>();
-  
-  for (const msg of messages) {
-    const domain = extractSenderDomain(msg.from);
-    if (!groups.has(domain)) {
-      groups.set(domain, []);
-    }
-    groups.get(domain)!.push(msg);
-  }
-  
-  return groups;
-}
+// Note: Client-safe email parsing utilities (extractSenderDomain, extractSenderName, groupEmailsBySender)
+// have been moved to subscription-detector.ts for safe client-side usage.
+// Import them from there instead of this file.

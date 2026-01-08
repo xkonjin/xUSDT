@@ -39,7 +39,9 @@ test.describe("Shared Design System", () => {
       .locator("text=Configuration Required")
       .isVisible();
     if (!isConfigScreen) {
-      await expect(venmoPage.locator("text=Plasma")).toBeVisible();
+      await expect(
+        venmoPage.getByText("Plasma", { exact: true })
+      ).toBeVisible();
     }
 
     await context.close();

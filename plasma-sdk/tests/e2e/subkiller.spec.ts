@@ -23,8 +23,10 @@ test.describe('SubKiller Landing Page', () => {
   });
 
   test('should display pricing information', async ({ page }) => {
-    await expect(page.locator('text=$0.99')).toBeVisible();
-    await expect(page.locator('text=One-time payment')).toBeVisible();
+    // Check for pricing - the $0.99 text is visible in bold next to "One-time payment:"
+    await expect(page.getByText('One-time payment:')).toBeVisible();
+    // The $0.99 price should be visible
+    await expect(page.locator('text=$0.99').first()).toBeVisible();
   });
 
   test('should display features section', async ({ page }) => {
@@ -36,7 +38,8 @@ test.describe('SubKiller Landing Page', () => {
 
   test('should display trust indicators', async ({ page }) => {
     await expect(page.locator('text=Privacy First')).toBeVisible();
-    await expect(page.locator('text=Zero Gas Fees')).toBeVisible();
+    // Use heading role to be more specific since "Zero Gas Fees" appears multiple times
+    await expect(page.getByRole('heading', { name: 'Zero Gas Fees' })).toBeVisible();
   });
 
   test('should have CTA button', async ({ page }) => {

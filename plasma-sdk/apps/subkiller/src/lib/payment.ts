@@ -1,4 +1,5 @@
-import { USDT0_ADDRESS, PLASMA_CHAIN_ID } from '@plasma-pay/core';
+// Import Plasma mainnet chain ID and USDT0 token address
+import { USDT0_ADDRESS, PLASMA_MAINNET_CHAIN_ID } from '@plasma-pay/core';
 import { buildTransferAuthorizationTypedData, createTransferParams } from '@plasma-pay/gasless';
 import type { PaymentStatus } from '@/types';
 
@@ -17,22 +18,21 @@ export interface PaymentRequest {
   validBefore: number;
 }
 
+/**
+ * Create EIP-712 typed data for SubKiller payment authorization
+ * Uses createTransferParams with positional arguments: (from, to, value, options)
+ */
 export function createPaymentTypedData(userAddress: string) {
-  const params = createTransferParams({
-    from: userAddress as `0x${string}`,
-    to: MERCHANT_ADDRESS as `0x${string}`,
-    value: SUBKILLER_PRICE,
-  });
+  // createTransferParams expects (from, to, value, options) not an object
+  const params = createTransferParams(
+    userAddress as `0x${string}`,
+    MERCHANT_ADDRESS as `0x${string}`,
+    SUBKILLER_PRICE
+  );
 
-  return buildTransferAuthorizationTypedData({
-    chainId: PLASMA_CHAIN_ID,
+  return buildTransferAuthorizationTypedData(params, {
+    chainId: PLASMA_MAINNET_CHAIN_ID,
     tokenAddress: USDT0_ADDRESS,
-    from: params.from,
-    to: params.to,
-    value: params.value,
-    validAfter: params.validAfter,
-    validBefore: params.validBefore,
-    nonce: params.nonce,
   });
 }
 
@@ -65,7 +65,7 @@ export async function submitPayment(
       type: 'payment-submitted',
       chosenOption: {
         network: 'plasma',
-        chainId: PLASMA_CHAIN_ID,
+        chainId: PLASMA_MAINNET_CHAIN_ID,
         token: USDT0_ADDRESS,
         amount: SUBKILLER_PRICE.toString(),
         decimals: 6,
