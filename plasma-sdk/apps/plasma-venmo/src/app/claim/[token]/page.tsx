@@ -34,14 +34,10 @@ interface ClaimData {
 export default function ClaimPage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: { token: string };
 }) {
-  // Resolve params
-  const [token, setToken] = useState<string | null>(null);
-  
-  useEffect(() => {
-    params.then(p => setToken(p.token));
-  }, [params]);
+  // In Next.js 14, params are synchronous (not a Promise)
+  const token = params.token;
 
   // Wallet and auth state
   const { authenticated, ready, wallet, login } = usePlasmaWallet();

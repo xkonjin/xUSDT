@@ -1,71 +1,267 @@
+/**
+ * Bill Split (Splitzy) Global Styles
+ * 
+ * Uses the Plasma SDK unified design system with:
+ * - Liquid glass components (glassmorphism)
+ * - Plasma cyan accent color
+ * - Dark theme with gradients
+ * - Mobile-first responsive design
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   CSS Variables
+   ============================================================================ */
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  /* Plasma brand colors (RGB triplets for rgba() usage) */
+  --plasma-cyan: 0, 212, 255;
+  --glass-white: 255, 255, 255;
+  
+  /* Core theme colors */
+  --background: 0, 0, 0;
+  --foreground: 255, 255, 255;
+  
+  /* Semantic colors */
+  --success: 34, 197, 94;
+  --warning: 234, 179, 8;
+  --error: 239, 68, 68;
 }
 
+/* ============================================================================
+   Base Styles
+   ============================================================================ */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Gradient background with plasma glow effect */
+  background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(var(--plasma-cyan), 0.12),
+      transparent
+    ),
+    linear-gradient(180deg, rgb(var(--background)) 0%, rgb(8, 8, 12) 100%);
+  color: rgb(var(--foreground));
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
+/* Minimal scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1f1f1f;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f3f;
-  border-radius: 4px;
+  background: rgba(var(--glass-white), 0.1);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(var(--glass-white), 0.2);
 }
 
+/* Text selection with brand color */
 ::selection {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(var(--plasma-cyan), 0.3);
 }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* ============================================================================
+   Liquid Glass Components - Glassmorphism Design System
+   ============================================================================ */
+@layer components {
+  /* Standard glass panel - use for cards, modals, dropdowns */
+  .liquid-glass {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--glass-white), 0.1) 0%,
+      rgba(var(--glass-white), 0.05) 100%
+    );
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(var(--glass-white), 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(var(--glass-white), 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  /* Subtle glass - use for inline elements, backgrounds */
+  .liquid-glass-subtle {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--glass-white), 0.05) 0%,
+      rgba(var(--glass-white), 0.02) 100%
+    );
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(var(--glass-white), 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(var(--glass-white), 0.05);
+  }
+
+  /* Elevated glass - use for important modals, hero sections */
+  .liquid-glass-elevated {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--glass-white), 0.15) 0%,
+      rgba(var(--glass-white), 0.08) 100%
+    );
+    backdrop-filter: blur(60px) saturate(200%);
+    -webkit-backdrop-filter: blur(60px) saturate(200%);
+    border: 1px solid rgba(var(--glass-white), 0.2);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4),
+      0 4px 16px rgba(var(--plasma-cyan), 0.1),
+      inset 0 1px 0 rgba(var(--glass-white), 0.15);
+  }
+
+  /* Plasma-tinted glass - use for accent sections, CTAs */
+  .liquid-glass-plasma {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--plasma-cyan), 0.15) 0%,
+      rgba(var(--plasma-cyan), 0.08) 100%
+    );
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(var(--plasma-cyan), 0.25);
+    box-shadow: 0 8px 32px rgba(var(--plasma-cyan), 0.1),
+      inset 0 1px 0 rgba(var(--glass-white), 0.1);
+  }
+
+  /* ============================================================================
+     Glow Effects
+     ============================================================================ */
+  .plasma-glow {
+    box-shadow: 0 0 20px rgba(var(--plasma-cyan), 0.4),
+      0 0 40px rgba(var(--plasma-cyan), 0.2);
+  }
+
+  .plasma-glow-sm {
+    box-shadow: 0 0 10px rgba(var(--plasma-cyan), 0.3),
+      0 0 20px rgba(var(--plasma-cyan), 0.15);
+  }
+
+  /* ============================================================================
+     Typography
+     ============================================================================ */
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--plasma-cyan)) 0%,
+      rgba(var(--plasma-cyan), 0.7) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-purple {
+    background: linear-gradient(135deg, rgb(var(--plasma-cyan)) 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ============================================================================
+     Buttons
+     ============================================================================ */
+  .btn-primary {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--plasma-cyan)) 0%,
+      rgb(0, 180, 220) 100%
+    );
+    color: black;
+    font-weight: 600;
+    border-radius: 1rem;
+    padding: 1rem 2rem;
+    min-height: 44px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(var(--plasma-cyan), 0.4),
+      0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(var(--plasma-cyan), 0.5),
+      0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Secondary/Ghost button */
+  .btn-secondary {
+    background: rgba(var(--glass-white), 0.1);
+    color: white;
+    font-weight: 500;
+    border-radius: 1rem;
+    padding: 0.75rem 1.5rem;
+    min-height: 44px;
+    border: 1px solid rgba(var(--glass-white), 0.15);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(var(--glass-white), 0.15);
+    border-color: rgba(var(--glass-white), 0.25);
+  }
+
+  /* ============================================================================
+     Inputs
+     ============================================================================ */
+  .input-glass {
+    background: rgba(var(--glass-white), 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--glass-white), 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+    color: white;
+    transition: all 0.2s ease;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .input-glass:focus {
+    outline: none;
+    border-color: rgba(var(--plasma-cyan), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--plasma-cyan), 0.1);
+  }
+
+  .input-glass::placeholder {
+    color: rgba(var(--glass-white), 0.4);
+  }
 }
 
-/* Primary button */
-.btn-primary {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.9) 0%, rgba(0, 186, 255, 0.9) 100%);
-  color: white;
-  font-weight: 600;
-  padding: 0.875rem 2rem;
-  border-radius: 1rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 24px rgba(0, 212, 255, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.4);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
+/* ============================================================================
+   Utility Classes
+   ============================================================================ */
+@layer utilities {
+  /* Touch-friendly minimum sizes (iOS HIG) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Safe area padding for notched devices */
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }

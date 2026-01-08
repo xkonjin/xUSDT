@@ -1,3 +1,18 @@
+/**
+ * SubKiller Dashboard Page
+ * 
+ * Main dashboard for subscription scanning and management.
+ * Features:
+ * - Gmail email scanning for subscription detection
+ * - AI-powered categorization and cost estimation
+ * - One-time payment to unlock cancellation features
+ * - Direct links to cancel subscriptions
+ * 
+ * Authentication:
+ * - NextAuth (Google OAuth) for Gmail access
+ * - Privy wallet for USDT0 payments
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,30 +23,67 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { PaymentModal } from '@/components/PaymentModal';
 import { ScanProgress } from '@/components/ScanProgress';
-import { DollarSign, Scan, Filter, LogOut } from 'lucide-react';
+import { DollarSign, Scan, Filter, LogOut, CheckCircle } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import type { Subscription, ScanResult } from '@/types';
 import { calculateTotals } from '@/lib/subscription-detector';
 
+// Conditionally import Privy hook - may not be available if not configured
+let usePlasmaWallet: any = null;
+try {
+  const privyAuth = require('@plasma-pay/privy-auth');
+  usePlasmaWallet = privyAuth.usePlasmaWallet;
+} catch {
+  // Privy not available - wallet features will be disabled
+}
+
 export default function Dashboard() {
+  // NextAuth session for Gmail access
   const { data: session, status } = useSession();
   const router = useRouter();
   
+  // Privy wallet for payments (may be null if not configured)
+  const walletState = usePlasmaWallet ? usePlasmaWallet() : null;
+  const wallet = walletState?.wallet || null;
+  const isWalletConnected = walletState?.authenticated || false;
+  const connectWallet = walletState?.login || (() => {});
+  
+  // Scanning state
   const [isScanning, setIsScanning] = useState(false);
   const [scanStage, setScanStage] = useState<'connecting' | 'fetching' | 'analyzing' | 'complete'>('connecting');
   const [scanProgress, setScanProgress] = useState(0);
   const [emailsScanned, setEmailsScanned] = useState(0);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  
+  // Payment state
   const [hasPaid, setHasPaid] = useState(false);
+  const [paymentTxHash, setPaymentTxHash] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // Filter state
   const [filter, setFilter] = useState<string>('all');
 
+  // Redirect to home if not authenticated with Google
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/');
     }
   }, [status, router]);
 
+  // Check payment status on mount (could persist to localStorage or backend)
+  useEffect(() => {
+    const savedPayment = localStorage.getItem('subkiller_paid');
+    if (savedPayment) {
+      const parsed = JSON.parse(savedPayment);
+      setHasPaid(parsed.hasPaid || false);
+      setPaymentTxHash(parsed.txHash || null);
+    }
+  }, []);
+
+  /**
+   * Start scanning Gmail for subscription emails
+   * Uses NextAuth access token to access Gmail API
+   */
   const startScan = async () => {
     setIsScanning(true);
     setScanStage('connecting');
@@ -40,11 +92,11 @@ export default function Dashboard() {
     setSubscriptions([]);
 
     try {
-      // Stage 1: Connecting
+      // Stage 1: Connecting to Gmail
       setScanProgress(10);
       await new Promise(r => setTimeout(r, 1000));
 
-      // Stage 2: Fetching emails
+      // Stage 2: Fetching subscription emails
       setScanStage('fetching');
       setScanProgress(30);
 
@@ -61,7 +113,7 @@ export default function Dashboard() {
       setEmailsScanned(scanData.scannedEmails);
       setScanProgress(60);
 
-      // Stage 3: AI Analysis
+      // Stage 3: AI Analysis and Categorization
       setScanStage('analyzing');
       
       const categorizeResponse = await fetch('/api/categorize', {
@@ -86,12 +138,27 @@ export default function Dashboard() {
     }
   };
 
-  const handlePayment = async () => {
-    // TODO: Integrate with actual payment flow
+  /**
+   * Handle successful payment
+   * Persists payment status to localStorage and unlocks features
+   */
+  const handlePaymentSuccess = (txHash: string) => {
     setHasPaid(true);
+    setPaymentTxHash(txHash);
     setShowPaymentModal(false);
+    
+    // Persist payment status
+    localStorage.setItem('subkiller_paid', JSON.stringify({
+      hasPaid: true,
+      txHash,
+      paidAt: new Date().toISOString(),
+    }));
   };
 
+  /**
+   * Handle subscription cancellation action
+   * Opens payment modal if not paid, otherwise opens unsubscribe URL
+   */
   const handleCancelSubscription = (sub: Subscription) => {
     if (!hasPaid) {
       setShowPaymentModal(true);
@@ -103,23 +170,28 @@ export default function Dashboard() {
     }
   };
 
+  // Calculate spending totals
   const totals = calculateTotals(subscriptions);
+  
+  // Filter subscriptions by category
   const filteredSubscriptions = subscriptions.filter(sub => 
     filter === 'all' || sub.category === filter
   );
 
+  // Get unique categories for filter buttons
   const categories = [...new Set(subscriptions.map(s => s.category))];
 
+  // Loading state while checking authentication
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-plasma-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin w-8 h-8 border-2 border-[rgb(0,212,255)] border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-black">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -127,6 +199,12 @@ export default function Dashboard() {
             <h1 className="text-xl font-bold text-white">SubKiller</h1>
             {session?.user?.email && (
               <span className="text-sm text-gray-400">{session.user.email}</span>
+            )}
+            {hasPaid && (
+              <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/20 px-2 py-1 rounded-full">
+                <CheckCircle className="w-3 h-3" />
+                Pro
+              </span>
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={() => signOut()}>
@@ -141,8 +219,8 @@ export default function Dashboard() {
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6">
             <CardContent className="p-0 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-plasma-500/20 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-plasma-400" />
+              <div className="w-12 h-12 rounded-xl bg-[rgb(0,212,255)]/20 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-[rgb(0,212,255)]" />
               </div>
               <div>
                 <p className="text-sm text-gray-400">Monthly Spending</p>
@@ -189,8 +267,8 @@ export default function Dashboard() {
         ) : subscriptions.length === 0 ? (
           <Card className="mb-8 p-12 text-center">
             <CardContent className="p-0 space-y-4">
-              <div className="w-16 h-16 rounded-full bg-plasma-500/20 flex items-center justify-center mx-auto">
-                <Scan className="w-8 h-8 text-plasma-400" />
+              <div className="w-16 h-16 rounded-full bg-[rgb(0,212,255)]/20 flex items-center justify-center mx-auto">
+                <Scan className="w-8 h-8 text-[rgb(0,212,255)]" />
               </div>
               <h2 className="text-xl font-semibold text-white">Ready to Scan</h2>
               <p className="text-gray-400 max-w-md mx-auto">
@@ -206,7 +284,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
               <div className="flex items-center gap-2 text-gray-400">
                 <Filter className="w-4 h-4" />
                 <span className="text-sm">Filter:</span>
@@ -256,9 +334,12 @@ export default function Dashboard() {
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        onPayWithWallet={handlePayment}
+        onPaymentSuccess={handlePaymentSuccess}
         subscriptionCount={subscriptions.length}
         estimatedSavings={totals.monthly * 0.3} // Assume 30% potential savings
+        wallet={wallet}
+        isWalletConnected={isWalletConnected}
+        connectWallet={connectWallet}
       />
     </div>
   );

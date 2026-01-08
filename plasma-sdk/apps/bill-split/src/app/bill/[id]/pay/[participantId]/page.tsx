@@ -40,18 +40,11 @@ function splitSignature(signature: `0x${string}`): { v: number; r: `0x${string}`
 export default function BillPayPage({
   params,
 }: {
-  params: Promise<{ id: string; participantId: string }>;
+  params: { id: string; participantId: string };
 }) {
-  // Resolve params
-  const [billId, setBillId] = useState<string | null>(null);
-  const [participantId, setParticipantId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    params.then(p => {
-      setBillId(p.id);
-      setParticipantId(p.participantId);
-    });
-  }, [params]);
+  // Extract route params (Next.js 14 synchronous pattern)
+  const billId = params.id;
+  const participantId = params.participantId;
 
   // Wallet state
   const { authenticated, ready, wallet, login } = usePlasmaWallet();

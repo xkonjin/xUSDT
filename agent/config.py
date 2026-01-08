@@ -85,6 +85,27 @@ class Settings(BaseSettings):
         ..., description="Private key for client agent EOA (test/demo)"
     )
 
+    # -------------------------------------------------------------------------
+    # Polymarket Integration Configuration (MVP - Mock Mode)
+    # -------------------------------------------------------------------------
+    # Polymarket prediction markets integration settings.
+    # In MVP mode, we use the public Gamma API for market discovery
+    # and mock order placement (no real CLOB orders).
+    # API Docs: https://docs.polymarket.com
+    # -------------------------------------------------------------------------
+    POLYMARKET_GAMMA_API_URL: str = Field(
+        default="https://gamma-api.polymarket.com",
+        description="Polymarket Gamma API URL for market discovery (public, no auth)"
+    )
+    POLYMARKET_USE_MOCK: bool = Field(
+        default=True,
+        description="When true, return mock data if Gamma API is unavailable"
+    )
+    POLYMARKET_API_TIMEOUT: float = Field(
+        default=30.0,
+        description="HTTP timeout in seconds for Polymarket API requests"
+    )
+
     # Protocol fee parameters
     PLATFORM_FEE_BPS: int = Field(
         default=10, description="Protocol fee in basis points (10 = 0.1%)"

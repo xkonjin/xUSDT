@@ -57,11 +57,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // Look up user by email or phone number in Privy
+    // Note: Privy server SDK provides getUserByEmail and getUserByPhone methods
     let user = null;
     if (isEmail) {
+      // Look up user by email address
       user = await privy.getUserByEmail(identifier).catch(() => null);
     } else if (isPhone) {
-      user = await privy.getUserByEmail(identifier).catch(() => null);
+      // Look up user by phone number - normalize phone format first
+      const normalizedPhone = identifier.replace(/[\s-]/g, "");
+      user = await privy.getUserByPhone(normalizedPhone).catch(() => null);
     }
 
     if (!user) {

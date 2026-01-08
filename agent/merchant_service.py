@@ -18,6 +18,9 @@ import uuid
 
 from pathlib import Path
 
+# Import polymarket router for prediction markets integration
+from .polymarket import polymarket_router
+
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +29,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =============================================================================
+# Mount Polymarket Router
+# =============================================================================
+# Polymarket integration endpoints for prediction markets
+# - GET /polymarket/markets: List active markets from Polymarket Gamma API
+# - GET /polymarket/markets/{id}: Get single market details
+# - POST /polymarket/predict: Submit a prediction (mock order for MVP)
+# - GET /polymarket/predictions: Get user's prediction history
+app.include_router(polymarket_router, prefix="/polymarket", tags=["polymarket"])
 
 # Serve SDK JS for drop-in integration
 _SDK_DIR = Path(__file__).parent / "static"

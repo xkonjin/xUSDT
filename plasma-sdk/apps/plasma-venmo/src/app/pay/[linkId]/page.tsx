@@ -48,14 +48,10 @@ function splitSignature(signature: `0x${string}`): { v: number; r: `0x${string}`
 export default function PayPage({
   params,
 }: {
-  params: Promise<{ linkId: string }>;
+  params: { linkId: string };
 }) {
-  // Resolve params
-  const [linkId, setLinkId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    params.then(p => setLinkId(p.linkId));
-  }, [params]);
+  // In Next.js 14, params are synchronous (not a Promise)
+  const linkId = params.linkId;
 
   // Wallet and auth state
   const { user, authenticated, ready, wallet, login } = usePlasmaWallet();
