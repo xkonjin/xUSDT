@@ -1,0 +1,265 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SubscriptionCard } from '@/components/SubscriptionCard';
+import { PaymentModal } from '@/components/PaymentModal';
+import { ScanProgress } from '@/components/ScanProgress';
+import { DollarSign, Scan, Filter, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import type { Subscription, ScanResult } from '@/types';
+import { calculateTotals } from '@/lib/subscription-detector';
+
+export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanStage, setScanStage] = useState<'connecting' | 'fetching' | 'analyzing' | 'complete'>('connecting');
+  const [scanProgress, setScanProgress] = useState(0);
+  const [emailsScanned, setEmailsScanned] = useState(0);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [hasPaid, setHasPaid] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [filter, setFilter] = useState<string>('all');
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
+  const startScan = async () => {
+    setIsScanning(true);
+    setScanStage('connecting');
+    setScanProgress(0);
+    setEmailsScanned(0);
+    setSubscriptions([]);
+
+    try {
+      // Stage 1: Connecting
+      setScanProgress(10);
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Stage 2: Fetching emails
+      setScanStage('fetching');
+      setScanProgress(30);
+
+      const scanResponse = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!scanResponse.ok) {
+        throw new Error('Scan failed');
+      }
+
+      const scanData = await scanResponse.json();
+      setEmailsScanned(scanData.scannedEmails);
+      setScanProgress(60);
+
+      // Stage 3: AI Analysis
+      setScanStage('analyzing');
+      
+      const categorizeResponse = await fetch('/api/categorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptions: scanData.subscriptions }),
+      });
+
+      const categorized = await categorizeResponse.json();
+      setScanProgress(90);
+
+      // Stage 4: Complete
+      setScanStage('complete');
+      setScanProgress(100);
+      setSubscriptions(categorized.subscriptions);
+
+      await new Promise(r => setTimeout(r, 500));
+    } catch (error) {
+      console.error('Scan error:', error);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    // TODO: Integrate with actual payment flow
+    setHasPaid(true);
+    setShowPaymentModal(false);
+  };
+
+  const handleCancelSubscription = (sub: Subscription) => {
+    if (!hasPaid) {
+      setShowPaymentModal(true);
+      return;
+    }
+    // Open cancellation URL in new tab
+    if (sub.unsubscribeUrl) {
+      window.open(sub.unsubscribeUrl, '_blank');
+    }
+  };
+
+  const totals = calculateTotals(subscriptions);
+  const filteredSubscriptions = subscriptions.filter(sub => 
+    filter === 'all' || sub.category === filter
+  );
+
+  const categories = [...new Set(subscriptions.map(s => s.category))];
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-plasma-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold text-white">SubKiller</h1>
+            {session?.user?.email && (
+              <span className="text-sm text-gray-400">{session.user.email}</span>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => signOut()}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Stats Overview */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <Card className="p-6">
+            <CardContent className="p-0 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-plasma-500/20 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-plasma-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Monthly Spending</p>
+                <p className="text-2xl font-bold text-white">${totals.monthly.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-6">
+            <CardContent className="p-0 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Yearly Total</p>
+                <p className="text-2xl font-bold text-white">${totals.yearly.toFixed(2)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="p-6">
+            <CardContent className="p-0 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                <Scan className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Subscriptions Found</p>
+                <p className="text-2xl font-bold text-white">{subscriptions.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Scanning Section */}
+        {isScanning ? (
+          <div className="mb-8">
+            <ScanProgress
+              stage={scanStage}
+              progress={scanProgress}
+              emailsScanned={emailsScanned}
+              subscriptionsFound={subscriptions.length}
+            />
+          </div>
+        ) : subscriptions.length === 0 ? (
+          <Card className="mb-8 p-12 text-center">
+            <CardContent className="p-0 space-y-4">
+              <div className="w-16 h-16 rounded-full bg-plasma-500/20 flex items-center justify-center mx-auto">
+                <Scan className="w-8 h-8 text-plasma-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-white">Ready to Scan</h2>
+              <p className="text-gray-400 max-w-md mx-auto">
+                Click below to scan your Gmail and discover all your hidden subscriptions.
+                We will analyze your emails and categorize them automatically.
+              </p>
+              <Button size="lg" onClick={startScan}>
+                <Scan className="w-5 h-5 mr-2" />
+                Start Scanning
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Filter Bar */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2 text-gray-400">
+                <Filter className="w-4 h-4" />
+                <span className="text-sm">Filter:</span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={filter === 'all' ? 'primary' : 'outline'}
+                  onClick={() => setFilter('all')}
+                >
+                  All ({subscriptions.length})
+                </Button>
+                {categories.map(cat => (
+                  <Button
+                    key={cat}
+                    size="sm"
+                    variant={filter === cat ? 'primary' : 'outline'}
+                    onClick={() => setFilter(cat)}
+                  >
+                    {cat} ({subscriptions.filter(s => s.category === cat).length})
+                  </Button>
+                ))}
+              </div>
+              <div className="ml-auto">
+                <Button size="sm" variant="outline" onClick={startScan}>
+                  <Scan className="w-4 h-4 mr-2" />
+                  Rescan
+                </Button>
+              </div>
+            </div>
+
+            {/* Subscriptions List */}
+            <div className="space-y-4">
+              {filteredSubscriptions.map(sub => (
+                <SubscriptionCard
+                  key={sub.id}
+                  subscription={sub}
+                  onCancel={handleCancelSubscription}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPayWithWallet={handlePayment}
+        subscriptionCount={subscriptions.length}
+        estimatedSavings={totals.monthly * 0.3} // Assume 30% potential savings
+      />
+    </div>
+  );
+}
