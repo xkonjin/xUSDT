@@ -39,13 +39,15 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'npm run dev --workspace=@plasma-pay/subkiller',
+      // Start SubKiller dev server on port 3001
+      command: 'cd apps/subkiller && npm run dev',
       url: 'http://localhost:3001',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
     {
-      command: 'npm run dev --workspace=@plasma-pay/venmo',
+      // Start Plasma Venmo dev server on port 3002
+      command: 'cd apps/plasma-venmo && npm run dev',
       url: 'http://localhost:3002',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

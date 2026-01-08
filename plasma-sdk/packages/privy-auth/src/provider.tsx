@@ -10,7 +10,8 @@ import {
 } from '@plasma-pay/core';
 import type { PlasmaPrivyConfig } from './types';
 
-const PLASMA_BRAND_COLOR = '#00D4FF';
+// Plasma brand accent color - typed as hex string literal for Privy config
+const PLASMA_BRAND_COLOR: `#${string}` = '#00D4FF';
 
 interface PlasmaPrivyProviderProps {
   children: ReactNode;

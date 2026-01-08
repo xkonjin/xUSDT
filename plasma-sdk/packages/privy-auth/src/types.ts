@@ -10,7 +10,8 @@ export interface PlasmaPrivyConfig {
   loginMethods?: PrivyLoginMethod[];
   appearance?: {
     theme?: 'light' | 'dark';
-    accentColor?: string;
+    /** Hex color code for accent color (e.g., '#00D4FF') */
+    accentColor?: `#${string}`;
     logo?: string;
   };
   embeddedWallets?: {

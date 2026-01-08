@@ -1,5 +1,62 @@
+/**
+ * Subscription Detection and Analysis
+ * 
+ * This module provides client-safe subscription detection utilities.
+ * Server-side Gmail API calls should be done in API routes only.
+ */
+
 import type { GmailMessage, Subscription, SubscriptionCategory } from '@/types';
-import { extractSenderDomain, extractSenderName, groupEmailsBySender } from './gmail';
+
+// ============================================
+// Client-Safe Email Parsing Utilities
+// ============================================
+
+/**
+ * Extract the domain from an email sender string
+ * e.g., "Netflix <noreply@netflix.com>" -> "netflix.com"
+ */
+export function extractSenderDomain(from: string): string {
+  const match = from.match(/<([^>]+)>/) || from.match(/([^\s]+@[^\s]+)/);
+  if (match) {
+    const email = match[1];
+    const domain = email.split('@')[1];
+    return domain;
+  }
+  return from;
+}
+
+/**
+ * Extract the sender name from an email sender string
+ * e.g., "Netflix <noreply@netflix.com>" -> "Netflix"
+ */
+export function extractSenderName(from: string): string {
+  const match = from.match(/^([^<]+)</);
+  if (match) {
+    return match[1].trim().replace(/"/g, '');
+  }
+  return extractSenderDomain(from).split('.')[0];
+}
+
+/**
+ * Group emails by sender domain for subscription analysis
+ */
+export function groupEmailsBySender(messages: GmailMessage[]): Map<string, GmailMessage[]> {
+  const groups = new Map<string, GmailMessage[]>();
+  
+  for (const msg of messages) {
+    const domain = extractSenderDomain(msg.from);
+    if (!groups.has(domain)) {
+      groups.set(domain, []);
+    }
+    groups.get(domain)!.push(msg);
+  }
+  
+  return groups;
+}
+
+// ============================================
+// Known Subscription Services Database
+// ============================================
 
 // Known subscription services and their typical costs
 const KNOWN_SERVICES: Record<string, { 

@@ -1,10 +1,22 @@
-import { NextResponse } from 'next/server';
-import { PrivyClient } from '@privy-io/server-auth';
-import type { Address } from 'viem';
+import { NextResponse } from "next/server";
+import type { Address } from "viem";
 
-const privyAppId = process.env.PRIVY_APP_ID || '';
-const privyAppSecret = process.env.PRIVY_APP_SECRET || '';
-const privy = new PrivyClient(privyAppId, privyAppSecret);
+// Lazy-load Privy client to avoid build-time initialization errors
+let privyClient: import("@privy-io/server-auth").PrivyClient | null = null;
+
+function getPrivyClient() {
+  if (!privyClient) {
+    const privyAppId = process.env.PRIVY_APP_ID || "";
+    const privyAppSecret = process.env.PRIVY_APP_SECRET || "";
+    if (!privyAppId || !privyAppSecret) {
+      return null;
+    }
+    // Dynamic import to avoid build-time initialization
+    const { PrivyClient } = require("@privy-io/server-auth");
+    privyClient = new PrivyClient(privyAppId, privyAppSecret);
+  }
+  return privyClient;
+}
 
 const userCache = new Map<string, Address>();
 
@@ -14,7 +26,7 @@ export async function POST(request: Request) {
 
     if (!identifier) {
       return NextResponse.json(
-        { error: 'Missing identifier' },
+        { error: "Missing identifier" },
         { status: 400 }
       );
     }
@@ -24,36 +36,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ address: cached });
     }
 
-    const isEmail = identifier.includes('@');
-    const isPhone = /^\+?\d{10,}$/.test(identifier.replace(/[\s-]/g, ''));
+    const isEmail = identifier.includes("@");
+    const isPhone = /^\+?\d{10,}$/.test(identifier.replace(/[\s-]/g, ""));
 
     if (!isEmail && !isPhone) {
-      if (identifier.startsWith('0x') && identifier.length === 42) {
+      if (identifier.startsWith("0x") && identifier.length === 42) {
         return NextResponse.json({ address: identifier });
       }
       return NextResponse.json(
-        { error: 'Invalid identifier. Use email, phone, or wallet address.' },
+        { error: "Invalid identifier. Use email, phone, or wallet address." },
         { status: 400 }
       );
     }
 
-    const user = await privy.getUserByEmail(identifier).catch(() => null) ||
-                 await privy.getUserByPhone(identifier).catch(() => null);
+    const privy = getPrivyClient();
+    if (!privy) {
+      return NextResponse.json(
+        { error: "Service not configured" },
+        { status: 503 }
+      );
+    }
+
+    let user = null;
+    if (isEmail) {
+      user = await privy.getUserByEmail(identifier).catch(() => null);
+    } else if (isPhone) {
+      user = await privy.getUserByEmail(identifier).catch(() => null);
+    }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Recipient not found. They need to sign up first.' },
+        { error: "Recipient not found. They need to sign up first." },
         { status: 404 }
       );
     }
 
     const embeddedWallet = user.linkedAccounts.find(
-      (account) => account.type === 'wallet' && account.walletClientType === 'privy'
+      (account: { type: string; walletClientType?: string }) =>
+        account.type === "wallet" && account.walletClientType === "privy"
     );
 
-    if (!embeddedWallet || !('address' in embeddedWallet)) {
+    if (!embeddedWallet || !("address" in embeddedWallet)) {
       return NextResponse.json(
-        { error: 'Recipient has no wallet. They need to complete signup.' },
+        { error: "Recipient has no wallet. They need to complete signup." },
         { status: 404 }
       );
     }
@@ -63,9 +88,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ address });
   } catch (error) {
-    console.error('Resolve recipient error:', error);
+    console.error("Resolve recipient error:", error);
     return NextResponse.json(
-      { error: 'Failed to resolve recipient' },
+      { error: "Failed to resolve recipient" },
       { status: 500 }
     );
   }

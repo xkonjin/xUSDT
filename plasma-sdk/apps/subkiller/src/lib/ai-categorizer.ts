@@ -1,9 +1,27 @@
+/**
+ * AI-powered Subscription Categorization
+ * 
+ * Uses OpenAI GPT-4o-mini to categorize detected subscriptions
+ * and estimate their monthly costs based on service name.
+ */
+
 import OpenAI from 'openai';
 import type { Subscription, SubscriptionCategory } from '@/types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid build-time initialization errors
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  if (!_openai) {
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
 
 interface CategorizeInput {
   name: string;
@@ -22,7 +40,8 @@ interface CategorizeOutput {
 export async function categorizeWithAI(
   subscriptions: Partial<Subscription>[]
 ): Promise<Subscription[]> {
-  if (!process.env.OPENAI_API_KEY) {
+  const openai = getOpenAI();
+  if (!openai) {
     console.warn('OpenAI API key not set, returning uncategorized subscriptions');
     return subscriptions.map(sub => ({
       ...sub,
@@ -123,7 +142,8 @@ Return a JSON array with objects containing: { name, category, estimatedCost, co
 }
 
 export async function generateCancellationEmail(subscription: Subscription): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
+  const openai = getOpenAI();
+  if (!openai) {
     return `Dear ${subscription.name} Support,
 
 I would like to cancel my subscription effective immediately.

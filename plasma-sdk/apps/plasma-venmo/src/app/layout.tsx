@@ -1,27 +1,26 @@
-'use client';
+/**
+ * Root Layout for Plasma Venmo App
+ * 
+ * Server component that wraps the app with client-side providers.
+ * Requires NEXT_PUBLIC_PRIVY_APP_ID environment variable for production.
+ */
 
 import { ReactNode } from 'react';
-import { PlasmaPrivyProvider } from '@plasma-pay/privy-auth';
 import './globals.css';
+import { Providers } from './providers';
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+export const metadata = {
+  title: 'Plasma Venmo - Send Money Instantly',
+  description: 'Send money to anyone instantly using gasless USDT0 on Plasma.',
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <PlasmaPrivyProvider
-          config={{
-            appId: PRIVY_APP_ID,
-            loginMethods: ['email', 'sms', 'google', 'apple'],
-            appearance: {
-              theme: 'dark',
-              accentColor: '#00d4ff',
-            },
-          }}
-        >
+      <body className="bg-black min-h-screen">
+        <Providers>
           {children}
-        </PlasmaPrivyProvider>
+        </Providers>
       </body>
     </html>
   );

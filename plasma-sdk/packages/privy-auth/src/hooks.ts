@@ -9,7 +9,7 @@ import {
   PLASMA_MAINNET_CHAIN_ID,
   PLASMA_MAINNET_RPC,
   USDT0_ADDRESS,
-  type EIP3009TypedData,
+  type TypedDataParams,
 } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 import {
@@ -63,7 +63,7 @@ function createPlasmaEmbeddedWallet(connectedWallet: ConnectedWallet): PlasmaEmb
     address,
     connectedWallet,
     
-    async signTypedData(data: EIP3009TypedData): Promise<Hex> {
+    async signTypedData(data: TypedDataParams): Promise<Hex> {
       const provider = await connectedWallet.getEthereumProvider();
       
       const signature = await provider.request({
