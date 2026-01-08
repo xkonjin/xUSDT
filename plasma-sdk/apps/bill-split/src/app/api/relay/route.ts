@@ -1,19 +1,38 @@
 /**
  * Plasma Gasless Relay API Route
  * 
- * Forwards signed EIP-3009 authorizations to api.plasma.to for FREE execution.
- * Plasma pays gas - users/merchants pay nothing.
+ * This server-side endpoint forwards signed EIP-3009 authorizations to the
+ * Plasma gasless relayer API (https://api.plasma.to) for FREE execution.
  * 
- * Rate Limits: 10 tx/day per address, 10K USDT0/day, 20 tx/day per IP
+ * IMPORTANT: This route keeps the PLASMA_RELAYER_SECRET secure on the server
+ * and properly forwards the user's real IP address for rate limiting.
+ * 
+ * Rate Limits (per Plasma API docs):
+ * - 10 transfers per day per address
+ * - 10,000 USDT0 daily volume per address  
+ * - 20 transfers per day per IP
+ * - Minimum transfer: 1 USDT0
+ * - Resets at 00:00 UTC
+ * 
+ * API Docs: https://api.plasma.to (internal-only)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { PLASMA_GASLESS_API } from '@plasma-pay/gasless';
 
-// Server-side secret - never exposed to client
+// =============================================================================
+// Environment Configuration
+// =============================================================================
+// PLASMA_RELAYER_SECRET: Required for authenticating with Plasma gasless API
+// This secret should NEVER be exposed to the client - only used server-side
+// =============================================================================
 const PLASMA_RELAYER_SECRET = process.env.PLASMA_RELAYER_SECRET;
 
-interface GaslessRequest {
+// =============================================================================
+// Types
+// =============================================================================
+
+interface GaslessSubmitRequest {
   authorization: {
     from: string;
     to: string;
@@ -25,75 +44,169 @@ interface GaslessRequest {
   signature: string;
 }
 
+interface GaslessSubmitResponse {
+  id: string;
+  status: 'queued' | 'pending' | 'submitted' | 'confirmed' | 'failed';
+}
+
+interface GaslessStatusResponse {
+  id: string;
+  status: 'pending' | 'queued' | 'submitted' | 'confirmed' | 'failed';
+  txHash?: string;
+  gasUsed?: string;
+  error?: string;
+}
+
+// =============================================================================
 // POST /api/relay - Submit authorization for gasless execution
+// =============================================================================
+
 export async function POST(request: NextRequest) {
+  // Validate server-side secret is configured
   if (!PLASMA_RELAYER_SECRET) {
-    return NextResponse.json({ error: 'Gasless not configured' }, { status: 503 });
+    console.error('PLASMA_RELAYER_SECRET not configured');
+    return NextResponse.json(
+      { error: 'Gasless relayer not configured' },
+      { status: 503 }
+    );
   }
 
   try {
-    // Get user IP for rate limiting
-    const userIP = request.headers.get('x-forwarded-for')?.split(',')[0].trim() 
-      || request.headers.get('x-real-ip') 
-      || 'unknown';
+    // Extract user IP for rate limiting (forwarded from Vercel/Nginx/etc.)
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    const userIP = forwardedFor?.split(',')[0].trim() || realIp || 'unknown';
 
-    const body: GaslessRequest = await request.json();
+    // Parse and validate request body
+    const body: GaslessSubmitRequest = await request.json();
     
     if (!body.authorization || !body.signature) {
-      return NextResponse.json({ error: 'Missing authorization/signature' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing authorization or signature' },
+        { status: 400 }
+      );
+    }
+
+    const { authorization, signature } = body;
+
+    // Basic validation
+    if (!authorization.from || !authorization.to || !authorization.value) {
+      return NextResponse.json(
+        { error: 'Invalid authorization: missing from, to, or value' },
+        { status: 400 }
+      );
     }
 
     // Forward to Plasma gasless API
-    const resp = await fetch(`${PLASMA_GASLESS_API}/submit`, {
+    const submitResponse = await fetch(`${PLASMA_GASLESS_API}/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Internal-Secret': PLASMA_RELAYER_SECRET,
         'X-User-IP': userIP,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        authorization: {
+          from: authorization.from,
+          to: authorization.to,
+          value: authorization.value,
+          validAfter: authorization.validAfter,
+          validBefore: authorization.validBefore,
+          nonce: authorization.nonce,
+        },
+        signature,
+      }),
     });
 
     // Handle rate limiting
-    if (resp.status === 429) {
-      const err = await resp.json().catch(() => ({}));
-      return NextResponse.json({ error: 'Rate limit exceeded', details: err }, { status: 429 });
+    if (submitResponse.status === 429) {
+      const errorData = await submitResponse.json().catch(() => ({}));
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded',
+          details: errorData.error,
+          retryAfter: errorData.error?.details?.resetsAt,
+        },
+        { status: 429 }
+      );
     }
 
-    if (!resp.ok) {
-      return NextResponse.json({ error: await resp.text() }, { status: resp.status });
+    // Handle other errors
+    if (!submitResponse.ok) {
+      const errorText = await submitResponse.text();
+      console.error('Plasma gasless API error:', submitResponse.status, errorText);
+      return NextResponse.json(
+        { error: `Gasless API error: ${errorText}` },
+        { status: submitResponse.status }
+      );
     }
 
-    const result = await resp.json();
-    const submissionId = result.id;
+    // Parse successful response
+    const submitResult: GaslessSubmitResponse = await submitResponse.json();
+    const submissionId = submitResult.id;
 
-    // Poll for confirmation (up to 60s)
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      
-      const status = await fetch(`${PLASMA_GASLESS_API}/status/${submissionId}`, {
-        headers: { 'X-Internal-Secret': PLASMA_RELAYER_SECRET },
-      });
+    // Poll for confirmation (up to 60 seconds)
+    // The API returns immediately with "queued" status, so we need to poll
+    let txHash: string | undefined;
+    let finalStatus = submitResult.status;
+    let gasUsed: string | undefined;
 
-      if (status.ok) {
-        const data = await status.json();
-        
-        if (data.status === 'confirmed') {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+      const statusResponse = await fetch(
+        `${PLASMA_GASLESS_API}/status/${submissionId}`,
+        {
+          headers: {
+            'X-Internal-Secret': PLASMA_RELAYER_SECRET,
+          },
+        }
+      );
+
+      if (statusResponse.ok) {
+        const statusData: GaslessStatusResponse = await statusResponse.json();
+        finalStatus = statusData.status;
+        txHash = statusData.txHash;
+        gasUsed = statusData.gasUsed;
+
+        if (finalStatus === 'confirmed') {
           return NextResponse.json({
             success: true,
-            txHash: data.txHash,
-            gasless: true,
+            txHash,
+            submissionId,
+            gasUsed,
+            gasless: true, // Indicates Plasma paid the gas
           });
         }
-        
-        if (data.status === 'failed') {
-          return NextResponse.json({ error: data.error || 'Failed' }, { status: 500 });
+
+        if (finalStatus === 'failed') {
+          return NextResponse.json(
+            { 
+              error: statusData.error || 'Transaction failed',
+              txHash,
+              submissionId,
+            },
+            { status: 500 }
+          );
         }
+
+        // Continue polling for pending/queued/submitted statuses
       }
     }
 
-    return NextResponse.json({ error: 'Timeout' }, { status: 408 });
+    // Timeout - return partial result
+    return NextResponse.json(
+      { 
+        error: 'Timeout waiting for confirmation',
+        submissionId,
+        status: finalStatus,
+        txHash,
+      },
+      { status: 408 }
+    );
+
   } catch (error) {
+    console.error('Relay error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Relay failed' },
       { status: 500 }
@@ -101,25 +214,62 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/relay?id=<submissionId> - Check status
+// =============================================================================
+// GET /api/relay?id=<submissionId> - Check status of a submission
+// =============================================================================
+
 export async function GET(request: NextRequest) {
   if (!PLASMA_RELAYER_SECRET) {
-    return NextResponse.json({ error: 'Not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Gasless relayer not configured' },
+      { status: 503 }
+    );
   }
 
-  const id = request.nextUrl.searchParams.get('id');
-  if (!id) {
-    return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  const submissionId = request.nextUrl.searchParams.get('id');
+  
+  if (!submissionId) {
+    return NextResponse.json(
+      { error: 'Missing submission id parameter' },
+      { status: 400 }
+    );
   }
 
-  const resp = await fetch(`${PLASMA_GASLESS_API}/status/${id}`, {
-    headers: { 'X-Internal-Secret': PLASMA_RELAYER_SECRET },
-  });
+  try {
+    const statusResponse = await fetch(
+      `${PLASMA_GASLESS_API}/status/${submissionId}`,
+      {
+        headers: {
+          'X-Internal-Secret': PLASMA_RELAYER_SECRET,
+        },
+      }
+    );
 
-  if (!resp.ok) {
-    return NextResponse.json({ error: 'Status check failed' }, { status: resp.status });
+    if (!statusResponse.ok) {
+      const errorText = await statusResponse.text();
+      return NextResponse.json(
+        { error: `Status check failed: ${errorText}` },
+        { status: statusResponse.status }
+      );
+    }
+
+    const statusData: GaslessStatusResponse = await statusResponse.json();
+    
+    return NextResponse.json({
+      success: statusData.status === 'confirmed',
+      status: statusData.status,
+      txHash: statusData.txHash,
+      gasUsed: statusData.gasUsed,
+      error: statusData.error,
+      gasless: true,
+    });
+
+  } catch (error) {
+    console.error('Status check error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Status check failed' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(await resp.json());
 }
 

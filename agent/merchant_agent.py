@@ -185,7 +185,10 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
         # Use exact bounds from the signed payload
         va = int(opt.validAfter) if opt.validAfter is not None else (int(opt.deadline) - 600)
         vb = int(opt.validBefore) if opt.validBefore is not None else int(opt.deadline)
-        # Use gasless API (FREE) with RELAYER wallet fallback
+        
+        # Use the smart settlement method that tries gasless API first, then falls back
+        # to RELAYER wallet. This enables FREE transactions when Plasma gasless API is
+        # available and configured with PLASMA_RELAYER_SECRET.
         res = facilitator.settle_plasma_with_fallback(
             from_addr=opt.from_,
             to_addr=opt.to,
@@ -196,7 +199,7 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             v=submitted.signature.v,
             r=submitted.signature.r,
             s=submitted.signature.s,
-            user_ip="unknown",  # Frontend should pass real IP for rate limiting
+            user_ip="unknown",  # TODO: Pass user IP from request for proper rate limiting
         )
         token_id = None
         if res.success and getattr(settings, "NFT_MINT_ON_PAY", False):
