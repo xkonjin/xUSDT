@@ -9,6 +9,18 @@
  */
 
 // =============================================================================
+// Feature Flags
+// =============================================================================
+
+/**
+ * Whether Polymarket integration is enabled.
+ * Set NEXT_PUBLIC_ENABLE_POLYMARKET=false to disable.
+ * Defaults to true if not set.
+ */
+export const POLYMARKET_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_POLYMARKET !== "false";
+
+// =============================================================================
 // Backend API Configuration
 // =============================================================================
 
@@ -45,18 +57,47 @@ export function getBackendUrl(endpoint: string): string {
 // =============================================================================
 
 /**
+ * Whether the app is running in demo/mock mode.
+ * Controlled by NEXT_PUBLIC_POLYMARKET_DEMO_MODE environment variable.
+ * When true, uses mock wallet and shows demo notices.
+ *
+ * IMPORTANT: Set to false in production!
+ */
+export const IS_DEMO_MODE =
+  process.env.NEXT_PUBLIC_POLYMARKET_DEMO_MODE === "true" ||
+  process.env.NODE_ENV === "development";
+
+/**
  * Mock wallet address for demo mode.
  *
  * In production, this would come from wallet connection (MetaMask, etc.).
  * Centralized here to avoid hardcoding in multiple components.
+ *
+ * WARNING: Will throw an error if used in production mode.
  */
-export const MOCK_WALLET_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f00000";
+export function getMockWalletAddress(): string {
+  if (!IS_DEMO_MODE && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SECURITY: Mock wallet address accessed in production mode. " +
+        "Connect a real wallet instead."
+    );
+  }
+  return "0x742d35Cc6634C0532925a3b844Bc9e7595f00000";
+}
 
 /**
- * Whether the app is running in demo/mock mode.
- * When true, uses mock wallet and shows demo notices.
+ * @deprecated Use getMockWalletAddress() which includes production check.
  */
-export const IS_DEMO_MODE = true;
+export const MOCK_WALLET_ADDRESS = IS_DEMO_MODE
+  ? "0x742d35Cc6634C0532925a3b844Bc9e7595f00000"
+  : (() => {
+      if (process.env.NODE_ENV === "production") {
+        console.warn(
+          "WARNING: MOCK_WALLET_ADDRESS accessed - should use real wallet in production"
+        );
+      }
+      return "0x742d35Cc6634C0532925a3b844Bc9e7595f00000";
+    })();
 
 // =============================================================================
 // API Timeout Configuration

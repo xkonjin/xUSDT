@@ -18,6 +18,111 @@
 import { PLASMA_GASLESS_API } from "./relayer";
 
 // =============================================================================
+// Nonce Replay Protection
+// =============================================================================
+
+/**
+ * In-memory cache of used nonces to prevent replay attacks.
+ * Key: from_address:nonce
+ * Value: Timestamp when this nonce was used
+ *
+ * Note: In production with multiple server instances, this should use Redis.
+ */
+const usedNonces = new Map<string, number>();
+
+// Clean up old nonces periodically (older than 24 hours)
+const NONCE_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Check if a nonce has already been used (replay attack prevention).
+ *
+ * @param from - Sender address
+ * @param nonce - The nonce value
+ * @returns true if nonce was already used
+ */
+export function isNonceUsed(from: string, nonce: string): boolean {
+  const key = `${from.toLowerCase()}:${nonce}`;
+  const usedAt = usedNonces.get(key);
+  if (!usedAt) return false;
+
+  // Clean up if expired
+  if (Date.now() - usedAt > NONCE_EXPIRY_MS) {
+    usedNonces.delete(key);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Mark a nonce as used.
+ *
+ * @param from - Sender address
+ * @param nonce - The nonce value
+ */
+function markNonceUsed(from: string, nonce: string): void {
+  const key = `${from.toLowerCase()}:${nonce}`;
+  usedNonces.set(key, Date.now());
+
+  // Periodic cleanup of old nonces (keep memory bounded)
+  if (usedNonces.size > 10000) {
+    const now = Date.now();
+    for (const [k, v] of usedNonces.entries()) {
+      if (now - v > NONCE_EXPIRY_MS) usedNonces.delete(k);
+    }
+  }
+}
+
+// =============================================================================
+// Rate Limit Tracking
+// =============================================================================
+
+/**
+ * In-memory rate limit cache to prevent hammering the API after 429 responses.
+ * Key: User IP or "from" address
+ * Value: Timestamp when rate limit expires (Date.now() + retryAfter * 1000)
+ */
+const rateLimitCache = new Map<string, number>();
+
+/**
+ * Check if a user/IP is currently rate limited.
+ *
+ * @param key - User IP or wallet address to check
+ * @returns Seconds until rate limit expires, or 0 if not limited
+ */
+export function getRateLimitRemaining(key: string): number {
+  const expiresAt = rateLimitCache.get(key);
+  if (!expiresAt) return 0;
+
+  const remaining = Math.ceil((expiresAt - Date.now()) / 1000);
+  if (remaining <= 0) {
+    // Rate limit expired, clean up
+    rateLimitCache.delete(key);
+    return 0;
+  }
+  return remaining;
+}
+
+/**
+ * Set a rate limit for a user/IP.
+ *
+ * @param key - User IP or wallet address
+ * @param retryAfterSeconds - Seconds until they can retry
+ */
+function setRateLimit(key: string, retryAfterSeconds: number): void {
+  const expiresAt = Date.now() + retryAfterSeconds * 1000;
+  rateLimitCache.set(key, expiresAt);
+
+  // Clean up expired entries periodically (keep cache small)
+  if (rateLimitCache.size > 1000) {
+    const now = Date.now();
+    for (const [k, v] of rateLimitCache.entries()) {
+      if (v < now) rateLimitCache.delete(k);
+    }
+  }
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -151,6 +256,24 @@ export function createRelayHandler(
       const realIp = headers.get("x-real-ip");
       const userIP = forwardedFor?.split(",")[0].trim() || realIp || "unknown";
 
+      // Check if IP is currently rate limited (prevents hammering)
+      const ipRateLimitRemaining = getRateLimitRemaining(userIP);
+      if (ipRateLimitRemaining > 0) {
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded - please wait before retrying",
+            retryAfter: ipRateLimitRemaining,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": String(ipRateLimitRemaining),
+            },
+          }
+        );
+      }
+
       // Parse request body
       let body: GaslessSubmitRequest;
       try {
@@ -175,6 +298,14 @@ export function createRelayHandler(
       // Validate signature format
       if (!validateSignature(body.signature)) {
         return Response.json({ error: "Invalid signature format" }, { status: 400 });
+      }
+
+      // Check for nonce replay attack
+      if (isNonceUsed(body.authorization.from, body.authorization.nonce)) {
+        return Response.json(
+          { error: "Nonce already used - possible replay attack" },
+          { status: 400 }
+        );
       }
 
       // Forward to Plasma gasless API with timeout
@@ -203,11 +334,18 @@ export function createRelayHandler(
             ? Math.ceil((new Date(resetsAt).getTime() - Date.now()) / 1000)
             : 3600;
 
+          // Cache the rate limit to prevent hammering
+          setRateLimit(userIP, Math.max(60, retryAfter));
+          if (body.authorization?.from) {
+            setRateLimit(body.authorization.from.toLowerCase(), Math.max(60, retryAfter));
+          }
+
           return new Response(
             JSON.stringify({
               error: "Rate limit exceeded",
               details: errorData.error,
               resetsAt,
+              retryAfter: Math.max(0, retryAfter),
             }),
             {
               status: 429,
@@ -228,8 +366,9 @@ export function createRelayHandler(
           );
         }
 
-        // Success
+        // Success - mark nonce as used to prevent replay
         const data: GaslessSubmitResponse = await response.json();
+        markNonceUsed(body.authorization.from, body.authorization.nonce);
         return Response.json(data);
       } catch (err) {
         clearTimeout(timeoutId);

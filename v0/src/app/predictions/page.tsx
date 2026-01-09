@@ -181,11 +181,14 @@ export default function PredictionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch markets from the API
-  const loadMarkets = useCallback(async () => {
+  // Fetch markets from the API with AbortController for cleanup
+  const loadMarkets = useCallback(async (signal?: AbortSignal) => {
     try {
       setError(null);
-      const response = await fetch("/api/polymarket/markets?active=true&limit=50");
+      const response = await fetch("/api/polymarket/markets?active=true&limit=50", { signal });
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (!response.ok) {
         throw new Error("Failed to load markets");
@@ -196,6 +199,9 @@ export default function PredictionsPage() {
       const marketsList = Array.isArray(data) ? data : data.markets || [];
       setMarkets(marketsList);
     } catch (err) {
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
+
       console.error("Error loading markets:", err);
       setError(err instanceof Error ? err.message : "Failed to load markets");
     } finally {
@@ -205,7 +211,11 @@ export default function PredictionsPage() {
   }, []);
 
   useEffect(() => {
-    loadMarkets();
+    const controller = new AbortController();
+    loadMarkets(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadMarkets]);
 
   const handleRefresh = async () => {

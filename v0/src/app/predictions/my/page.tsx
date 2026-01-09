@@ -169,13 +169,17 @@ export default function MyPredictionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user predictions
-  const loadPredictions = useCallback(async () => {
+  // Fetch user predictions with AbortController for cleanup
+  const loadPredictions = useCallback(async (signal?: AbortSignal) => {
     try {
       setError(null);
       const response = await fetch(
-        `/api/polymarket/predictions?user_address=${MOCK_WALLET_ADDRESS}&limit=100`
+        `/api/polymarket/predictions?user_address=${MOCK_WALLET_ADDRESS}&limit=100`,
+        { signal }
       );
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (!response.ok) {
         throw new Error("Failed to load predictions");
@@ -186,6 +190,9 @@ export default function MyPredictionsPage() {
       const predictionsList = Array.isArray(data) ? data : data.predictions || [];
       setPredictions(predictionsList);
     } catch (err) {
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
+
       console.error("Error loading predictions:", err);
       setError(err instanceof Error ? err.message : "Failed to load predictions");
     } finally {
@@ -194,7 +201,11 @@ export default function MyPredictionsPage() {
   }, []);
 
   useEffect(() => {
-    loadPredictions();
+    const controller = new AbortController();
+    loadPredictions(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadPredictions]);
 
   // Loading state

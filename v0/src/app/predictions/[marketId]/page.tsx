@@ -84,13 +84,19 @@ export default function MarketDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<PredictionResponse | null>(null);
 
-  // Fetch market details
-  const loadMarket = useCallback(async () => {
+  // Fetch market details with AbortController for cleanup
+  const loadMarket = useCallback(async (signal?: AbortSignal) => {
     if (!marketId) return;
 
     try {
       setError(null);
-      const response = await fetch(`/api/polymarket/markets/${encodeURIComponent(marketId)}`);
+      const response = await fetch(
+        `/api/polymarket/markets/${encodeURIComponent(marketId)}`,
+        { signal }
+      );
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (response.status === 404) {
         setError("Market not found");
@@ -104,6 +110,9 @@ export default function MarketDetailPage() {
       const data = await response.json();
       setMarket(data);
     } catch (err) {
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
+
       console.error("Error loading market:", err);
       setError(err instanceof Error ? err.message : "Failed to load market");
     } finally {
@@ -112,7 +121,11 @@ export default function MarketDetailPage() {
   }, [marketId]);
 
   useEffect(() => {
-    loadMarket();
+    const controller = new AbortController();
+    loadMarket(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadMarket]);
 
   // Handle prediction submission
