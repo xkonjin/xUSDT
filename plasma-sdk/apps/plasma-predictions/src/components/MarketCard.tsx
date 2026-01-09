@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Clock, TrendingUp, Users } from "lucide-react";
 import type { PredictionMarket } from "@/lib/types";
@@ -11,7 +12,7 @@ interface MarketCardProps {
   index?: number;
 }
 
-export function MarketCard({ market, index = 0 }: MarketCardProps) {
+function MarketCardComponent({ market, index = 0 }: MarketCardProps) {
   const { openBettingModal } = usePredictionStore();
   const yesPercent = Math.round(market.yesPrice * 100);
 
@@ -73,6 +74,9 @@ export function MarketCard({ market, index = 0 }: MarketCardProps) {
     </motion.div>
   );
 }
+
+export const MarketCard = memo(MarketCardComponent);
+MarketCard.displayName = "MarketCard";
 
 export function MarketCardSkeleton() {
   return (

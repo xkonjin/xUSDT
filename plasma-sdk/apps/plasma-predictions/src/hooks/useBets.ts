@@ -3,7 +3,17 @@ import { usePlasmaWallet, useGaslessTransfer } from "@plasma-pay/privy-auth";
 import type { Bet, PlaceBetParams, CashOutParams, BetResult } from "@/lib/types";
 import { GASLESS_ROUTER_ADDRESS } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
+import type { EIP3009TypedData } from "@plasma-pay/core";
+
+/**
+ * EIP-712 signature components
+ */
+interface EIP712Signature {
+  v: number;
+  r: Hex;
+  s: Hex;
+}
 
 const MOCK_BETS: Bet[] = [];
 
@@ -16,7 +26,7 @@ async function fetchUserBets(address: string): Promise<Bet[]> {
   );
 }
 
-async function submitBet(params: PlaceBetParams & { signature: any; authorization: any }): Promise<BetResult> {
+async function submitBet(params: PlaceBetParams & { signature: Hex; authorization: EIP3009TypedData }): Promise<BetResult> {
   // In production: submit to relay
   // const res = await fetch(`${BACKEND_URL}/api/predictions/bet`, {
   //   method: 'POST',
@@ -33,7 +43,7 @@ async function submitBet(params: PlaceBetParams & { signature: any; authorizatio
   };
 }
 
-async function submitCashOut(params: CashOutParams & { signature: any }): Promise<BetResult> {
+async function submitCashOut(params: CashOutParams & { signature: EIP712Signature }): Promise<BetResult> {
   // In production: submit to relay
   await new Promise((r) => setTimeout(r, 2000));
   

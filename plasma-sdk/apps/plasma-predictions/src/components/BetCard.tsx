@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Clock } from "lucide-react";
 import type { Bet } from "@/lib/types";
@@ -11,10 +12,14 @@ interface BetCardProps {
   index?: number;
 }
 
-export function BetCard({ bet, index = 0 }: BetCardProps) {
+function BetCardComponent({ bet, index = 0 }: BetCardProps) {
   const { openCashOutModal } = usePredictionStore();
-  const isYes = bet.outcome === "YES";
-  const isProfitable = bet.pnl > 0;
+  
+  // Memoize computed values to prevent recalculations on re-renders
+  const { isYes, isProfitable } = useMemo(() => ({
+    isYes: bet.outcome === "YES",
+    isProfitable: bet.pnl > 0,
+  }), [bet.outcome, bet.pnl]);
 
   return (
     <motion.div
@@ -103,6 +108,9 @@ export function BetCard({ bet, index = 0 }: BetCardProps) {
     </motion.div>
   );
 }
+
+export const BetCard = memo(BetCardComponent);
+BetCard.displayName = "BetCard";
 
 export function BetCardSkeleton() {
   return (
