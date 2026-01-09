@@ -1,7 +1,10 @@
 /**
  * Bill Participant Payment API
  * 
- * Processes payment from a participant.
+ * Processes payment from a participant using gasless transfer.
+ * Supports two modes:
+ * 1. Gasless API (preferred): Uses Plasma's gasless relayer via PLASMA_RELAYER_SECRET
+ * 2. Direct relay (fallback): Uses RELAYER_PRIVATE_KEY to submit on-chain
  */
 
 import { NextResponse } from 'next/server';
@@ -9,9 +12,14 @@ import { prisma } from '@plasma-pay/db';
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC, plasmaMainnet } from '@plasma-pay/core';
+import { PLASMA_GASLESS_API } from '@plasma-pay/gasless';
 
-// Relayer key
+// Configuration - check for gasless API first, then direct relayer
+const PLASMA_RELAYER_SECRET = process.env.PLASMA_RELAYER_SECRET;
 const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
+
+// Test mode: Override recipient address (allows testing with single wallet)
+const TEST_PAYMENT_RECIPIENT = process.env.TEST_PAYMENT_RECIPIENT as Address | undefined;
 
 // ABI for transferWithAuthorization
 const TRANSFER_WITH_AUTH_ABI = [
@@ -51,11 +59,11 @@ export async function POST(
     const { id: billId, participantId } = await context.params;
     const body = await request.json();
 
-    // Validate relayer
-    if (!RELAYER_KEY) {
+    // Validate relayer is available
+    if (!PLASMA_RELAYER_SECRET && !RELAYER_KEY) {
       return NextResponse.json(
-        { error: 'Relayer not configured' },
-        { status: 500 }
+        { error: 'Relayer not configured. Set PLASMA_RELAYER_SECRET or RELAYER_PRIVATE_KEY.' },
+        { status: 503 }
       );
     }
 
@@ -116,46 +124,116 @@ export async function POST(
       );
     }
 
-    // Set up clients
-    const account = privateKeyToAccount(RELAYER_KEY);
-    const walletClient = createWalletClient({
-      account,
-      chain: plasmaMainnet,
-      transport: http(PLASMA_MAINNET_RPC),
-    });
-    const publicClient = createPublicClient({
-      chain: plasmaMainnet,
-      transport: http(PLASMA_MAINNET_RPC),
-    });
+    let txHash: Hex | undefined;
 
-    // Execute transfer to bill creator
-    const txHash = await walletClient.writeContract({
-      address: USDT0_ADDRESS,
-      abi: TRANSFER_WITH_AUTH_ABI,
-      functionName: 'transferWithAuthorization',
-      args: [
-        from as Address,
-        bill.creatorAddress as Address,
-        BigInt(value),
-        BigInt(validAfter),
-        BigInt(validBefore),
-        nonce as Hex,
-        v,
-        r as Hex,
-        s as Hex,
-      ],
-    });
+    // Determine recipient (test mode can override for single-wallet testing)
+    const recipientAddress = TEST_PAYMENT_RECIPIENT || bill.creatorAddress;
+    
+    if (TEST_PAYMENT_RECIPIENT) {
+      console.log('[bill-pay] TEST MODE: Overriding recipient', {
+        original: bill.creatorAddress,
+        override: TEST_PAYMENT_RECIPIENT,
+      });
+    }
 
-    // Wait for confirmation
-    const receipt = await publicClient.waitForTransactionReceipt({
-      hash: txHash,
-      timeout: 30000,
-    });
+    // === MODE 1: Gasless API (preferred) ===
+    if (PLASMA_RELAYER_SECRET) {
+      console.log('[bill-pay] Using Plasma gasless API');
+      
+      // Reconstruct 65-byte signature from v, r, s
+      const rClean = (r as string).replace(/^0x/, '').padStart(64, '0');
+      const sClean = (s as string).replace(/^0x/, '').padStart(64, '0');
+      const vHex = (v < 27 ? v + 27 : v).toString(16).padStart(2, '0');
+      const signature = `0x${rClean}${sClean}${vHex}`;
 
-    if (receipt.status !== 'success') {
+      const gaslessResponse = await fetch(`${PLASMA_GASLESS_API}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': PLASMA_RELAYER_SECRET,
+        },
+        body: JSON.stringify({
+          authorization: {
+            from,
+            to: recipientAddress,
+            value: value.toString(),
+            validAfter,
+            validBefore,
+            nonce,
+          },
+          signature,
+        }),
+      });
+
+      if (!gaslessResponse.ok) {
+        const errorData = await gaslessResponse.json().catch(() => ({}));
+        
+        // If gasless fails but we have a direct relayer, fall through
+        if (RELAYER_KEY) {
+          console.log('[bill-pay] Gasless API failed, falling back to direct relay');
+        } else {
+          return NextResponse.json(
+            { error: errorData.error || 'Gasless submission failed' },
+            { status: gaslessResponse.status }
+          );
+        }
+      } else {
+        const result = await gaslessResponse.json();
+        txHash = result.txHash as Hex;
+      }
+    }
+
+    // === MODE 2: Direct relay (fallback) ===
+    if (!txHash && RELAYER_KEY) {
+      console.log('[bill-pay] Using direct on-chain relay');
+      
+      const account = privateKeyToAccount(RELAYER_KEY);
+      const walletClient = createWalletClient({
+        account,
+        chain: plasmaMainnet,
+        transport: http(PLASMA_MAINNET_RPC),
+      });
+      const publicClient = createPublicClient({
+        chain: plasmaMainnet,
+        transport: http(PLASMA_MAINNET_RPC),
+      });
+
+      // Execute transfer to recipient (bill creator or test override)
+      txHash = await walletClient.writeContract({
+        address: USDT0_ADDRESS,
+        abi: TRANSFER_WITH_AUTH_ABI,
+        functionName: 'transferWithAuthorization',
+        args: [
+          from as Address,
+          recipientAddress as Address,
+          BigInt(value),
+          BigInt(validAfter),
+          BigInt(validBefore),
+          nonce as Hex,
+          v,
+          r as Hex,
+          s as Hex,
+        ],
+      });
+
+      // Wait for confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 30000,
+      });
+
+      if (receipt.status !== 'success') {
+        return NextResponse.json(
+          { error: 'Transaction reverted' },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (!txHash) {
       return NextResponse.json(
-        { error: 'Transaction reverted' },
-        { status: 500 }
+        { error: 'No relayer available to execute payment' },
+        { status: 503 }
       );
     }
 
@@ -185,7 +263,6 @@ export async function POST(
     return NextResponse.json({
       success: true,
       txHash,
-      blockNumber: receipt.blockNumber.toString(),
     });
   } catch (error) {
     console.error('Bill payment error:', error);
