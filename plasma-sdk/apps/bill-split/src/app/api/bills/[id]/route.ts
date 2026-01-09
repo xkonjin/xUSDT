@@ -24,7 +24,7 @@ interface RouteParams {
  * Gets a bill by ID with all items and participants.
  */
 export async function GET(
-  request: Request,
+  _request: Request,
   context: RouteParams
 ) {
   try {
