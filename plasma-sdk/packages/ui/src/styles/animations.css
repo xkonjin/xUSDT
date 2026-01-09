@@ -1,0 +1,366 @@
+/**
+ * Plasma Design System - Animations & Micro-interactions
+ * 
+ * Smooth, premium animations with reduced motion support.
+ */
+
+/* ============================================================================
+   Keyframe Animations
+   ============================================================================ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(var(--plasma-cyan), 0.4),
+                0 0 40px rgba(var(--plasma-cyan), 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(var(--plasma-cyan), 0.6),
+                0 0 60px rgba(var(--plasma-cyan), 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   Animation Classes
+   ============================================================================ */
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.3s ease forwards;
+  }
+  
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease forwards;
+  }
+  
+  .animate-fade-in-down {
+    animation: fade-in-down 0.4s ease forwards;
+  }
+  
+  .animate-fade-in-scale {
+    animation: fade-in-scale 0.3s ease forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.4s ease forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slide-in-left 0.4s ease forwards;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(var(--glass-white), 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  .animate-spin-slow {
+    animation: spin 2s linear infinite;
+  }
+  
+  .animate-bounce {
+    animation: bounce 1s infinite;
+  }
+  
+  .animate-scan-line {
+    animation: scan-line 2s ease-in-out infinite;
+  }
+  
+  .animate-progress-pulse {
+    animation: progress-pulse 1.5s ease-in-out infinite;
+  }
+  
+  /* Stagger delays for list animations */
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
+  .stagger-6 { animation-delay: 300ms; }
+  .stagger-7 { animation-delay: 350ms; }
+  .stagger-8 { animation-delay: 400ms; }
+}
+
+/* ============================================================================
+   Gradient Text Effects
+   ============================================================================ */
+
+@layer components {
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--plasma-cyan)) 0%,
+      rgba(var(--plasma-cyan), 0.7) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .gradient-text-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--plasma-cyan)) 0%,
+      rgba(255, 255, 255, 0.9) 50%,
+      rgb(var(--plasma-cyan)) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  
+  .gradient-text-purple {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--plasma-purple)) 0%,
+      rgba(var(--plasma-purple), 0.7) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ============================================================================
+   Skeleton Loading
+   ============================================================================ */
+
+@layer components {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(var(--glass-white), 0.05) 25%,
+      rgba(var(--glass-white), 0.1) 50%,
+      rgba(var(--glass-white), 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
+  }
+  
+  .skeleton-text {
+    height: 1em;
+    border-radius: var(--radius-sm);
+  }
+  
+  .skeleton-circle {
+    border-radius: 50%;
+  }
+  
+  .skeleton-card {
+    height: 120px;
+    border-radius: var(--radius-xl);
+  }
+}
+
+/* ============================================================================
+   Reduced Motion Support
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-shimmer,
+  .animate-bounce {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Hover & Focus States
+   ============================================================================ */
+
+@layer utilities {
+  .hover-lift {
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+  
+  .hover-scale {
+    transition: transform var(--transition-normal);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  
+  .hover-glow {
+    transition: box-shadow var(--transition-normal);
+  }
+  
+  .hover-glow:hover {
+    box-shadow: var(--glow-cyan);
+  }
+  
+  .active-scale:active {
+    transform: scale(0.98);
+  }
+  
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--plasma-cyan), 0.3);
+  }
+}
