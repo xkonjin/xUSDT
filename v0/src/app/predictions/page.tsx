@@ -21,6 +21,9 @@ import Link from "next/link";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 
+// Use shared formatters (DRY - eliminates duplicate helper functions)
+import { formatDate, formatVolume, formatProbability } from "../../lib/format";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -49,44 +52,6 @@ interface MarketsResponse {
   total: number;
   limit: number;
   offset: number;
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Format a date string into a human-readable format
- */
-function formatDate(dateString?: string): string {
-  if (!dateString) return "TBD";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-/**
- * Format volume/liquidity values with K/M suffixes
- */
-function formatVolume(volume?: number): string {
-  if (!volume) return "$0";
-  if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(1)}M`;
-  if (volume >= 1_000) return `$${(volume / 1_000).toFixed(1)}K`;
-  return `$${volume.toFixed(0)}`;
-}
-
-/**
- * Format a probability as a percentage
- */
-function formatProbability(price: number): string {
-  return `${Math.round(price * 100)}%`;
 }
 
 // =============================================================================
@@ -355,4 +320,3 @@ export default function PredictionsPage() {
     </div>
   );
 }
-

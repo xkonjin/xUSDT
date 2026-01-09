@@ -11,6 +11,16 @@ All endpoints are designed to be consumed by the Next.js frontend.
 Market data is fetched from Polymarket Gamma API; predictions are
 stored in-memory (mock orders, no real CLOB integration in MVP).
 
+IMPORTANT: In-Memory Storage Warning
+====================================
+The predictions store is in-memory and will be LOST on server restart.
+Additionally, if running with multiple workers (e.g., uvicorn --workers 4),
+each worker has its own copy of the store - predictions may appear to
+"disappear" depending on which worker handles the request.
+
+For production, replace _predictions_store with a proper database
+(PostgreSQL, SQLite, Redis, etc.).
+
 Usage:
     from agent.polymarket import polymarket_router
     app.include_router(polymarket_router, prefix="/polymarket", tags=["polymarket"])
@@ -18,11 +28,12 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import time
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, HTTPException, Query, Path
-from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from .client import get_polymarket_client
 from .models import (
@@ -32,6 +43,7 @@ from .models import (
     PredictRequest,
     PredictResponse,
     UserStatsResponse,
+    validate_eth_address,
 )
 
 # Configure logging
@@ -44,9 +56,22 @@ router = APIRouter()
 # =============================================================================
 # In-Memory Predictions Store (MVP)
 # =============================================================================
+#
+# WARNING: This is NOT production-ready!
+#
+# Issues with this approach:
+# 1. Data is lost on server restart
+# 2. Multiple uvicorn workers have separate stores (race conditions, inconsistency)
+# 3. No persistence, no backup, no recovery
+# 4. Memory usage grows unbounded (no cleanup of old predictions)
+#
+# For production, use:
+# - PostgreSQL with SQLAlchemy ORM
+# - Redis for caching layer
+# - Proper database migrations
+#
+# =============================================================================
 
-# Simple in-memory storage for user predictions
-# In production, this would be a database (PostgreSQL, SQLite, etc.)
 # Key: user_address (lowercase), Value: List of Prediction objects
 _predictions_store: Dict[str, List[Prediction]] = {}
 
@@ -62,6 +87,11 @@ def _add_prediction(prediction: Prediction) -> None:
     if user_key not in _predictions_store:
         _predictions_store[user_key] = []
     _predictions_store[user_key].append(prediction)
+
+
+def _get_total_predictions_count() -> int:
+    """Get total count of all predictions across all users."""
+    return sum(len(preds) for preds in _predictions_store.values())
 
 
 # =============================================================================
@@ -87,25 +117,6 @@ async def get_markets(
     
     Returns:
         MarketsResponse with list of markets and pagination info
-    
-    Example Response:
-        {
-            "markets": [
-                {
-                    "id": "0x123...",
-                    "question": "Will Bitcoin reach $100k?",
-                    "outcomes": [
-                        {"name": "Yes", "price": 0.65},
-                        {"name": "No", "price": 0.35}
-                    ],
-                    "volume": 5000000,
-                    "active": true
-                }
-            ],
-            "total": 1,
-            "limit": 50,
-            "offset": 0
-        }
     """
     try:
         client = get_polymarket_client()
@@ -135,6 +146,10 @@ async def get_market(
     Raises:
         404: If market not found
     """
+    # Validate market_id length to prevent abuse
+    if len(market_id) > 256:
+        raise HTTPException(status_code=400, detail="Market ID too long")
+    
     try:
         client = get_polymarket_client()
         market = await client.get_market(market_id)
@@ -164,44 +179,20 @@ async def create_prediction(request: PredictRequest) -> PredictResponse:
     This is a simulation for testing the UI flow.
     
     Request Body:
-        user_address: User's wallet address
+        user_address: User's wallet address (0x + 40 hex chars)
         market_id: Polymarket market ID
         market_question: Market question (cached for display)
         outcome: Selected outcome (e.g., "Yes", "No")
-        amount: Bet amount in atomic units (6 decimals)
+        amount: Bet amount in atomic units (6 decimals, min 1000)
     
     Returns:
         PredictResponse with created prediction and mock order ID
-    
-    Example Request:
-        POST /polymarket/predict
-        {
-            "user_address": "0x123...",
-            "market_id": "0xabc...",
-            "market_question": "Will Bitcoin reach $100k?",
-            "outcome": "Yes",
-            "amount": 1000000  // 1.00 USDT0
-        }
-    
-    Example Response:
-        {
-            "success": true,
-            "prediction": { ... },
-            "mock_order_id": "mock-abc123",
-            "message": "Prediction created successfully (mock order)"
-        }
     """
     try:
-        # Validate user address format
-        if not request.user_address.startswith("0x") or len(request.user_address) != 42:
-            raise HTTPException(status_code=400, detail="Invalid wallet address format")
-        
-        # Validate amount (minimum 0.001 USDT0 = 1000 atomic)
-        if request.amount < 1000:
-            raise HTTPException(
-                status_code=400, 
-                detail="Minimum bet amount is 0.001 USDT0 (1000 atomic units)"
-            )
+        # Note: Pydantic validators in PredictRequest already handle:
+        # - user_address format validation
+        # - amount minimum validation
+        # - outcome non-empty validation
         
         # Create mock order via client
         client = get_polymarket_client()
@@ -214,7 +205,7 @@ async def create_prediction(request: PredictRequest) -> PredictResponse:
         
         # Create prediction record
         prediction = Prediction(
-            user_address=request.user_address.lower(),
+            user_address=request.user_address,  # Validator lowercases it
             market_id=request.market_id,
             market_question=request.market_question,
             outcome=request.outcome,
@@ -240,6 +231,16 @@ async def create_prediction(request: PredictRequest) -> PredictResponse:
             message="Prediction created successfully. Note: This is a mock order for testing.",
         )
         
+    except ValidationError as e:
+        # Pydantic validation error
+        error_msg = str(e.errors()[0]["msg"]) if e.errors() else str(e)
+        return PredictResponse(
+            success=False,
+            prediction=None,
+            mock_order_id=None,
+            message="Validation failed",
+            error=error_msg,
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -266,15 +267,19 @@ async def get_predictions(
     Predictions are stored in-memory for this MVP.
     
     Query Parameters:
-        user_address: User's wallet address (required)
+        user_address: User's wallet address (required, 0x + 40 hex chars)
         limit: Maximum number of predictions to return
-        status: Optional filter by prediction status
+        status: Optional filter by prediction status (active, won, lost)
     
     Returns:
         List of Prediction objects, sorted by creation date (newest first)
     """
-    if not user_address.startswith("0x"):
-        raise HTTPException(status_code=400, detail="Invalid wallet address")
+    # Validate wallet address format using shared validator
+    if not validate_eth_address(user_address):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid wallet address format. Expected 0x followed by 40 hex characters."
+        )
     
     predictions = _get_user_predictions(user_address)
     
@@ -289,15 +294,25 @@ async def get_predictions(
     return predictions[:limit]
 
 
-@router.get("/stats/{user_address}", response_model=UserStatsResponse)
+@router.get(
+    "/stats/{user_address}", 
+    response_model=UserStatsResponse,
+    deprecated=True,  # Mark as deprecated in OpenAPI docs
+    description="EXPERIMENTAL: Stats endpoint. Won/lost counts always 0 in MVP (no market resolution)."
+)
 async def get_user_stats(
     user_address: str = Path(..., description="User's wallet address"),
 ) -> UserStatsResponse:
     """
     Get prediction statistics for a user.
     
-    Returns summary statistics including total predictions,
-    wins/losses, and win rate.
+    EXPERIMENTAL ENDPOINT - NOT FULLY FUNCTIONAL IN MVP
+    
+    Returns summary statistics including total predictions, wins/losses, and win rate.
+    
+    Note: In the current MVP, won_predictions and lost_predictions will always be 0
+    because we don't have market resolution logic. This endpoint will become fully
+    functional when real Polymarket CLOB integration is added.
     
     Path Parameters:
         user_address: User's wallet address
@@ -305,8 +320,11 @@ async def get_user_stats(
     Returns:
         UserStatsResponse with aggregated stats
     """
-    if not user_address.startswith("0x"):
-        raise HTTPException(status_code=400, detail="Invalid wallet address")
+    if not validate_eth_address(user_address):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid wallet address format. Expected 0x followed by 40 hex characters."
+        )
     
     predictions = _get_user_predictions(user_address)
     
@@ -337,7 +355,7 @@ async def get_user_stats(
 # =============================================================================
 
 @router.get("/health")
-async def health_check() -> dict:
+async def health_check() -> Dict[str, Any]:
     """
     Health check endpoint for the Polymarket service.
     
@@ -347,6 +365,6 @@ async def health_check() -> dict:
         "service": "polymarket",
         "status": "healthy",
         "timestamp": int(time.time()),
-        "predictions_in_memory": sum(len(p) for p in _predictions_store.values()),
+        "predictions_in_memory": _get_total_predictions_count(),
+        "warning": "In-memory store - data lost on restart. Multi-worker deployments may have inconsistent data."
     }
-

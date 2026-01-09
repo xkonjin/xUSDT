@@ -1,18 +1,35 @@
 /**
- * Error Boundary Component for Plasma Stream
- * 
+ * Error Boundary Component
+ *
  * React Error Boundary to catch JavaScript errors in child component tree,
  * log them, and display a fallback UI instead of crashing the whole app.
+ *
+ * @example
+ * ```tsx
+ * import { ErrorBoundary } from '@plasma-pay/ui';
+ *
+ * <ErrorBoundary>
+ *   <YourComponent />
+ * </ErrorBoundary>
+ *
+ * // With custom fallback:
+ * <ErrorBoundary fallback={<CustomErrorUI />}>
+ *   <YourComponent />
+ * </ErrorBoundary>
+ * ```
  */
 
-'use client';
+"use client";
 
-import { Component, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Component, ReactNode } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
-interface ErrorBoundaryProps {
+export interface ErrorBoundaryProps {
   children: ReactNode;
+  /** Custom fallback UI to show on error */
   fallback?: ReactNode;
+  /** Callback when an error is caught */
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface ErrorBoundaryState {
@@ -21,7 +38,10 @@ interface ErrorBoundaryState {
   errorInfo: React.ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -36,8 +56,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    console.error("ErrorBoundary caught:", error, errorInfo);
     this.setState({ errorInfo });
+
+    // Call optional onError callback
+    this.props.onError?.(error, errorInfo);
   }
 
   handleReset = () => {
@@ -56,7 +79,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
       return (
         <div className="min-h-[400px] flex items-center justify-center p-8">
-          <div className="liquid-glass rounded-2xl p-8 max-w-md text-center">
+          <div className="rounded-2xl p-8 max-w-md text-center bg-white/5 backdrop-blur-xl border border-white/10">
             <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-400" />
             </div>
@@ -68,7 +91,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               An unexpected error occurred. Please try refreshing the page.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">
                   Error details

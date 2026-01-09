@@ -17,13 +17,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-
-// Backend URL for the FastAPI merchant service
-const BACKEND_URL =
-  process.env.POLYMARKET_BACKEND_URL ||
-  process.env.MERCHANT_URL ||
-  process.env.NEXT_PUBLIC_MERCHANT_URL ||
-  "http://127.0.0.1:8000";
+import {
+  proxyPost,
+  isValidWalletAddress,
+  isValidBetAmount,
+} from "../../../../lib/api-helpers";
+import { MIN_BET_AMOUNT_ATOMIC } from "../../../../lib/polymarket-config";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     const { user_address, market_id, market_question, outcome, amount } = body;
 
-    if (!user_address || !market_id || !market_question || !outcome || !amount) {
+    if (!user_address || !market_id || !market_question || !outcome || amount === undefined) {
       return NextResponse.json(
         {
           success: false,
@@ -43,56 +42,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate wallet address format
-    if (!user_address.startsWith("0x") || user_address.length !== 42) {
+    // Validate wallet address format (checks 0x + 40 hex chars)
+    if (!isValidWalletAddress(user_address)) {
       return NextResponse.json(
-        { success: false, error: "Invalid wallet address format" },
+        { success: false, error: "Invalid wallet address format. Expected 0x followed by 40 hex characters." },
         { status: 400 }
       );
     }
 
-    // Validate amount (minimum 0.001 USDT0 = 1000 atomic units)
-    if (typeof amount !== "number" || amount < 1000) {
+    // Validate amount is a valid integer and meets minimum
+    if (!isValidBetAmount(amount, MIN_BET_AMOUNT_ATOMIC)) {
       return NextResponse.json(
-        { success: false, error: "Minimum bet amount is 0.001 USDT0 (1000 atomic units)" },
+        { success: false, error: `Minimum bet amount is ${MIN_BET_AMOUNT_ATOMIC} atomic units (0.001 USDT0)` },
         { status: 400 }
       );
     }
 
-    // Build the backend URL for the predict endpoint
-    const backendUrl = `${BACKEND_URL.replace(/\/$/, "")}/polymarket/predict`;
-
-    // Forward the prediction request to the FastAPI backend
-    const response = await fetch(backendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        user_address,
-        market_id,
-        market_question,
-        outcome,
-        amount,
-      }),
+    // Proxy to backend
+    return proxyPost("/polymarket/predict", {
+      user_address,
+      market_id,
+      market_question,
+      outcome,
+      amount,
     });
-
-    // Parse the response
-    const data = await response.json();
-
-    // Return the response with the same status code
-    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("Error submitting prediction:", error);
+    console.error("Error in predict route:", error);
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Failed to submit prediction",
-        hint: "Check if the backend server is running",
       },
-      { status: 502 }
+      { status: 500 }
     );
   }
 }
-
