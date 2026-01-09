@@ -180,8 +180,13 @@ export function validateAuthorization(
     return { valid: false, error: "Cannot transfer to self" };
   }
 
-  // Validate value
-  const value = BigInt(auth.value);
+  // Validate value - wrap in try-catch to handle undefined/null/malformed strings
+  let value: bigint;
+  try {
+    value = BigInt(auth.value);
+  } catch {
+    return { valid: false, error: "Invalid value format" };
+  }
   const minAmount = config.minAmount ?? 1_000_000n; // 1 USDT0
   const maxAmount = config.maxAmount ?? 10_000_000_000n; // 10,000 USDT0
 

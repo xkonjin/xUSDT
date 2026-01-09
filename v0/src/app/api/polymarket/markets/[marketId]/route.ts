@@ -29,11 +29,19 @@ export async function GET(
       );
     }
 
-    // Sanitize market ID - only allow alphanumeric, hyphens, and underscores
+    // Validate market ID format - whitelist approach is safer than encoding
+    // Only allow alphanumeric characters, hyphens, and underscores
     // This prevents path traversal and URL injection attacks
-    const sanitizedId = encodeURIComponent(marketId);
+    const MARKET_ID_REGEX = /^[A-Za-z0-9_-]+$/;
+    if (!MARKET_ID_REGEX.test(marketId)) {
+      return NextResponse.json(
+        { error: "Invalid market ID format - only alphanumeric, hyphens, and underscores allowed" },
+        { status: 400 }
+      );
+    }
 
-    return proxyGet(`/polymarket/markets/${sanitizedId}`);
+    // marketId is now validated, no encoding needed
+    return proxyGet(`/polymarket/markets/${marketId}`);
   } catch (error) {
     console.error("Error in market detail route:", error);
     return errorResponse(error, 500);
