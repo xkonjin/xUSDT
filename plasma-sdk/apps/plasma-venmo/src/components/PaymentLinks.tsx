@@ -61,8 +61,8 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
           const data = await response.json();
           setLinks(data.paymentLinks || []);
         }
-      } catch (error) {
-        console.error("Failed to fetch payment links:", error);
+      } catch {
+        // Silent fail - empty list will be shown
       } finally {
         setLoading(false);
       }
@@ -104,8 +104,8 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         setNewExpires("");
         onRefresh?.();
       }
-    } catch (error) {
-      console.error("Failed to create payment link:", error);
+    } catch {
+      // Silent fail - form stays open for retry
     } finally {
       setCreating(false);
     }
@@ -128,8 +128,8 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
           l.id === linkId ? { ...l, status: "cancelled" } : l
         ));
       }
-    } catch (error) {
-      console.error("Failed to cancel payment link:", error);
+    } catch {
+      // Silent fail - link status unchanged
     }
   }
 

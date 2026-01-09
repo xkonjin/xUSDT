@@ -89,8 +89,8 @@ export default function NewBillPage() {
         if (data.taxPercent) setTaxPercent(data.taxPercent);
         if (data.tipPercent) setTipPercent(data.tipPercent);
       }
-    } catch (error) {
-      console.error("Scan failed:", error);
+    } catch {
+      // Silent fail - user can try again or add items manually
     } finally {
       setScanning(false);
     }

@@ -131,8 +131,8 @@ export default function Dashboard() {
       setSubscriptions(categorized.subscriptions);
 
       await new Promise(r => setTimeout(r, 500));
-    } catch (error) {
-      console.error('Scan error:', error);
+    } catch {
+      // Silent fail - scan can be retried
     } finally {
       setIsScanning(false);
     }

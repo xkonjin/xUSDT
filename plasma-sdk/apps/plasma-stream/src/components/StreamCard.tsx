@@ -55,8 +55,8 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
       if (res.ok) {
         onWithdraw?.();
       }
-    } catch (e) {
-      console.error('Withdraw failed', e);
+    } catch {
+      // Silent fail - button re-enables for retry
     } finally {
       setWithdrawing(false);
     }

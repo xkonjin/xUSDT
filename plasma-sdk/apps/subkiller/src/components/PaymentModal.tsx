@@ -116,7 +116,6 @@ export function PaymentModal({
       onPaymentSuccess(result.txHash);
       onClose();
     } catch (err) {
-      console.error('Payment error:', err);
       // Handle user rejection vs other errors
       if (err instanceof Error) {
         if (err.message.includes('rejected') || err.message.includes('denied')) {

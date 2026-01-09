@@ -42,8 +42,8 @@ export default function DashboardPage() {
           const data = await res.json();
           setStreams(data.streams || []);
         }
-      } catch (e) {
-        console.error('Failed to fetch streams', e);
+      } catch {
+        // Silent fail - empty list will be shown
       } finally {
         setLoading(false);
       }

@@ -24,8 +24,10 @@ export const XPL_DECIMALS = 18;
 export const XPL_SYMBOL = 'XPL';
 
 // EIP-712 Domain for USDT0
+// IMPORTANT: The contract returns "USDT0" as the token name, not "USD₮0"
+// Using the wrong name causes EIP-3009 signature validation to fail
 export const USDT0_EIP712_DOMAIN = {
-  name: 'USD₮0',
+  name: 'USDT0',
   version: '1',
 } as const;
 

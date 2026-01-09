@@ -37,7 +37,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
           setTransactions(data.transactions || []);
         }
       } catch {
-        console.error("Failed to fetch transaction history");
+        // Silent fail - empty transaction list will be shown
       } finally {
         setLoading(false);
       }
