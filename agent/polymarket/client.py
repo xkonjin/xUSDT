@@ -21,16 +21,60 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import time
 import logging
+import atexit
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
+from datetime import datetime, timezone
 import httpx
 
 from .models import Market, MarketOutcome, MarketsResponse
 
 # Configure logging for this module
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Input Validation
+# =============================================================================
+
+# Regex pattern for valid market IDs (alphanumeric, hyphens, underscores)
+# Prevents path traversal and URL injection attacks
+MARKET_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def validate_market_id(market_id: str) -> bool:
+    """
+    Validate a market ID to prevent injection attacks.
+    
+    Args:
+        market_id: The market ID to validate
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    if not market_id or len(market_id) > 256:
+        return False
+    return bool(MARKET_ID_PATTERN.match(market_id))
+
+
+def sanitize_market_id(market_id: str) -> str:
+    """
+    Sanitize a market ID for safe use in URLs.
+    
+    Removes any characters that could cause URL injection.
+    
+    Args:
+        market_id: The market ID to sanitize
+        
+    Returns:
+        Sanitized market ID
+    """
+    # URL-encode the ID to be safe
+    from urllib.parse import quote
+    return quote(market_id, safe="")
 
 
 class PolymarketClient:
@@ -68,7 +112,7 @@ class PolymarketClient:
         self.timeout = timeout
         self.use_mock_data = use_mock_data
         
-        # HTTP client for async requests
+        # HTTP client for async requests (lazy initialization)
         self._client: Optional[httpx.AsyncClient] = None
     
     async def _get_client(self) -> httpx.AsyncClient:
@@ -84,10 +128,16 @@ class PolymarketClient:
         return self._client
     
     async def close(self) -> None:
-        """Close the HTTP client connection."""
+        """
+        Close the HTTP client connection.
+        
+        IMPORTANT: Call this when shutting down the application to prevent
+        connection leaks. This should be called in FastAPI's lifespan handler.
+        """
         if self._client and not self._client.is_closed:
             await self._client.aclose()
             self._client = None
+            logger.info("Polymarket client connection closed")
     
     # =========================================================================
     # Market Discovery (Gamma API)
@@ -171,13 +221,19 @@ class PolymarketClient:
         
         Returns:
             Market object if found, None otherwise
+            
+        Note:
+            Market ID is sanitized before use to prevent URL injection.
         """
+        # Sanitize market_id to prevent URL injection
+        safe_market_id = sanitize_market_id(market_id)
+        
         try:
             client = await self._get_client()
             
-            # Try fetching by condition_id
+            # Fetch by condition_id (sanitized)
             response = await client.get(
-                f"{self.gamma_api_url}/markets/{market_id}",
+                f"{self.gamma_api_url}/markets/{safe_market_id}",
             )
             
             if response.status_code == 404:
@@ -400,7 +456,7 @@ class PolymarketClient:
 
 
 # =============================================================================
-# Singleton Client Instance
+# Client Factory with Settings
 # =============================================================================
 
 # Global client instance for use across the application
@@ -409,15 +465,48 @@ _client_instance: Optional[PolymarketClient] = None
 
 def get_polymarket_client() -> PolymarketClient:
     """
-    Get the singleton Polymarket client instance.
+    Get or create the Polymarket client instance.
     
-    Creates the client on first call and reuses it thereafter.
+    Reads configuration from Settings if available, otherwise uses defaults.
+    The client is created lazily on first access.
     
     Returns:
-        PolymarketClient instance
+        PolymarketClient instance configured from Settings
     """
     global _client_instance
+    
     if _client_instance is None:
-        _client_instance = PolymarketClient()
+        # Try to read from Settings if available
+        try:
+            from ..config import Settings
+            settings = Settings()
+            _client_instance = PolymarketClient(
+                gamma_api_url=settings.POLYMARKET_GAMMA_API_URL,
+                timeout=settings.POLYMARKET_API_TIMEOUT,
+                use_mock_data=settings.POLYMARKET_USE_MOCK,
+            )
+            logger.info(f"Polymarket client initialized with URL: {settings.POLYMARKET_GAMMA_API_URL}")
+        except Exception as e:
+            # Fallback to defaults if Settings not available
+            logger.warning(f"Could not load Settings, using defaults: {e}")
+            _client_instance = PolymarketClient()
+    
     return _client_instance
 
+
+async def close_polymarket_client() -> None:
+    """
+    Close the global Polymarket client.
+    
+    Should be called during application shutdown to prevent connection leaks.
+    Use this in FastAPI's lifespan handler:
+    
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            yield
+            await close_polymarket_client()
+    """
+    global _client_instance
+    if _client_instance is not None:
+        await _client_instance.close()
+        _client_instance = None

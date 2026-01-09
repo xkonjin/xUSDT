@@ -13,66 +13,18 @@
  *   GET /api/polymarket/markets?active=true&limit=50
  */
 
-import { NextRequest, NextResponse } from "next/server";
-
-// Backend URL for the FastAPI merchant service
-// Falls back to localhost:8000 for local development
-const BACKEND_URL =
-  process.env.POLYMARKET_BACKEND_URL ||
-  process.env.MERCHANT_URL ||
-  process.env.NEXT_PUBLIC_MERCHANT_URL ||
-  "http://127.0.0.1:8000";
+import { NextRequest } from "next/server";
+import { proxyGet } from "../../../../lib/api-helpers";
 
 export async function GET(request: NextRequest) {
-  try {
-    // Extract query parameters from the incoming request
-    const { searchParams } = new URL(request.url);
-    const active = searchParams.get("active") ?? "true";
-    const limit = searchParams.get("limit") ?? "50";
-    const offset = searchParams.get("offset") ?? "0";
+  // Extract and forward query parameters
+  const { searchParams } = new URL(request.url);
 
-    // Build the backend URL with query parameters
-    const backendUrl = new URL(`${BACKEND_URL.replace(/\/$/, "")}/polymarket/markets`);
-    backendUrl.searchParams.set("active", active);
-    backendUrl.searchParams.set("limit", limit);
-    backendUrl.searchParams.set("offset", offset);
+  // Build params with defaults
+  const params = new URLSearchParams();
+  params.set("active", searchParams.get("active") ?? "true");
+  params.set("limit", searchParams.get("limit") ?? "50");
+  params.set("offset", searchParams.get("offset") ?? "0");
 
-    // Fetch markets from the FastAPI backend
-    const response = await fetch(backendUrl.toString(), {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      // Disable caching to always get fresh market data
-      cache: "no-store",
-    });
-
-    // Handle error responses from backend
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorBody: unknown;
-      try {
-        errorBody = JSON.parse(errorText);
-      } catch {
-        errorBody = { detail: errorText || "Failed to fetch markets" };
-      }
-      return NextResponse.json(errorBody, { status: response.status });
-    }
-
-    // Parse and return the markets data
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    // Handle network or parsing errors
-    console.error("Error fetching Polymarket markets:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to fetch markets",
-        hint: "Check if the backend server is running",
-      },
-      { status: 502 }
-    );
-  }
+  return proxyGet("/polymarket/markets", params);
 }
-

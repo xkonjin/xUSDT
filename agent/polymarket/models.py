@@ -11,10 +11,39 @@ All models use Pydantic v2 for validation and serialization.
 
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from uuid import uuid4
+
+
+# =============================================================================
+# Validation Helpers
+# =============================================================================
+
+# Regex pattern for Ethereum addresses: 0x followed by 40 hex characters
+ETH_ADDRESS_PATTERN = re.compile(r"^0x[a-fA-F0-9]{40}$")
+
+
+def validate_eth_address(address: str) -> bool:
+    """
+    Validate an Ethereum wallet address format.
+    
+    Checks for:
+    - Starts with 0x
+    - Followed by exactly 40 hexadecimal characters
+    
+    Note: This does not validate checksums. For checksum validation,
+    use a library like eth-utils or web3.py in production.
+    
+    Args:
+        address: Wallet address to validate
+        
+    Returns:
+        True if valid format, False otherwise
+    """
+    return bool(ETH_ADDRESS_PATTERN.match(address))
 
 
 # =============================================================================
@@ -106,6 +135,11 @@ class MarketsResponse(BaseModel):
 # Prediction Models (user's bets)
 # =============================================================================
 
+def _utc_now() -> datetime:
+    """Get current UTC time with timezone info (Python 3.12+ compatible)."""
+    return datetime.now(timezone.utc)
+
+
 class Prediction(BaseModel):
     """
     Represents a user's prediction on a market.
@@ -120,10 +154,11 @@ class Prediction(BaseModel):
         market_question: Cached market question for display
         outcome: Selected outcome (e.g., "Yes", "No")
         amount: Bet amount in USDT0 atomic units (6 decimals)
-        created_at: When the prediction was made
+        created_at: When the prediction was made (UTC)
         status: Current status (pending, active, resolved, won, lost)
     """
     # Unique prediction ID (generated UUID)
+    # Using string instead of UUID type for JSON serialization simplicity
     id: str = Field(default_factory=lambda: str(uuid4()), description="Prediction UUID")
     
     # User's wallet address (lowercased for consistency)
@@ -142,13 +177,14 @@ class Prediction(BaseModel):
     # Example: 1000000 = 1.00 USDT0
     amount: int = Field(..., ge=0, description="Bet amount in atomic units")
     
-    # Formatted amount for display (computed from atomic)
+    # Formatted amount for display (set in constructor, not computed lazily)
     amount_formatted: float = Field(0.0, description="Bet amount in human-readable format")
     
-    # Timestamp when prediction was created
+    # Timestamp when prediction was created (timezone-aware UTC)
+    # Using datetime.now(timezone.utc) instead of deprecated datetime.utcnow()
     created_at: datetime = Field(
-        default_factory=datetime.utcnow, 
-        description="Prediction timestamp"
+        default_factory=_utc_now, 
+        description="Prediction timestamp (UTC)"
     )
     
     # Current prediction status
@@ -162,10 +198,13 @@ class Prediction(BaseModel):
     # Mock order ID (simulated Polymarket order)
     mock_order_id: Optional[str] = Field(None, description="Mock order ID for simulation")
     
-    def model_post_init(self, __context) -> None:
-        """Compute formatted amount after initialization."""
-        if self.amount and not self.amount_formatted:
-            object.__setattr__(self, 'amount_formatted', self.amount / 1_000_000)
+    @field_validator("user_address")
+    @classmethod
+    def validate_user_address(cls, v: str) -> str:
+        """Validate and normalize wallet address."""
+        if not validate_eth_address(v):
+            raise ValueError(f"Invalid Ethereum address format: {v}")
+        return v.lower()  # Normalize to lowercase
 
 
 # =============================================================================
@@ -191,8 +230,24 @@ class PredictRequest(BaseModel):
     # Selected outcome
     outcome: str = Field(..., description="Selected outcome (Yes/No)")
     
-    # Bet amount in atomic units
+    # Bet amount in atomic units (minimum 1000 = 0.001 USDT0)
     amount: int = Field(..., ge=1000, description="Bet amount in atomic units (min 0.001)")
+    
+    @field_validator("user_address")
+    @classmethod
+    def validate_address(cls, v: str) -> str:
+        """Validate wallet address format."""
+        if not validate_eth_address(v):
+            raise ValueError("Invalid Ethereum address format. Expected 0x followed by 40 hex characters.")
+        return v.lower()
+    
+    @field_validator("outcome")
+    @classmethod
+    def validate_outcome(cls, v: str) -> str:
+        """Validate outcome is not empty."""
+        if not v or not v.strip():
+            raise ValueError("Outcome cannot be empty")
+        return v.strip()
 
 
 class PredictResponse(BaseModel):
@@ -222,6 +277,10 @@ class UserStatsResponse(BaseModel):
     Response model for user statistics.
     
     Provides summary stats for a user's prediction activity.
+    
+    NOTE: This is an experimental endpoint. In the current MVP implementation,
+    won/lost stats will always be 0 since we don't have market resolution logic.
+    This will be fully functional when real Polymarket CLOB integration is added.
     """
     # User's wallet address
     user_address: str = Field(..., description="User's wallet address")
@@ -239,4 +298,3 @@ class UserStatsResponse(BaseModel):
     
     # Win rate percentage (0-100)
     win_rate: float = Field(0.0, ge=0.0, le=100.0, description="Win rate percentage")
-
