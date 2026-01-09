@@ -57,16 +57,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Look up user by email or phone number in Privy
-    // Note: Privy server SDK provides getUserByEmail and getUserByPhone methods
-    let user = null;
+    interface PrivyUser {
+      linkedAccounts: Array<{
+        type: string;
+        walletClientType?: string;
+        address?: string;
+      }>;
+    }
+
+    let user: PrivyUser | null = null;
     if (isEmail) {
-      // Look up user by email address
-      user = await privy.getUserByEmail(identifier).catch(() => null);
+      user = (await privy
+        .getUserByEmail(identifier)
+        .catch(() => null)) as PrivyUser | null;
     } else if (isPhone) {
-      // Look up user by phone number - normalize phone format first
       const normalizedPhone = identifier.replace(/[\s-]/g, "");
-      user = await privy.getUserByPhone(normalizedPhone).catch(() => null);
+      const privyAny = privy as unknown as {
+        getUserByPhone?: (phone: string) => Promise<PrivyUser | null>;
+      };
+      if (privyAny.getUserByPhone) {
+        user = await privyAny.getUserByPhone(normalizedPhone).catch(() => null);
+      }
     }
 
     if (!user) {
@@ -77,7 +88,7 @@ export async function POST(request: Request) {
     }
 
     const embeddedWallet = user.linkedAccounts.find(
-      (account: { type: string; walletClientType?: string }) =>
+      (account) =>
         account.type === "wallet" && account.walletClientType === "privy"
     );
 
