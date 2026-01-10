@@ -2,7 +2,7 @@
  * Notification Service API
  * 
  * Handles sending email notifications for various events.
- * Uses Resend for email delivery (can be swapped for SendGrid, etc.)
+ * Uses Resend for email delivery.
  * 
  * Endpoints:
  * - POST /api/notify - Send a notification
@@ -10,7 +10,70 @@
  */
 
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { prisma, notifications as notifyHelpers, type NotificationType } from '@plasma-pay/db';
+
+// Initialize Resend client (lazy - only when API key exists)
+let resendClient: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
+// Email wrapper template with Plasma branding
+function wrapEmailTemplate(content: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%); border-radius: 24px; border: 1px solid rgba(255,255,255,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700;">
+                <span style="color: #00d4ff;">Plasma</span>
+                <span style="color: #ffffff;">Venmo</span>
+              </h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding: 32px; color: #ffffff;">
+              ${content}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1);">
+              <p style="margin: 0; color: rgba(255,255,255,0.4); font-size: 12px;">
+                Zero gas fees on Plasma Chain
+              </p>
+              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.3); font-size: 11px;">
+                Powered by <a href="https://plasma.to" style="color: #00d4ff; text-decoration: none;">Plasma</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// Button style helper
+const buttonStyle = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #00b4d8 100%); color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;`;
+const buttonStylePrimary = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%); color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;`;
 
 // Email templates for different notification types
 const EMAIL_TEMPLATES: Record<NotificationType, {
@@ -19,92 +82,99 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
 }> = {
   payment_received: {
     subject: (data) => `You received $${data.amount} USDT0`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">Payment Received!</h1>
-        <p>You received <strong>$${data.amount} USDT0</strong> from ${data.senderAddress?.slice(0, 6)}...${data.senderAddress?.slice(-4) || 'someone'}.</p>
-        ${data.memo ? `<p style="color: #666; font-style: italic;">"${data.memo}"</p>` : ''}
-        ${data.txHash ? `<p><a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff;">View transaction</a></p>` : ''}
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Plasma Venmo - Zero gas fees on Plasma Chain</p>
-      </div>
-    `,
+    html: (data) => wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">💰 Payment Received!</h2>
+      <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.5;">
+        You received <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> from 
+        <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${data.senderAddress?.slice(0, 6)}...${data.senderAddress?.slice(-4) || 'someone'}</span>
+      </p>
+      ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
+      ${data.txHash ? `<p style="margin: 24px 0 0;"><a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff; text-decoration: none;">View transaction on Plasma Scan →</a></p>` : ''}
+    `),
   },
   payment_request: {
-    subject: (data) => `Payment request for $${data.amount} USDT0`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">Payment Request</h1>
-        <p><strong>${data.fromAddress?.slice(0, 6)}...${data.fromAddress?.slice(-4) || 'Someone'}</strong> is requesting <strong>$${data.amount} USDT0</strong> from you.</p>
-        ${data.memo ? `<p style="color: #666; font-style: italic;">"${data.memo}"</p>` : ''}
-        <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="display: inline-block; background: #00d4ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">Open Plasma Venmo</a></p>
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Plasma Venmo - Zero gas fees on Plasma Chain</p>
+    subject: (data) => `${data.fromEmail || 'Someone'} is requesting $${data.amount} USDT0`,
+    html: (data) => wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">📨 Payment Request</h2>
+      <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.5;">
+        <strong>${data.fromEmail || data.fromAddress?.slice(0, 6) + '...' + data.fromAddress?.slice(-4) || 'Someone'}</strong> is requesting 
+        <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> from you.
+      </p>
+      ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plasma Venmo</a>
       </div>
-    `,
+    `),
   },
   claim_available: {
-    subject: (data) => `You received $${data.amount} USDT0 - Claim now!`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">🎁 You Received Money!</h1>
-        <p><strong>${data.senderAddress?.slice(0, 6)}...${data.senderAddress?.slice(-4) || 'Someone'}</strong> sent you <strong>$${data.amount} USDT0</strong>!</p>
-        ${data.memo ? `<p style="color: #666; font-style: italic;">"${data.memo}"</p>` : ''}
-        <p><a href="${data.claimUrl}" style="display: inline-block; background: linear-gradient(to right, #00d4ff, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; margin-top: 16px; font-weight: bold; font-size: 18px;">Claim Your $${data.amount} USDT0</a></p>
-        <p style="color: #666; margin-top: 20px;">This claim expires in 30 days.</p>
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Plasma Venmo - Zero gas fees on Plasma Chain</p>
+    subject: (data) => `🎁 You received $${data.amount} USDT0 - Claim now!`,
+    html: (data) => wrapEmailTemplate(`
+      <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px;">🎁</div>
+        <h2 style="margin: 0 0 16px; font-size: 32px; color: #ffffff;">You Received Money!</h2>
+        <p style="margin: 0 0 8px; font-size: 48px; font-weight: 700; color: #00d4ff;">$${data.amount}</p>
+        <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.5);">USDT0</p>
+        <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.7);">
+          From <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${data.senderEmail || data.senderAddress?.slice(0, 6) + '...' + data.senderAddress?.slice(-4) || 'Someone'}</span>
+        </p>
+        ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin: 0 0 32px;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
+        <a href="${data.claimUrl}" style="${buttonStylePrimary}">Claim Your $${data.amount} USDT0</a>
+        <p style="margin: 24px 0 0; color: rgba(255,255,255,0.4); font-size: 14px;">This claim expires in 30 days</p>
       </div>
-    `,
+    `),
   },
   payment_completed: {
-    subject: (data) => `Payment of $${data.amount} USDT0 completed`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">✅ Payment Completed</h1>
-        <p>Your payment or request for <strong>$${data.amount} USDT0</strong> has been completed!</p>
-        ${data.txHash ? `<p><a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff;">View transaction</a></p>` : ''}
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Plasma Venmo - Zero gas fees on Plasma Chain</p>
+    subject: (data) => `✅ Payment of $${data.amount} USDT0 completed`,
+    html: (data) => wrapEmailTemplate(`
+      <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
+        <h2 style="margin: 0 0 16px; font-size: 28px; color: #22c55e;">Payment Completed!</h2>
+        <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
+          Your payment of <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> has been completed.
+        </p>
+        ${data.txHash ? `<a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff; text-decoration: none;">View transaction on Plasma Scan →</a>` : ''}
       </div>
-    `,
+    `),
   },
   request_declined: {
     subject: (data) => `Payment request declined`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #f87171;">Request Declined</h1>
-        <p>Your payment request for <strong>$${data.amount} USDT0</strong> was declined.</p>
-        ${data.reason ? `<p style="color: #666;">Reason: ${data.reason}</p>` : ''}
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Plasma Venmo - Zero gas fees on Plasma Chain</p>
-      </div>
-    `,
+    html: (data) => wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #f87171;">Request Declined</h2>
+      <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
+        Your payment request for <strong>$${data.amount} USDT0</strong> was declined.
+      </p>
+      ${data.reason ? `<p style="color: rgba(255,255,255,0.6);">Reason: ${data.reason}</p>` : ''}
+    `),
   },
   bill_created: {
-    subject: (data) => `New bill: ${data.title}`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">📋 New Bill Created</h1>
-        <p>A new bill "<strong>${data.title}</strong>" has been created.</p>
-        <p>Total: <strong>$${data.total} USDT0</strong></p>
-        <p><a href="${process.env.NEXT_PUBLIC_APP_URL?.replace('plasma-venmo', 'bill-split') || 'http://localhost:3003'}/bill/${data.billId}" style="display: inline-block; background: #00d4ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">View Bill</a></p>
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Bill Split - Powered by Plasma Chain</p>
+    subject: (data) => `📋 New bill: ${data.title}`,
+    html: (data) => wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">📋 New Bill Created</h2>
+      <p style="margin: 0 0 16px; font-size: 16px; color: rgba(255,255,255,0.8);">
+        A new bill "<strong>${data.title}</strong>" has been created.
+      </p>
+      <p style="margin: 0 0 24px; font-size: 24px; color: #00d4ff; font-weight: 600;">
+        Total: $${data.total} USDT0
+      </p>
+      <div style="text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL?.replace('plasma-venmo', 'bill-split') || 'http://localhost:3003'}/bill/${data.billId}" style="${buttonStyle}">View Bill</a>
       </div>
-    `,
+    `),
   },
   bill_share_assigned: {
-    subject: (data) => `Your share: $${data.share} USDT0`,
-    html: (data) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #00d4ff;">💰 Pay Your Share</h1>
-        <p>Your share of "<strong>${data.title}</strong>" is <strong>$${data.share} USDT0</strong>.</p>
-        <p><a href="${data.paymentUrl}" style="display: inline-block; background: #00d4ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">Pay Now</a></p>
-        <hr style="border-color: #333; margin: 20px 0;" />
-        <p style="color: #666; font-size: 12px;">Bill Split - Zero gas fees on Plasma Chain</p>
+    subject: (data) => `💰 Your share: $${data.share} USDT0`,
+    html: (data) => wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">💰 Pay Your Share</h2>
+      <p style="margin: 0 0 16px; font-size: 16px; color: rgba(255,255,255,0.8);">
+        Your share of "<strong>${data.title}</strong>" is:
+      </p>
+      <p style="margin: 0 0 24px; font-size: 36px; color: #00d4ff; font-weight: 700; text-align: center;">
+        $${data.share} USDT0
+      </p>
+      <div style="text-align: center;">
+        <a href="${data.paymentUrl}" style="${buttonStyle}">Pay Now</a>
       </div>
-    `,
+    `),
   },
 };
 
@@ -172,10 +242,10 @@ export async function POST(request: Request) {
     // Parse data
     const notificationData = notification.data ? JSON.parse(notification.data) : {};
 
-    // Check for Resend API key
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    // Get Resend client
+    const resend = getResend();
     
-    if (!RESEND_API_KEY) {
+    if (!resend) {
       // Log notification but mark as sent (dev mode)
       console.log('📧 Notification (dev mode - no RESEND_API_KEY):');
       console.log('  To:', notification.recipientEmail);
@@ -191,26 +261,21 @@ export async function POST(request: Request) {
       });
     }
 
-    // Send via Resend
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'Plasma Venmo <noreply@plasma.to>',
-        to: notification.recipientEmail,
-        subject: template.subject(notificationData),
-        html: template.html(notificationData),
-      }),
+    // Send via Resend SDK
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plasma Venmo <onboarding@resend.dev>';
+    
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: fromEmail,
+      to: notification.recipientEmail!,
+      subject: template.subject(notificationData),
+      html: template.html(notificationData),
     });
 
-    if (!emailResponse.ok) {
-      const errorData = await emailResponse.json();
-      await notifyHelpers.markFailed(notification.id, JSON.stringify(errorData));
+    if (emailError) {
+      console.error('Resend error:', emailError);
+      await notifyHelpers.markFailed(notification.id, JSON.stringify(emailError));
       return NextResponse.json(
-        { error: 'Failed to send email', details: errorData },
+        { error: 'Failed to send email', details: emailError },
         { status: 500 }
       );
     }
@@ -218,9 +283,16 @@ export async function POST(request: Request) {
     // Mark as sent
     await notifyHelpers.markSent(notification.id);
 
+    console.log('📧 Email sent successfully:', {
+      id: notification.id,
+      to: notification.recipientEmail,
+      resendId: emailData?.id,
+    });
+
     return NextResponse.json({
       success: true,
       id: notification.id,
+      emailId: emailData?.id,
     });
   } catch (error) {
     console.error('Send notification error:', error);
