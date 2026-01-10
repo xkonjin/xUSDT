@@ -36,7 +36,8 @@ class Settings(BaseSettings):
         description="USD₮0 token on Plasma mainnet (official TetherTokenOFTExtension)",
     )
     # Optional EIP-3009 domain overrides (if token doesn't expose name/version)
-    USDT0_NAME: str = Field(default="USDTe", description="USD₮0 token name for EIP-3009 domain")
+    # IMPORTANT: The USDT0 contract on Plasma returns "USDT0" as its name
+    USDT0_NAME: str = Field(default="USDT0", description="USD₮0 token name for EIP-3009 domain")
     USDT0_VERSION: str = Field(default="1", description="USD₮0 token version for EIP-3009 domain")
 
     # Router (Ethereum)

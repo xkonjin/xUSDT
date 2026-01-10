@@ -9,8 +9,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma, paymentLinks } from '@plasma-pay/db';
-import type { Address } from 'viem';
+import { prisma } from '@plasma-pay/db';
 
 /**
  * POST /api/bills
@@ -131,7 +130,6 @@ export async function POST(request: Request) {
 
     // Count assignments per item and distribute cost
     for (const origItem of items) {
-      const newItemId = itemIdMap[origItem.id];
       const assignedPids = (origItem.assignedToParticipantIds || [])
         .map((origPid: string) => participantIdMap[origPid])
         .filter(Boolean);

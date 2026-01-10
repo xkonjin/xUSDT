@@ -5,13 +5,14 @@
  * These hooks wrap Privy's authentication with Plasma-specific functionality
  * like gasless transfers and USDT0 balance queries.
  *
- * SSR Safety: All hooks are wrapped with try-catch to prevent
- * "useWallets called outside PrivyProvider" errors during SSR.
+ * IMPORTANT: These hooks MUST be used within the PrivyProvider component.
+ * The "use client" directive ensures they only run on the client side.
  */
 
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import type { Address, Hex } from "viem";
 import { createPublicClient, http, formatUnits } from "viem";
 import {
@@ -32,6 +33,10 @@ import type {
   GaslessTransferResult,
 } from "./types";
 
+// =============================================================================
+// Constants
+// =============================================================================
+
 // ERC20 balance ABI for USDT0 balance queries
 const ERC20_BALANCE_ABI = [
   {
@@ -44,52 +49,12 @@ const ERC20_BALANCE_ABI = [
 ] as const;
 
 /**
- * Check if we're running in a browser environment
- */
-function isBrowser(): boolean {
-  return typeof window !== "undefined";
-}
-
-/**
- * Safely import and use Privy hooks
- * Returns null if called outside PrivyProvider or during SSR
- */
-function usePrivySafe() {
-  // During SSR, return empty state
-  if (!isBrowser()) {
-    return {
-      privy: null,
-      wallets: null,
-      isAvailable: false,
-    };
-  }
-
-  try {
-    // Dynamic require to avoid SSR issues
-    const { usePrivy, useWallets } = require("@privy-io/react-auth");
-    const privy = usePrivy();
-    const { wallets } = useWallets();
-    return {
-      privy,
-      wallets,
-      isAvailable: true,
-    };
-  } catch (error) {
-    // Called outside PrivyProvider - return empty state
-    // This can happen during initial render before provider mounts
-    return {
-      privy: null,
-      wallets: null,
-      isAvailable: false,
-    };
-  }
-}
-
-/**
  * usePlasmaWallet Hook
  *
  * Main hook for accessing the Plasma embedded wallet and authentication state.
  * Provides login/logout functions and wallet instance for signing transactions.
+ *
+ * IMPORTANT: This hook must be used within a PrivyProvider component.
  *
  * Usage:
  * ```tsx
@@ -106,45 +71,40 @@ function usePrivySafe() {
  * @returns PlasmaWalletState with authentication and wallet info
  */
 export function usePlasmaWallet(): PlasmaWalletState {
-  const { privy, wallets, isAvailable } = usePrivySafe();
+  // Use Privy hooks directly - the "use client" directive ensures this only runs client-side
+  const { user, authenticated, ready, login, logout, linkEmail, linkPhone } =
+    usePrivy();
+  const { wallets } = useWallets();
 
   // Extract embedded wallet from Privy wallets array
+  // Memoized to prevent recreating the wallet object on every render
   const embeddedWallet = useMemo(() => {
-    if (!isAvailable || !wallets) return null;
+    if (!wallets || wallets.length === 0) return null;
 
+    // Find the Privy embedded wallet (walletClientType === "privy")
     const privyWallet = wallets.find(
-      (w: any) => w.walletClientType === "privy"
+      (w) => w.walletClientType === "privy"
     );
     if (!privyWallet) return null;
 
     return createPlasmaEmbeddedWallet(privyWallet);
-  }, [wallets, isAvailable]);
-
-  // If Privy is not available, return empty state
-  if (!isAvailable || !privy) {
-    return {
-      user: null,
-      authenticated: false,
-      ready: false,
-      wallet: null,
-      login: () => {},
-      logout: () => Promise.resolve(),
-      linkEmail: () => Promise.resolve(),
-      linkPhone: () => Promise.resolve(),
-    };
-  }
+  }, [wallets]);
 
   return {
-    user: privy.user,
-    authenticated: privy.authenticated,
-    ready: privy.ready,
+    user,
+    authenticated,
+    ready,
     wallet: embeddedWallet,
-    login: privy.login,
-    logout: privy.logout,
-    linkEmail: privy.linkEmail,
-    linkPhone: privy.linkPhone,
+    login,
+    logout,
+    linkEmail,
+    linkPhone,
   };
 }
+
+// =============================================================================
+// Internal Helper Functions
+// =============================================================================
 
 /**
  * Create a PlasmaEmbeddedWallet instance from a Privy ConnectedWallet
@@ -153,9 +113,11 @@ export function usePlasmaWallet(): PlasmaWalletState {
  * - Signing EIP-712 typed data (for gasless transfers)
  * - Switching chains
  * - Querying USDT0 balance
+ *
+ * @param connectedWallet - A Privy ConnectedWallet instance from useWallets()
  */
 function createPlasmaEmbeddedWallet(
-  connectedWallet: any
+  connectedWallet: ReturnType<typeof useWallets>["wallets"][number]
 ): PlasmaEmbeddedWallet {
   const address = connectedWallet.address as Address;
 

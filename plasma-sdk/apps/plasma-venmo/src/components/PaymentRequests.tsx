@@ -74,8 +74,8 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
           const data = await response.json();
           setRequests(data.requests?.received || []);
         }
-      } catch (error) {
-        console.error("Failed to fetch requests:", error);
+      } catch {
+        // Silent fail - empty list will be shown
       } finally {
         setLoading(false);
       }
@@ -132,8 +132,8 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
         setRequests(requests.filter(r => r.id !== request.id));
         onRefresh?.();
       }
-    } catch (error) {
-      console.error("Failed to pay request:", error);
+    } catch {
+      // Silent fail - request stays in list
     } finally {
       setPayingId(null);
     }
@@ -158,8 +158,8 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
         // Remove from list
         setRequests(requests.filter(r => r.id !== request.id));
       }
-    } catch (error) {
-      console.error("Failed to decline request:", error);
+    } catch {
+      // Silent fail - request stays in list
     } finally {
       setDecliningId(null);
     }

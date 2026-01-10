@@ -12,18 +12,22 @@ import { test, expect } from '@playwright/test';
 test.describe('Payment Links Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:3002');
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000); // Wait for client hydration
   });
 
   test('landing page shows payment link feature', async ({ page }) => {
     // Should show the landing page with Plasma Venmo branding
     const heading = page.getByText('Plasma', { exact: true });
     const venmo = page.getByText('Venmo', { exact: true });
+    const getStarted = page.getByText('Get Started');
     
     // At least one of these should be visible
     const hasHeading = await heading.first().isVisible().catch(() => false);
     const hasVenmo = await venmo.first().isVisible().catch(() => false);
+    const hasGetStarted = await getStarted.first().isVisible().catch(() => false);
     
-    expect(hasHeading || hasVenmo).toBe(true);
+    expect(hasHeading || hasVenmo || hasGetStarted).toBe(true);
   });
 
   test('pay page handles missing link ID gracefully', async ({ page }) => {

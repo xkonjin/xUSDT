@@ -19,6 +19,10 @@ import Link from "next/link";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 
+// Use shared utilities (DRY - eliminates duplicate code)
+import { formatDateTime, getStatusColors } from "../../../lib/format";
+import { MOCK_WALLET_ADDRESS, IS_DEMO_MODE } from "../../../lib/polymarket-config";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -37,53 +41,6 @@ interface Prediction {
 }
 
 // =============================================================================
-// Helper Functions
-// =============================================================================
-
-function formatDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-function getStatusColor(status: string): { bg: string; text: string; border: string } {
-  switch (status.toLowerCase()) {
-    case "active":
-      return {
-        bg: "rgba(59, 130, 246, 0.1)",
-        text: "#3b82f6",
-        border: "rgba(59, 130, 246, 0.3)",
-      };
-    case "won":
-      return {
-        bg: "rgba(16, 185, 129, 0.1)",
-        text: "#10b981",
-        border: "rgba(16, 185, 129, 0.3)",
-      };
-    case "lost":
-      return {
-        bg: "rgba(239, 68, 68, 0.1)",
-        text: "#ef4444",
-        border: "rgba(239, 68, 68, 0.3)",
-      };
-    default:
-      return {
-        bg: "rgba(127, 127, 127, 0.1)",
-        text: "#6b7280",
-        border: "rgba(127, 127, 127, 0.3)",
-      };
-  }
-}
-
-// =============================================================================
 // Prediction Card Component
 // =============================================================================
 
@@ -93,7 +50,7 @@ interface PredictionCardProps {
 }
 
 function PredictionCard({ prediction, index }: PredictionCardProps) {
-  const statusColors = getStatusColor(prediction.status);
+  const statusColors = getStatusColors(prediction.status);
   const isYes = prediction.outcome.toLowerCase() === "yes";
 
   return (
@@ -128,7 +85,7 @@ function PredictionCard({ prediction, index }: PredictionCardProps) {
             {prediction.status}
           </span>
           <span style={{ fontSize: "12px", opacity: 0.5 }}>
-            {formatDate(prediction.created_at)}
+            {formatDateTime(prediction.created_at)}
           </span>
         </div>
 
@@ -212,16 +169,17 @@ export default function MyPredictionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock wallet address (same as prediction page)
-  const mockWalletAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f00000";
-
-  // Fetch user predictions
-  const loadPredictions = useCallback(async () => {
+  // Fetch user predictions with AbortController for cleanup
+  const loadPredictions = useCallback(async (signal?: AbortSignal) => {
     try {
       setError(null);
       const response = await fetch(
-        `/api/polymarket/predictions?user_address=${mockWalletAddress}&limit=100`
+        `/api/polymarket/predictions?user_address=${MOCK_WALLET_ADDRESS}&limit=100`,
+        { signal }
       );
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (!response.ok) {
         throw new Error("Failed to load predictions");
@@ -232,7 +190,8 @@ export default function MyPredictionsPage() {
       const predictionsList = Array.isArray(data) ? data : data.predictions || [];
       setPredictions(predictionsList);
     } catch (err) {
-      console.error("Error loading predictions:", err);
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load predictions");
     } finally {
       setLoading(false);
@@ -240,7 +199,11 @@ export default function MyPredictionsPage() {
   }, []);
 
   useEffect(() => {
-    loadPredictions();
+    const controller = new AbortController();
+    loadPredictions(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadPredictions]);
 
   // Loading state
@@ -395,25 +358,26 @@ export default function MyPredictionsPage() {
       )}
 
       {/* Demo Notice */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        style={{
-          marginTop: "32px",
-          padding: "16px",
-          borderRadius: "12px",
-          background: "rgba(59, 130, 246, 0.1)",
-          border: "1px solid rgba(59, 130, 246, 0.2)",
-          fontSize: "13px",
-          lineHeight: 1.5,
-          textAlign: "center",
-        }}
-      >
-        <strong>Demo Mode:</strong> Predictions are stored in-memory and will reset
-        when the server restarts. Using mock wallet address.
-      </motion.div>
+      {IS_DEMO_MODE && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          style={{
+            marginTop: "32px",
+            padding: "16px",
+            borderRadius: "12px",
+            background: "rgba(59, 130, 246, 0.1)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+            fontSize: "13px",
+            lineHeight: 1.5,
+            textAlign: "center",
+          }}
+        >
+          <strong>Demo Mode:</strong> Predictions are stored in-memory and will reset
+          when the server restarts. Using mock wallet address.
+        </motion.div>
+      )}
     </div>
   );
 }
-

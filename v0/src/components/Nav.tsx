@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { POLYMARKET_ENABLED } from "../lib/polymarket-config";
 
+/**
+ * Navigation Component
+ *
+ * Main navigation bar with links to app sections.
+ * Polymarket link is conditionally rendered based on feature flag.
+ */
 export function Nav() {
   return (
     <motion.nav
@@ -16,7 +23,10 @@ export function Nav() {
           <span className="xui-brand-mark" /> xUSDT Demo
         </Link>
         <div className="xui-nav-links">
-          <Link href="/predictions" className="xui-link">Predictions</Link>
+          {/* Polymarket predictions - conditionally rendered via feature flag */}
+          {POLYMARKET_ENABLED && (
+            <Link href="/predictions" className="xui-link">Predictions</Link>
+          )}
           <Link href="/client" className="xui-link">Client</Link>
           <a href="https://github.com/xkonjin/xUSDT" target="_blank" rel="noopener noreferrer" className="xui-link">GitHub ↗</a>
         </div>

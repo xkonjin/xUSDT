@@ -16,11 +16,19 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
+
+// Use shared utilities (DRY - eliminates duplicate code)
+import { formatDate, formatVolume, displayToAtomic } from "../../../lib/format";
+import {
+  MOCK_WALLET_ADDRESS,
+  IS_DEMO_MODE,
+  MIN_BET_AMOUNT_DISPLAY,
+} from "../../../lib/polymarket-config";
 
 // =============================================================================
 // Types
@@ -59,37 +67,11 @@ interface PredictionResponse {
 }
 
 // =============================================================================
-// Helper Functions
-// =============================================================================
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return "TBD";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-function formatVolume(volume?: number): string {
-  if (!volume) return "$0";
-  if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(1)}M`;
-  if (volume >= 1_000) return `$${(volume / 1_000).toFixed(1)}K`;
-  return `$${volume.toFixed(0)}`;
-}
-
-// =============================================================================
 // Main Page Component
 // =============================================================================
 
 export default function MarketDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const marketId = params.marketId as string;
 
   const [market, setMarket] = useState<Market | null>(null);
@@ -102,16 +84,19 @@ export default function MarketDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<PredictionResponse | null>(null);
 
-  // Mock wallet address for demo (in production, would come from wallet connection)
-  const mockWalletAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f00000";
-
-  // Fetch market details
-  const loadMarket = useCallback(async () => {
+  // Fetch market details with AbortController for cleanup
+  const loadMarket = useCallback(async (signal?: AbortSignal) => {
     if (!marketId) return;
 
     try {
       setError(null);
-      const response = await fetch(`/api/polymarket/markets/${encodeURIComponent(marketId)}`);
+      const response = await fetch(
+        `/api/polymarket/markets/${encodeURIComponent(marketId)}`,
+        { signal }
+      );
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (response.status === 404) {
         setError("Market not found");
@@ -125,7 +110,8 @@ export default function MarketDetailPage() {
       const data = await response.json();
       setMarket(data);
     } catch (err) {
-      console.error("Error loading market:", err);
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load market");
     } finally {
       setLoading(false);
@@ -133,7 +119,11 @@ export default function MarketDetailPage() {
   }, [marketId]);
 
   useEffect(() => {
-    loadMarket();
+    const controller = new AbortController();
+    loadMarket(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadMarket]);
 
   // Handle prediction submission
@@ -144,13 +134,13 @@ export default function MarketDetailPage() {
     }
 
     const amountFloat = parseFloat(amount);
-    if (isNaN(amountFloat) || amountFloat < 0.001) {
-      setError("Minimum bet is 0.001 USDT0");
+    if (isNaN(amountFloat) || amountFloat < MIN_BET_AMOUNT_DISPLAY) {
+      setError(`Minimum bet is ${MIN_BET_AMOUNT_DISPLAY} USDT0`);
       return;
     }
 
-    // Convert to atomic units (6 decimals)
-    const amountAtomic = Math.floor(amountFloat * 1_000_000);
+    // Convert to atomic units using BigInt for precision (avoids JS floating-point issues)
+    const amountAtomic = displayToAtomic(amount);
 
     setSubmitting(true);
     setError(null);
@@ -161,24 +151,33 @@ export default function MarketDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_address: mockWalletAddress,
+          user_address: MOCK_WALLET_ADDRESS,
           market_id: market.id,
           market_question: market.question,
           outcome: selectedOutcome,
-          amount: amountAtomic,
+          // Convert BigInt to Number for JSON (safe for reasonable bet sizes)
+          amount: Number(amountAtomic),
         }),
       });
 
-      const data: PredictionResponse = await response.json();
+      // Handle non-JSON error responses gracefully
+      let data: PredictionResponse;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Server returned an invalid response");
+      }
+
       setSubmitResult(data);
 
       if (data.success) {
         // Reset form after successful submission
         setSelectedOutcome(null);
         setAmount("1.00");
+      } else if (data.error) {
+        setError(data.error);
       }
     } catch (err) {
-      console.error("Error submitting prediction:", err);
       setError(err instanceof Error ? err.message : "Failed to submit prediction");
     } finally {
       setSubmitting(false);
@@ -427,7 +426,7 @@ export default function MarketDetailPage() {
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            min="0.001"
+            min={MIN_BET_AMOUNT_DISPLAY}
             step="0.01"
             placeholder="1.00"
             className="xui-input"
@@ -440,7 +439,7 @@ export default function MarketDetailPage() {
               marginTop: "6px",
             }}
           >
-            Minimum: 0.001 USDT0 • This is a mock prediction for testing
+            Minimum: {MIN_BET_AMOUNT_DISPLAY} USDT0 • {IS_DEMO_MODE ? "This is a mock prediction for testing" : ""}
           </p>
         </div>
 
@@ -465,24 +464,25 @@ export default function MarketDetailPage() {
       </Card>
 
       {/* Demo Notice */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        style={{
-          marginTop: "24px",
-          padding: "16px",
-          borderRadius: "12px",
-          background: "rgba(59, 130, 246, 0.1)",
-          border: "1px solid rgba(59, 130, 246, 0.2)",
-          fontSize: "13px",
-          lineHeight: 1.5,
-        }}
-      >
-        <strong>Demo Mode:</strong> This is a mock prediction system for testing.
-        No real orders are placed on Polymarket. Wallet address is simulated.
-      </motion.div>
+      {IS_DEMO_MODE && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          style={{
+            marginTop: "24px",
+            padding: "16px",
+            borderRadius: "12px",
+            background: "rgba(59, 130, 246, 0.1)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+            fontSize: "13px",
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>Demo Mode:</strong> This is a mock prediction system for testing.
+          No real orders are placed on Polymarket. Wallet address is simulated.
+        </motion.div>
+      )}
     </div>
   );
 }
-

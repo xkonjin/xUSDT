@@ -44,8 +44,8 @@ export default function HomePage() {
           const data = await response.json();
           setBills(data.bills || []);
         }
-      } catch (error) {
-        console.error("Failed to fetch bills:", error);
+      } catch {
+        // Silent fail - empty list will be shown
       } finally {
         setLoading(false);
       }

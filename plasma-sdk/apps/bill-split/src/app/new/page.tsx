@@ -89,8 +89,8 @@ export default function NewBillPage() {
         if (data.taxPercent) setTaxPercent(data.taxPercent);
         if (data.tipPercent) setTipPercent(data.tipPercent);
       }
-    } catch (error) {
-      console.error("Scan failed:", error);
+    } catch {
+      // Silent fail - user can try again or add items manually
     } finally {
       setScanning(false);
     }
@@ -193,8 +193,8 @@ export default function NewBillPage() {
         const data = await response.json();
         router.push(`/bill/${data.bill.id}`);
       }
-    } catch (error) {
-      console.error("Failed to create bill:", error);
+    } catch {
+      // Silent fail - user sees loading state reset
     } finally {
       setCreating(false);
     }

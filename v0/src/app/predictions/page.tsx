@@ -21,6 +21,9 @@ import Link from "next/link";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 
+// Use shared formatters (DRY - eliminates duplicate helper functions)
+import { formatDate, formatVolume, formatProbability } from "../../lib/format";
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -49,44 +52,6 @@ interface MarketsResponse {
   total: number;
   limit: number;
   offset: number;
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Format a date string into a human-readable format
- */
-function formatDate(dateString?: string): string {
-  if (!dateString) return "TBD";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-/**
- * Format volume/liquidity values with K/M suffixes
- */
-function formatVolume(volume?: number): string {
-  if (!volume) return "$0";
-  if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(1)}M`;
-  if (volume >= 1_000) return `$${(volume / 1_000).toFixed(1)}K`;
-  return `$${volume.toFixed(0)}`;
-}
-
-/**
- * Format a probability as a percentage
- */
-function formatProbability(price: number): string {
-  return `${Math.round(price * 100)}%`;
 }
 
 // =============================================================================
@@ -216,11 +181,14 @@ export default function PredictionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch markets from the API
-  const loadMarkets = useCallback(async () => {
+  // Fetch markets from the API with AbortController for cleanup
+  const loadMarkets = useCallback(async (signal?: AbortSignal) => {
     try {
       setError(null);
-      const response = await fetch("/api/polymarket/markets?active=true&limit=50");
+      const response = await fetch("/api/polymarket/markets?active=true&limit=50", { signal });
+
+      // Check if request was aborted
+      if (signal?.aborted) return;
 
       if (!response.ok) {
         throw new Error("Failed to load markets");
@@ -231,7 +199,8 @@ export default function PredictionsPage() {
       const marketsList = Array.isArray(data) ? data : data.markets || [];
       setMarkets(marketsList);
     } catch (err) {
-      console.error("Error loading markets:", err);
+      // Ignore abort errors (component unmounted)
+      if (err instanceof Error && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Failed to load markets");
     } finally {
       setLoading(false);
@@ -240,7 +209,11 @@ export default function PredictionsPage() {
   }, []);
 
   useEffect(() => {
-    loadMarkets();
+    const controller = new AbortController();
+    loadMarkets(controller.signal);
+
+    // Cleanup: abort fetch on unmount
+    return () => controller.abort();
   }, [loadMarkets]);
 
   const handleRefresh = async () => {
@@ -355,4 +328,3 @@ export default function PredictionsPage() {
     </div>
   );
 }
-

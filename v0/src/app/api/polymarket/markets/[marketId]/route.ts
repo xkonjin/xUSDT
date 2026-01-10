@@ -12,13 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-
-// Backend URL for the FastAPI merchant service
-const BACKEND_URL =
-  process.env.POLYMARKET_BACKEND_URL ||
-  process.env.MERCHANT_URL ||
-  process.env.NEXT_PUBLIC_MERCHANT_URL ||
-  "http://127.0.0.1:8000";
+import { proxyGet, errorResponse } from "../../../../../lib/api-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -35,51 +29,21 @@ export async function GET(
       );
     }
 
-    // Build the backend URL for the single market endpoint
-    const backendUrl = `${BACKEND_URL.replace(/\/$/, "")}/polymarket/markets/${encodeURIComponent(marketId)}`;
-
-    // Fetch market details from the FastAPI backend
-    const response = await fetch(backendUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-
-    // Handle 404 - market not found
-    if (response.status === 404) {
+    // Validate market ID format - whitelist approach is safer than encoding
+    // Only allow alphanumeric characters, hyphens, and underscores
+    // This prevents path traversal and URL injection attacks
+    const MARKET_ID_REGEX = /^[A-Za-z0-9_-]+$/;
+    if (!MARKET_ID_REGEX.test(marketId)) {
       return NextResponse.json(
-        { error: "Market not found", marketId },
-        { status: 404 }
+        { error: "Invalid market ID format - only alphanumeric, hyphens, and underscores allowed" },
+        { status: 400 }
       );
     }
 
-    // Handle other error responses
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorBody: unknown;
-      try {
-        errorBody = JSON.parse(errorText);
-      } catch {
-        errorBody = { detail: errorText || "Failed to fetch market" };
-      }
-      return NextResponse.json(errorBody, { status: response.status });
-    }
-
-    // Parse and return the market data
-    const data = await response.json();
-    return NextResponse.json(data);
+    // marketId is now validated, no encoding needed
+    return proxyGet(`/polymarket/markets/${marketId}`);
   } catch (error) {
-    console.error("Error fetching Polymarket market:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to fetch market",
-        hint: "Check if the backend server is running",
-      },
-      { status: 502 }
-    );
+    console.error("Error in market detail route:", error);
+    return errorResponse(error, 500);
   }
 }
-

@@ -56,14 +56,14 @@ export default function BillPage({
   // Extract bill ID from route params (Next.js 14 synchronous pattern)
   const billId = params.id;
 
-  const { wallet } = usePlasmaWallet();
+  // Wallet is available via usePlasmaWallet() if needed for signing
   
   // State
   const [bill, setBill] = useState<BillData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [generatingLinks, setGeneratingLinks] = useState(false);
+  const [, setGeneratingLinks] = useState(false);
 
   // Fetch bill details
   useEffect(() => {

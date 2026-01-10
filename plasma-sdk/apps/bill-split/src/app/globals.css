@@ -34,7 +34,17 @@
    Base Styles
    ============================================================================ */
 body {
+  /* Fallback for browsers without CSS variable support */
+  background: #000000;
+  color: #ffffff;
+
   /* Gradient background with plasma glow effect */
+  background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(0, 212, 255, 0.12),
+      transparent
+    ),
+    linear-gradient(180deg, rgb(0, 0, 0) 0%, rgb(8, 8, 12) 100%);
   background: radial-gradient(
       ellipse 80% 50% at 50% -20%,
       rgba(var(--plasma-cyan), 0.12),
@@ -70,6 +80,7 @@ body {
 
 /* Text selection with brand color */
 ::selection {
+  background: rgba(0, 212, 255, 0.3); /* Fallback */
   background: rgba(var(--plasma-cyan), 0.3);
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Pause, Clock, User } from 'lucide-react';
+import { Play, Pause, Clock, User, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Stream } from '@plasma-pay/core';
 
@@ -55,8 +55,8 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
       if (res.ok) {
         onWithdraw?.();
       }
-    } catch (e) {
-      console.error('Withdraw failed', e);
+    } catch {
+      // Silent fail - button re-enables for retry
     } finally {
       setWithdrawing(false);
     }
@@ -74,26 +74,26 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
   const counterparty = role === 'sending' ? stream.recipient : stream.sender;
 
   return (
-    <div className="bg-gray-900 rounded-2xl p-6">
+    <div className="liquid-glass rounded-2xl p-6 transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-full ${stream.active ? 'bg-green-900/30' : 'bg-gray-800'}`}>
+          <div className={`p-2.5 rounded-xl ${stream.active ? 'bg-green-500/20 border border-green-500/30' : 'liquid-glass-subtle'}`}>
             {stream.active ? (
               <Play className="w-4 h-4 text-green-400" />
             ) : (
-              <Pause className="w-4 h-4 text-gray-500" />
+              <Pause className="w-4 h-4 text-white/40" />
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-400">
+              <User className="w-4 h-4 text-white/40" />
+              <span className="text-sm text-white/60">
                 {role === 'sending' ? 'To' : 'From'}: {counterparty.slice(0, 6)}...{counterparty.slice(-4)}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <Clock className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-400">
+              <Clock className="w-4 h-4 text-white/40" />
+              <span className="text-sm text-white/60">
                 {isEnded ? 'Ended' : `Ends ${formatDistanceToNow(endDate, { addSuffix: true })}`}
               </span>
             </div>
@@ -101,21 +101,21 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
         </div>
 
         <div className="text-right">
-          <div className="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
-          <div className="text-sm text-gray-500">Total</div>
+          <div className="text-2xl font-bold text-white">${totalAmount.toFixed(2)}</div>
+          <div className="text-sm text-white/40">Total</div>
         </div>
       </div>
 
       <div className="mb-4">
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-plasma-500 transition-all duration-1000"
+            className="h-full bg-gradient-to-r from-[rgb(0,212,255)] to-[rgb(0,180,220)] transition-all duration-1000 shadow-[0_0_10px_rgba(0,212,255,0.5)]"
             style={{ width: `${Math.min(progress, 100)}%` }}
           />
         </div>
-        <div className="flex justify-between mt-2 text-sm">
-          <span className="text-gray-500">Withdrawn: ${withdrawnAmount.toFixed(2)}</span>
-          <span className="text-plasma-500">Available: ${availableAmount.toFixed(2)}</span>
+        <div className="flex justify-between mt-3 text-sm">
+          <span className="text-white/50">Withdrawn: ${withdrawnAmount.toFixed(2)}</span>
+          <span className="text-[rgb(0,212,255)] font-medium">Available: ${availableAmount.toFixed(2)}</span>
         </div>
       </div>
 
@@ -123,9 +123,19 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
         <button
           onClick={handleWithdraw}
           disabled={withdrawing}
-          className="w-full bg-plasma-500 hover:bg-plasma-600 disabled:bg-gray-700 text-black font-semibold py-3 rounded-xl transition-colors"
+          className="w-full btn-primary flex items-center justify-center gap-2 py-3"
         >
-          {withdrawing ? 'Withdrawing...' : `Withdraw $${availableAmount.toFixed(2)}`}
+          {withdrawing ? (
+            <>
+              <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              Withdrawing...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              Withdraw ${availableAmount.toFixed(2)}
+            </>
+          )}
         </button>
       )}
     </div>
