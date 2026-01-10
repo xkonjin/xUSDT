@@ -8,8 +8,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2 } from "lucide-react";
+import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, Share2, DollarSign } from "lucide-react";
 import type { Address } from "viem";
+import { PaymentLinkSkeleton } from "./ui/Skeleton";
+import { EmptyState } from "./ui/EmptyState";
+import { formatRelativeTime } from "@/lib/utils";
 
 // Type for payment link
 interface PaymentLink {
@@ -137,14 +140,13 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   if (loading) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4">Payment Links</h2>
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          Payment Links
+        </h2>
         <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-16 liquid-glass-subtle rounded-2xl animate-pulse"
-            />
-          ))}
+          <PaymentLinkSkeleton />
+          <PaymentLinkSkeleton />
         </div>
       </div>
     );
@@ -153,12 +155,21 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   return (
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-white">Payment Links</h2>
+        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          Payment Links
+          {links.length > 0 && (
+            <span className="text-sm bg-white/10 text-white/50 px-2 py-0.5 rounded-full">
+              {links.length}
+            </span>
+          )}
+        </h2>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="p-2 rounded-xl hover:bg-white/10 transition-colors text-[rgb(0,212,255)]"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors text-[rgb(0,212,255)] text-sm"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">New Link</span>
         </button>
       </div>
 
@@ -237,15 +248,15 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
 
       {/* Links list */}
       {links.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full liquid-glass-subtle flex items-center justify-center">
-            <Link2 className="w-8 h-8 text-white/30" />
-          </div>
-          <p className="text-white/40">No payment links yet</p>
-          <p className="text-white/20 text-sm mt-1">
-            Create one to receive payments
-          </p>
-        </div>
+        <EmptyState
+          icon={DollarSign}
+          title="No payment links yet"
+          description="Create a payment link to receive money from anyone"
+          action={{
+            label: "Create your first link",
+            onClick: () => setShowCreateForm(true),
+          }}
+        />
       ) : (
         <div className="space-y-3">
           {links.map((link) => (
@@ -276,8 +287,8 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                   )}
                   
                   <div className="text-white/30 text-xs mt-1">
-                    {new Date(link.createdAt).toLocaleDateString()}
-                    {link.paidAt && ` • Paid ${new Date(link.paidAt).toLocaleDateString()}`}
+                    Created {formatRelativeTime(link.createdAt)}
+                    {link.paidAt && ` • Paid ${formatRelativeTime(link.paidAt)}`}
                   </div>
                 </div>
 
