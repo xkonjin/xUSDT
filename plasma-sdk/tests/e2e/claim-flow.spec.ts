@@ -26,10 +26,15 @@ test.describe('Claim Flow', () => {
     await page.goto('http://localhost:3002/claim/test-token');
     
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000); // Wait for Privy hydration
     
-    // Page should load without crashing
+    // Page should load without crashing - may show error or claim info
+    const hasError = await page.getByText(/not found|error|invalid|expired/i).first().isVisible().catch(() => false);
+    const hasLoading = await page.getByText(/loading/i).first().isVisible().catch(() => false);
     const bodyContent = await page.locator('body').textContent();
-    expect(bodyContent).toBeTruthy();
+    
+    // Either shows error/loading (expected for invalid token) or has content
+    expect(hasError || hasLoading || bodyContent?.length).toBeTruthy();
   });
 });
 

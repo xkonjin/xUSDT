@@ -372,3 +372,194 @@ model TelegramWallet {
   @@index([walletAddress])
 }
 
+// ============================================================================
+// SUBKILLER PAYMENTS - Track SubKiller Pro unlocks
+// ============================================================================
+model SubKillerPayment {
+  id             String    @id @default(uuid())
+  
+  // Payer info
+  walletAddress  String    @unique // One payment per wallet
+  email          String?   // Gmail email if available
+  
+  // Payment details
+  amount         Float     @default(0.99)
+  txHash         String?
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  
+  @@index([walletAddress])
+}
+
+// ============================================================================
+// STREAMS - For Plasma Stream app (persistent storage)
+// ============================================================================
+model Stream {
+  id             String    @id @default(uuid())
+  
+  // Parties
+  sender         String
+  recipient      String
+  
+  // Amount details
+  depositAmount  String    // BigInt as string
+  withdrawnAmount String   @default("0")
+  
+  // Timing
+  startTime      Int
+  endTime        Int
+  cliffTime      Int
+  
+  // Config
+  cliffAmount    String    @default("0")
+  ratePerSecond  String
+  cancelable     Boolean   @default(true)
+  active         Boolean   @default(true)
+  
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([sender])
+  @@index([recipient])
+  @@index([active])
+}
+
+// ============================================================================
+// REFERRALS - Track referral rewards and conversions
+// ============================================================================
+model Referral {
+  id              String    @id @default(uuid())
+  
+  // Referrer - the user who invited someone
+  referrerAddress String
+  
+  // Referee - the user who signed up via referral
+  refereeAddress  String
+  
+  // Reward details
+  rewardAmount    Float     @default(0.10) // Default $0.10 reward
+  rewardCurrency  String    @default("USDT0")
+  
+  // Reward status
+  rewardStatus    String    @default("pending") // pending, paid, expired
+  rewardPaidAt    DateTime?
+  rewardTxHash    String?
+  
+  // Source tracking
+  source          String    @default("app") // app, web, telegram, whatsapp
+  shareLinkId     String?   // Reference to ShareLink if applicable
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([referrerAddress, refereeAddress])
+  @@index([referrerAddress])
+  @@index([refereeAddress])
+  @@index([rewardStatus])
+}
+
+// ============================================================================
+// SHARE LINKS - Track viral sharing and click-through
+// ============================================================================
+model ShareLink {
+  id              String    @id @default(uuid())
+  
+  // Creator
+  creatorAddress  String
+  
+  // Link type
+  type            String    // invite, payment, bill, savings
+  
+  // Short code for URL (e.g., plasma.to/s/abc123)
+  shortCode       String    @unique
+  
+  // Target URL or data (JSON-encoded for complex links)
+  targetUrl       String?
+  targetData      String?   // JSON-encoded metadata
+  
+  // Analytics
+  clickCount      Int       @default(0)
+  uniqueClicks    Int       @default(0)
+  convertCount    Int       @default(0) // Signups/completions from this link
+  
+  // Last click tracking
+  lastClickedAt   DateTime?
+  lastClickedFrom String?   // IP or user agent info (hashed)
+  
+  // Channel tracking
+  channel         String?   // whatsapp, telegram, sms, email, twitter, etc.
+  
+  // Status
+  status          String    @default("active") // active, expired, disabled
+  expiresAt       DateTime?
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([creatorAddress])
+  @@index([shortCode])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// GAS SPONSORSHIP - Track sponsored gas usage per user
+// ============================================================================
+model GasSponsorshipLog {
+  id              String    @id @default(uuid())
+  
+  // User being sponsored
+  userAddress     String
+  
+  // Transaction details
+  txHash          String
+  gasUsed         String    // BigInt as string
+  gasCostUsd      Float     // Estimated USD cost
+  
+  // Transaction type
+  txType          String    // send, claim, bill_pay, stream, etc.
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  
+  @@index([userAddress])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// USER SETTINGS - Store user preferences and referral codes
+// ============================================================================
+model UserSettings {
+  id                String    @id @default(uuid())
+  
+  // User identifier
+  walletAddress     String    @unique
+  
+  // Profile
+  displayName       String?
+  email             String?
+  phone             String?
+  avatarUrl         String?
+  
+  // Referral code (unique per user)
+  referralCode      String    @unique
+  
+  // Preferences (JSON-encoded)
+  preferences       String?   // JSON: { notifications: true, currency: 'USD', ... }
+  
+  // Stats
+  totalReferred     Int       @default(0)
+  totalEarned       Float     @default(0)
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([walletAddress])
+  @@index([referralCode])
+}
+

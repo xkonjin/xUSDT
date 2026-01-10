@@ -1,73 +1,15 @@
 /**
  * Plasma Stream API Routes
  *
- * Handles stream creation and listing for the Plasma Stream MVP.
+ * Handles stream creation and listing for the Plasma Stream app.
+ * Streams are now persisted to database (no longer demo mode).
  *
- * IMPORTANT: DEMO MODE
- * ====================
- * This implementation uses in-memory storage for demonstration purposes.
- * Streams are NOT persisted across server restarts and NO actual funds
- * are transferred.
- *
- * For production, this would need:
- * 1. On-chain streaming contracts (like Sablier or similar)
- * 2. Database persistence for stream metadata
- * 3. Actual USDT0 fund locking on stream creation
- *
- * Current flow (demo):
- * 1. User creates a stream via POST
- * 2. Stream is stored in memory with mock data
- * 3. User can view streams via GET
- * 4. Withdrawals return mock success (no actual transfer)
- *
- * Production flow would be:
- * 1. User signs transaction to lock funds in streaming contract
- * 2. Stream contract holds funds and releases linearly over time
- * 3. Recipient can withdraw available funds at any time
- * 4. Sender can cancel (if cancelable) and reclaim remaining funds
+ * NOTE: This is a simulation - no actual funds are locked on-chain.
+ * For production, integrate with on-chain streaming contracts (Sablier-style).
  */
 
 import { NextResponse } from "next/server";
-import type { Stream } from "@plasma-pay/core";
-import type { Address } from "viem";
-
-// ============================================================================
-// DEMO MODE: In-memory stream storage
-// ============================================================================
-// WARNING: This resets on server restart. For production, use database + on-chain contracts.
-// The mockStreams array simulates what would normally be contract state.
-
-const mockStreams: Stream[] = [];
-
-// Seed with demo streams for testing
-const DEMO_ADDRESSES = {
-  alice: "0x1234567890123456789012345678901234567890" as const,
-  bob: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as const,
-};
-
-// Initialize with sample streams if empty (for demo purposes)
-function initDemoStreams() {
-  if (mockStreams.length === 0 && process.env.DEMO_MODE === "true") {
-    const now = Math.floor(Date.now() / 1000);
-    const day = 24 * 60 * 60;
-
-    // Sample active stream
-    mockStreams.push({
-      id: BigInt(1),
-      sender: DEMO_ADDRESSES.alice,
-      recipient: DEMO_ADDRESSES.bob,
-      depositAmount: BigInt(1000_000000), // 1000 USDT0
-      withdrawnAmount: BigInt(250_000000), // 250 withdrawn
-      startTime: now - 15 * day,
-      endTime: now + 15 * day,
-      cliffTime: now - 10 * day,
-      cliffAmount: BigInt(100_000000),
-      ratePerSecond: BigInt(1000_000000) / BigInt(30 * day),
-      cancelable: true,
-      active: true,
-    });
-  }
-}
+import { prisma } from "@plasma-pay/db";
 
 /**
  * GET /api/streams
@@ -77,16 +19,9 @@ function initDemoStreams() {
  * Query params:
  * - address: Wallet address to filter by (required)
  * - role: 'sending' or 'receiving' (default: 'sending')
- *
- * Response:
- * - streams: Array of Stream objects
- * - demoMode: Boolean indicating this is demo data
  */
 export async function GET(request: Request) {
   try {
-    // Initialize demo data if configured
-    initDemoStreams();
-
     const { searchParams } = new URL(request.url);
     const address = searchParams.get("address");
     const role = searchParams.get("role") || "sending";
@@ -98,33 +33,37 @@ export async function GET(request: Request) {
       );
     }
 
-    // Filter streams by sender or recipient based on role
-    const filtered = mockStreams.filter((s) =>
-      role === "sending"
-        ? s.sender.toLowerCase() === address.toLowerCase()
-        : s.recipient.toLowerCase() === address.toLowerCase()
-    );
+    // Query streams from database (normalize address for case-insensitive matching)
+    const normalizedAddress = address.toLowerCase();
+    const streams = await prisma.stream.findMany({
+      where: role === "sending"
+        ? { sender: normalizedAddress }
+        : { recipient: normalizedAddress },
+      orderBy: { createdAt: "desc" },
+    });
 
-    // Convert BigInt to string for JSON serialization
-    const serializableStreams = filtered.map((stream) => ({
-      ...stream,
-      id: stream.id.toString(),
-      depositAmount: stream.depositAmount.toString(),
-      withdrawnAmount: stream.withdrawnAmount.toString(),
-      cliffAmount: stream.cliffAmount.toString(),
-      ratePerSecond: stream.ratePerSecond.toString(),
+    // Transform for frontend (convert string BigInts back)
+    const serializedStreams = streams.map((stream) => ({
+      id: stream.id,
+      sender: stream.sender,
+      recipient: stream.recipient,
+      depositAmount: stream.depositAmount,
+      withdrawnAmount: stream.withdrawnAmount,
+      startTime: stream.startTime,
+      endTime: stream.endTime,
+      cliffTime: stream.cliffTime,
+      cliffAmount: stream.cliffAmount,
+      ratePerSecond: stream.ratePerSecond,
+      cancelable: stream.cancelable,
+      active: stream.active,
     }));
 
     return NextResponse.json({
-      streams: serializableStreams,
-      demoMode: true, // Always indicate this is demo mode
-      message:
-        "Demo mode: Streams are not persisted and no real funds are transferred.",
+      streams: serializedStreams,
     });
   } catch (error) {
-    console.error("Stream GET error:", error);
     return NextResponse.json(
-      { streams: [], demoMode: true, error: "Failed to fetch streams" },
+      { streams: [], error: "Failed to fetch streams" },
       { status: 500 }
     );
   }
@@ -133,7 +72,7 @@ export async function GET(request: Request) {
 /**
  * POST /api/streams
  *
- * Create a new payment stream (DEMO MODE - no actual fund transfer).
+ * Create a new payment stream.
  *
  * Request body:
  * - sender: Sender wallet address
@@ -143,17 +82,10 @@ export async function GET(request: Request) {
  * - cliffDuration: Optional cliff period in seconds (default: 0)
  * - cancelable: Whether sender can cancel the stream (default: true)
  *
- * Response:
- * - success: Boolean
- * - streamId: Created stream ID
- * - demoMode: Boolean indicating no real transfer occurred
- *
- * PRODUCTION NOTE:
- * In production, this endpoint would:
- * 1. Validate sender has sufficient USDT0 balance
- * 2. Create EIP-712 typed data for stream contract
- * 3. Submit signed authorization to lock funds in contract
- * 4. Return stream ID from contract event
+ * NOTE: This simulates stream creation. In production, this would:
+ * 1. Verify sender has sufficient USDT0 balance
+ * 2. Lock funds in a streaming contract
+ * 3. Return the stream ID from the contract event
  */
 export async function POST(request: Request) {
   try {
@@ -211,52 +143,47 @@ export async function POST(request: Request) {
     const now = Math.floor(Date.now() / 1000);
     const depositAmountBigInt = BigInt(depositAmount);
     const durationBigInt = BigInt(duration);
+    const ratePerSecond = depositAmountBigInt / durationBigInt;
+    const cliffAmount =
+      cliffDuration > 0
+        ? (depositAmountBigInt * BigInt(cliffDuration)) / durationBigInt
+        : BigInt(0);
 
-    // Create new stream
-    const stream: Stream = {
-      id: BigInt(mockStreams.length + 1),
-      sender: sender as Address,
-      recipient: recipient as Address,
-      depositAmount: depositAmountBigInt,
-      withdrawnAmount: BigInt(0),
-      startTime: now,
-      endTime: now + duration,
-      cliffTime: now + cliffDuration,
-      cliffAmount:
-        cliffDuration > 0
-          ? (depositAmountBigInt * BigInt(cliffDuration)) / durationBigInt
-          : BigInt(0),
-      ratePerSecond: depositAmountBigInt / durationBigInt,
-      cancelable,
-      active: true,
-    };
-
-    // Store in mock array
-    mockStreams.push(stream);
+    // Create stream in database
+    const stream = await prisma.stream.create({
+      data: {
+        sender: sender.toLowerCase(),
+        recipient: recipient.toLowerCase(),
+        depositAmount: depositAmountBigInt.toString(),
+        withdrawnAmount: "0",
+        startTime: now,
+        endTime: now + duration,
+        cliffTime: now + cliffDuration,
+        cliffAmount: cliffAmount.toString(),
+        ratePerSecond: ratePerSecond.toString(),
+        cancelable,
+        active: true,
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      streamId: stream.id.toString(),
-      demoMode: true,
-      message:
-        "Demo mode: No actual funds were transferred. In production, this would lock USDT0 in a streaming contract.",
-      // Return stream details for immediate UI update
+      streamId: stream.id,
       stream: {
-        id: stream.id.toString(),
+        id: stream.id,
         sender: stream.sender,
         recipient: stream.recipient,
-        depositAmount: stream.depositAmount.toString(),
+        depositAmount: stream.depositAmount,
         withdrawnAmount: "0",
         startTime: stream.startTime,
         endTime: stream.endTime,
         cliffTime: stream.cliffTime,
-        ratePerSecond: stream.ratePerSecond.toString(),
+        ratePerSecond: stream.ratePerSecond,
         cancelable: stream.cancelable,
         active: stream.active,
       },
     });
   } catch (error) {
-    console.error("Stream POST error:", error);
     return NextResponse.json(
       {
         error:

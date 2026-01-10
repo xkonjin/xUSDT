@@ -36,3 +36,32 @@ export {
 } from "./components/Toast";
 export type { Toast, ToastType } from "./components/Toast";
 
+// New components for production polish
+export { SuccessAnimation } from "./components/SuccessAnimation";
+export type { SuccessAnimationProps } from "./components/SuccessAnimation";
+
+export {
+  EmptyState,
+  NoTransactionsEmpty,
+  NoBillsEmpty,
+  NoStreamsEmpty,
+  NoSubscriptionsEmpty,
+} from "./components/EmptyState";
+export type { EmptyStateProps } from "./components/EmptyState";
+
+export { PaymentConfirmModal } from "./components/PaymentConfirmModal";
+export type { PaymentConfirmModalProps } from "./components/PaymentConfirmModal";
+
+export { ProgressSteps, ScanProgress } from "./components/ProgressSteps";
+export type { Step, ProgressStepsProps, ScanProgressProps } from "./components/ProgressSteps";
+
+// Viral/Sharing components
+export { ShareSheet } from "./components/ShareSheet";
+export type { ShareSheetProps, ShareChannel } from "./components/ShareSheet";
+
+export { InviteFriendsCard, InviteFriendsBanner } from "./components/InviteFriends";
+export type { InviteFriendsCardProps } from "./components/InviteFriends";
+
+export { SuccessSharePrompt } from "./components/SuccessShare";
+export type { SuccessShareProps, ShareAction } from "./components/SuccessShare";
+

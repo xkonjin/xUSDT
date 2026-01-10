@@ -35,12 +35,18 @@ test.describe('Bill Split Landing', () => {
     const metaDesc = await page.locator('meta[name="description"]').getAttribute('content').catch(() => '');
     const hasMetaFeature = metaDesc?.toLowerCase().includes('gas') || metaDesc?.toLowerCase().includes('crypto') || metaDesc?.toLowerCase().includes('split');
     
+    // If meta has features, test passes (page content may not be hydrated yet)
+    if (hasMetaFeature) {
+      expect(hasMetaFeature).toBe(true);
+      return;
+    }
+    
     // Also check visible content after hydration
     const hasReceipt = await page.getByText(/receipt|scan/i).first().isVisible({ timeout: 5000 }).catch(() => false);
     const hasGasFees = await page.getByText(/gas|zero|free/i).first().isVisible({ timeout: 5000 }).catch(() => false);
     
     // At least one feature should be highlighted
-    expect(hasReceipt || hasGasFees || hasMetaFeature).toBe(true);
+    expect(hasReceipt || hasGasFees).toBe(true);
   });
 
   test('has Get Started button', async ({ page }) => {
