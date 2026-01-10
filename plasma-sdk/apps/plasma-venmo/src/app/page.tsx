@@ -10,6 +10,7 @@ import { PaymentLinks } from "@/components/PaymentLinks";
 import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
+import { UserProfileButton } from "@/components/UserProfile";
 import { Send, HandCoins } from "lucide-react";
 
 export default function HomePage() {
@@ -74,17 +75,9 @@ export default function HomePage() {
           <span className="text-white">Venmo</span>
         </h1>
         <div className="flex items-center gap-2">
-          <span className="text-white/40 text-sm hidden sm:block px-3 py-1.5 rounded-full liquid-glass-subtle">
-            {wallet?.address?.slice(0, 6)}...{wallet?.address?.slice(-4)}
-          </span>
           <QRCodeButton walletAddress={wallet?.address} username={userEmail} />
           <WalletManagerButton />
-          <button
-            onClick={logout}
-            className="text-white/50 hover:text-white text-sm transition-colors duration-200 px-3 py-1.5 rounded-full hover:bg-white/10"
-          >
-            Logout
-          </button>
+          <UserProfileButton user={user} walletAddress={wallet?.address} onLogout={logout} />
         </div>
       </header>
 

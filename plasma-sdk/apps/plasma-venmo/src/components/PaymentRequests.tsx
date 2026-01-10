@@ -7,12 +7,15 @@
  */
 
 import { useState, useEffect } from "react";
-import { HandCoins, Check, X, Loader2, ExternalLink } from "lucide-react";
+import { HandCoins, Check, X, Loader2, Clock } from "lucide-react";
 import type { Address } from "viem";
 import { parseUnits } from "viem";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
+import { Avatar } from "./ui/Avatar";
+import { RequestSkeleton } from "./ui/Skeleton";
+import { formatRelativeTime } from "@/lib/utils";
 
 // Type for payment request
 interface PaymentRequest {
@@ -169,14 +172,13 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
   if (loading) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4">Pending Requests</h2>
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <HandCoins className="w-5 h-5 text-[rgb(0,212,255)]" />
+          Pending Requests
+        </h2>
         <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-20 liquid-glass-subtle rounded-2xl animate-pulse"
-            />
-          ))}
+          <RequestSkeleton />
+          <RequestSkeleton />
         </div>
       </div>
     );
@@ -198,65 +200,72 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       </h2>
 
       <div className="space-y-3">
-        {requests.map((request) => (
-          <div
-            key={request.id}
-            className="p-4 liquid-glass-subtle rounded-2xl"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-2xl gradient-text">
-                    ${request.amount}
-                  </span>
-                  <span className="text-white/40 text-sm">USDT0</span>
-                </div>
+        {requests.map((request) => {
+          const requesterName = request.fromEmail || request.fromAddress;
+          
+          return (
+            <div
+              key={request.id}
+              className="p-4 liquid-glass-subtle rounded-2xl hover:bg-white/[0.03] transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <Avatar name={requesterName} size="lg" />
                 
-                <p className="text-white/60 text-sm mt-1">
-                  Requested by {request.fromEmail || `${request.fromAddress.slice(0, 6)}...${request.fromAddress.slice(-4)}`}
-                </p>
-                
-                {request.memo && (
-                  <p className="text-white/40 text-sm mt-1 italic">
-                    &ldquo;{request.memo}&rdquo;
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-bold text-xl text-white">
+                      ${request.amount}
+                    </span>
+                    <span className="text-white/40 text-sm">USDT0</span>
+                  </div>
+                  
+                  <p className="text-white/60 text-sm truncate">
+                    {request.fromEmail || `${request.fromAddress.slice(0, 6)}...${request.fromAddress.slice(-4)}`}
                   </p>
-                )}
-                
-                <p className="text-white/30 text-xs mt-2">
-                  Expires {new Date(request.expiresAt).toLocaleDateString()}
-                </p>
-              </div>
+                  
+                  {request.memo && (
+                    <p className="text-white/40 text-xs mt-1 truncate italic">
+                      &ldquo;{request.memo}&rdquo;
+                    </p>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => declineRequest(request)}
-                  disabled={decliningId === request.id || payingId === request.id}
-                  className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors disabled:opacity-50"
-                  title="Decline"
-                >
-                  {decliningId === request.id ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <X className="w-5 h-5" />
-                  )}
-                </button>
-                
-                <button
-                  onClick={() => payRequest(request)}
-                  disabled={payingId === request.id || decliningId === request.id}
-                  className="p-2 rounded-xl bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50"
-                  title="Pay"
-                >
-                  {payingId === request.id ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Check className="w-5 h-5" />
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => declineRequest(request)}
+                    disabled={decliningId === request.id || payingId === request.id}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors disabled:opacity-50"
+                    title="Decline"
+                  >
+                    {decliningId === request.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <X className="w-5 h-5" />
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={() => payRequest(request)}
+                    disabled={payingId === request.id || decliningId === request.id}
+                    className="px-4 py-2.5 rounded-xl bg-[rgb(0,212,255)] hover:bg-[rgb(0,190,230)] text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                    title="Pay"
+                  >
+                    {payingId === request.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>Pay</>
+                    )}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-1 mt-3 text-white/30 text-xs">
+                <Clock className="w-3 h-3" />
+                <span>Expires {formatRelativeTime(request.expiresAt)}</span>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
