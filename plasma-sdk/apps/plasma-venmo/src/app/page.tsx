@@ -9,6 +9,7 @@ import { TransactionHistory } from "@/components/TransactionHistory";
 import { PaymentLinks } from "@/components/PaymentLinks";
 import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
+import { QRCodeButton } from "@/components/QRCode";
 import { Send, HandCoins } from "lucide-react";
 
 export default function HomePage() {
@@ -76,6 +77,7 @@ export default function HomePage() {
           <span className="text-white/40 text-sm hidden sm:block px-3 py-1.5 rounded-full liquid-glass-subtle">
             {wallet?.address?.slice(0, 6)}...{wallet?.address?.slice(-4)}
           </span>
+          <QRCodeButton walletAddress={wallet?.address} username={userEmail} />
           <WalletManagerButton />
           <button
             onClick={logout}

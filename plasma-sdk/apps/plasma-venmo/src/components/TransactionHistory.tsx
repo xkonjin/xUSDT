@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, History, ExternalLink, Clock } from "lucide-react";
 import type { Address } from "viem";
+import { TransactionListSkeleton } from "./ui/Skeleton";
+import { EmptyState } from "./ui/EmptyState";
+import { Avatar } from "./ui/Avatar";
+import { formatRelativeTime } from "@/lib/utils";
 
 interface Transaction {
   id: string;
@@ -49,17 +53,11 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   if (loading) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
           Recent Activity
         </h2>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-16 liquid-glass-subtle rounded-2xl animate-pulse"
-            />
-          ))}
-        </div>
+        <TransactionListSkeleton count={3} />
       </div>
     );
   }
@@ -67,25 +65,25 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   if (transactions.length === 0) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
           Recent Activity
         </h2>
-        <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full liquid-glass-subtle flex items-center justify-center">
-            <ArrowUpRight className="w-8 h-8 text-white/30" />
-          </div>
-          <p className="text-white/40">No transactions yet</p>
-          <p className="text-white/20 text-sm mt-1">
-            Send your first payment above
-          </p>
-        </div>
+        <EmptyState
+          icon={Clock}
+          title="No transactions yet"
+          description="Your payment history will appear here once you send or receive money"
+        />
       </div>
     );
   }
 
   return (
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
-      <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
+      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+        Recent Activity
+      </h2>
       <div className="space-y-3">
         {transactions.map((tx) => (
           <div
@@ -95,32 +93,36 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
               window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
             }
           >
-            <div
-              className={`p-2.5 rounded-xl ${
-                tx.type === "sent"
-                  ? "bg-red-500/10 border border-red-500/20"
-                  : "bg-green-500/10 border border-green-500/20"
-              }`}
-            >
-              {tx.type === "sent" ? (
-                <ArrowUpRight className="w-5 h-5 text-red-400" />
-              ) : (
-                <ArrowDownLeft className="w-5 h-5 text-green-400" />
-              )}
+            <div className="relative">
+              <Avatar name={tx.counterparty} size="lg" />
+              <div
+                className={`absolute -bottom-1 -right-1 p-1 rounded-full ${
+                  tx.type === "sent"
+                    ? "bg-red-500"
+                    : "bg-green-500"
+                }`}
+              >
+                {tx.type === "sent" ? (
+                  <ArrowUpRight className="w-3 h-3 text-white" />
+                ) : (
+                  <ArrowDownLeft className="w-3 h-3 text-white" />
+                )}
+              </div>
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="font-medium text-white truncate group-hover:text-white/90 transition-colors">
                 {tx.type === "sent" ? "Sent to" : "Received from"}{" "}
-                {tx.counterparty}
+                <span className="text-white/70">{tx.counterparty}</span>
               </div>
-              <div className="text-white/40 text-sm">
-                {new Date(tx.timestamp * 1000).toLocaleDateString()}
+              <div className="text-white/40 text-sm flex items-center gap-2">
+                <span>{formatRelativeTime(new Date(tx.timestamp * 1000))}</span>
+                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
 
             <div
-              className={`font-semibold ${
+              className={`font-semibold text-lg ${
                 tx.type === "sent" ? "text-red-400" : "text-green-400"
               }`}
             >
