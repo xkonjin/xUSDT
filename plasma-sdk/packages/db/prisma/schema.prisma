@@ -227,6 +227,7 @@ model Bill {
   // Relations
   items          BillItem[]
   participants   BillParticipant[]
+  paymentIntents PaymentIntent[]
   
   @@index([creatorAddress])
   @@index([status])
@@ -303,5 +304,71 @@ model BillItemAssignment {
   @@unique([itemId, participantId])
   @@index([itemId])
   @@index([participantId])
+}
+
+// ============================================================================
+// PAYMENT INTENTS - Cross-chain payment tracking for Bill Split
+// ============================================================================
+model PaymentIntent {
+  id                String    @id @default(uuid())
+  
+  // Parent bill reference
+  billId            String
+  bill              Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  // Participant tracking
+  participantIndex  Int       // Index of participant in bill.participants
+  
+  // Payment details
+  amountUsd         Float     // Amount in USD
+  recipientAddress  String    // Wallet address receiving the payment
+  
+  // Source chain info (where payer sends from)
+  sourceChainId     Int?
+  sourceToken       String?
+  
+  // Bridge info
+  bridgeProvider    String?   // 'jumper', 'debridge', or null for same-chain
+  bridgeQuoteId     String?   // Quote ID from bridge provider
+  
+  // Payer info
+  payerAddress      String?
+  
+  // Transaction hashes
+  sourceTxHash      String?   // TX on source chain
+  destTxHash        String?   // TX on Plasma (destination)
+  
+  // Status
+  status            String    @default("pending") // pending, processing, completed, expired, failed
+  expiresAt         DateTime
+  paidAt            DateTime?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([billId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// TELEGRAM WALLETS - Map Telegram users to Plasma wallets (for Splitzy Bot)
+// ============================================================================
+model TelegramWallet {
+  id               String    @id @default(uuid())
+  
+  // Telegram user info
+  telegramUserId   String    @unique
+  telegramUsername String?
+  
+  // Connected wallet
+  walletAddress    String
+  
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([walletAddress])
 }
 
