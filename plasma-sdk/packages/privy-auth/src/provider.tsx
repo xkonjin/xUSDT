@@ -22,7 +22,7 @@ export function PlasmaPrivyProvider({ children, config }: PlasmaPrivyProviderPro
   const {
     appId,
     plasmaChainId = PLASMA_MAINNET_CHAIN_ID,
-    loginMethods = ['email', 'google', 'apple'],
+    loginMethods = ['email', 'google', 'apple', 'wallet'],
     appearance = {},
     embeddedWallets = {},
   } = config;
@@ -40,11 +40,23 @@ export function PlasmaPrivyProvider({ children, config }: PlasmaPrivyProviderPro
           theme: appearance.theme ?? 'dark',
           accentColor: appearance.accentColor ?? PLASMA_BRAND_COLOR,
           logo: appearance.logo,
+          // Show popular external wallets in the login/connect modal
+          walletList: [
+            'metamask',
+            'rabby_wallet', 
+            'coinbase_wallet',
+            'wallet_connect',
+            'phantom',
+            'rainbow',
+            'detected_wallets',
+          ],
         },
         embeddedWallets: {
           createOnLogin: embeddedWallets.createOnLogin ?? 'users-without-wallets',
           noPromptOnSignature: embeddedWallets.noPromptOnSignature ?? true,
         },
+        // External wallet connections are enabled when 'wallet' is in loginMethods
+        // and walletList is configured in appearance
         defaultChain: {
           id: plasmaChainId,
           name: chainName,

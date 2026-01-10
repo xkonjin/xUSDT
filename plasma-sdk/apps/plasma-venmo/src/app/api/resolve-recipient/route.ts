@@ -81,10 +81,13 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Recipient not found. They need to sign up first." },
-        { status: 404 }
-      );
+      // User not found - return needsClaim flag instead of error
+      // The sender can create a claim link that the recipient can claim after signing up
+      return NextResponse.json({ 
+        needsClaim: true,
+        identifier: identifier,
+        message: "Recipient not registered yet. A claim link will be created."
+      });
     }
 
     const embeddedWallet = user.linkedAccounts.find(

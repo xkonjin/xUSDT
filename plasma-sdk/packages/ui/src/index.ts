@@ -65,3 +65,6 @@ export type { InviteFriendsCardProps } from "./components/InviteFriends";
 export { SuccessSharePrompt } from "./components/SuccessShare";
 export type { SuccessShareProps, ShareAction } from "./components/SuccessShare";
 
+export { WalletManager } from "./components/WalletManager";
+export type { WalletManagerProps } from "./components/WalletManager";
+

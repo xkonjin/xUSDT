@@ -3,7 +3,7 @@
  *
  * Custom React hooks for wallet interaction with Plasma chain.
  * These hooks wrap Privy's authentication with Plasma-specific functionality
- * like gasless transfers and USDT0 balance queries.
+ * like gasless transfers, USDT0 balance queries, wallet funding, and external wallets.
  *
  * IMPORTANT: These hooks MUST be used within the PrivyProvider component.
  * The "use client" directive ensures they only run on the client side.
@@ -11,8 +11,13 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { 
+  usePrivy, 
+  useWallets,
+  useFundWallet as usePrivyFundWallet,
+  useConnectWallet as usePrivyConnectWallet,
+} from "@privy-io/react-auth";
 import type { Address, Hex } from "viem";
 import { createPublicClient, http, formatUnits } from "viem";
 import {
@@ -31,6 +36,7 @@ import type {
   PlasmaEmbeddedWallet,
   GaslessTransferOptions,
   GaslessTransferResult,
+  FundWalletOptions,
 } from "./types";
 
 // =============================================================================
@@ -310,11 +316,154 @@ export function useUSDT0Balance() {
     return formatUnits(balance, 6);
   }, [balance]);
 
+  // Auto-refresh on wallet change
+  useEffect(() => {
+    if (wallet) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet?.address]); // Only re-run when wallet address changes, not on every refresh reference change
+
   return {
     balance,
     formatted,
     loading,
     error,
     refresh,
+  };
+}
+
+/**
+ * useFundWallet Hook
+ *
+ * Hook for funding wallets via MoonPay, Coinbase, external wallet transfer, or QR code.
+ * Wraps Privy's useFundWallet with Plasma-specific defaults.
+ *
+ * Usage:
+ * ```tsx
+ * const { fundWallet, loading } = useFundWallet();
+ *
+ * // Open funding modal for the connected wallet
+ * await fundWallet();
+ *
+ * // Or fund with specific amount
+ * await fundWallet({ amount: '50' });
+ * ```
+ */
+export function useFundWallet() {
+  const { wallet } = usePlasmaWallet();
+  const { fundWallet: privyFundWallet } = usePrivyFundWallet();
+  const [loading, setLoading] = useState(false);
+
+  const fundWallet = useCallback(
+    async (options?: FundWalletOptions) => {
+      if (!wallet) {
+        throw new Error("No wallet connected");
+      }
+
+      setLoading(true);
+      try {
+        // Privy's fundWallet takes (address, config) not {address, options}
+        await privyFundWallet(wallet.address, {
+          chain: plasmaMainnet,
+          asset: options?.asset === 'USDT0' 
+            ? { erc20: USDT0_ADDRESS }
+            : options?.asset === 'ETH' 
+              ? 'native-currency' 
+              : { erc20: USDT0_ADDRESS }, // Default to USDT0
+          amount: options?.amount,
+          defaultFundingMethod: options?.method,
+          card: options?.preferredProvider 
+            ? { preferredProvider: options.preferredProvider }
+            : undefined,
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [wallet, privyFundWallet]
+  );
+
+  return {
+    fundWallet,
+    loading,
+    ready: !!wallet,
+  };
+}
+
+/**
+ * useConnectExternalWallet Hook
+ *
+ * Hook for connecting external wallets like MetaMask, Rabby, WalletConnect, Phantom.
+ * Allows users to connect their existing wallets to the app.
+ *
+ * Usage:
+ * ```tsx
+ * const { connectWallet, loading } = useConnectExternalWallet();
+ *
+ * // Open wallet connection modal
+ * await connectWallet();
+ * ```
+ */
+export function useConnectExternalWallet() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { connectWallet: privyConnectWallet } = usePrivyConnectWallet({
+    onSuccess: () => {
+      setLoading(false);
+      setError(null);
+    },
+    onError: (err) => {
+      setLoading(false);
+      setError(typeof err === 'string' ? err : 'Failed to connect wallet');
+    },
+  });
+
+  const connectWallet = useCallback(
+    () => {
+      setLoading(true);
+      setError(null);
+      // Open Privy's wallet connection modal
+      // walletList is configured in PrivyProvider appearance config
+      privyConnectWallet();
+    },
+    [privyConnectWallet]
+  );
+
+  return {
+    connectWallet,
+    loading,
+    error,
+  };
+}
+
+/**
+ * useAllWallets Hook
+ *
+ * Hook for accessing all connected wallets (embedded + external).
+ * Useful for showing wallet selector or managing multiple wallets.
+ *
+ * Usage:
+ * ```tsx
+ * const { wallets, embeddedWallet, externalWallets } = useAllWallets();
+ * ```
+ */
+export function useAllWallets() {
+  const { wallets } = useWallets();
+  
+  const embeddedWallet = useMemo(() => {
+    return wallets.find(w => w.walletClientType === 'privy') ?? null;
+  }, [wallets]);
+
+  const externalWallets = useMemo(() => {
+    return wallets.filter(w => w.walletClientType !== 'privy');
+  }, [wallets]);
+
+  return {
+    wallets,
+    embeddedWallet,
+    externalWallets,
+    hasExternalWallet: externalWallets.length > 0,
   };
 }

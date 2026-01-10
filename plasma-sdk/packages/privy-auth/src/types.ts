@@ -18,6 +18,14 @@ export interface PlasmaPrivyConfig {
     createOnLogin?: 'users-without-wallets' | 'all-users' | 'off';
     noPromptOnSignature?: boolean;
   };
+  externalWallets?: {
+    /** Enable Solana wallet connectors */
+    solana?: boolean;
+    /** Enable Ethereum wallet connectors (MetaMask, Rabby, etc.) */
+    ethereum?: boolean;
+  };
+  /** WalletConnect Cloud project ID for external wallet connections */
+  walletConnectProjectId?: string;
 }
 
 export interface PlasmaWalletState {
@@ -49,3 +57,12 @@ export interface GaslessTransferResult {
   typedData?: EIP3009TypedData;
   error?: string;
 }
+
+export interface FundWalletOptions {
+  amount?: string;
+  asset?: 'USDT0' | 'ETH';
+  method?: 'card' | 'exchange' | 'wallet' | 'manual';
+  preferredProvider?: 'moonpay' | 'coinbase';
+}
+
+

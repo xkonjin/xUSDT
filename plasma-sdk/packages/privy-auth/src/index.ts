@@ -3,6 +3,9 @@ export {
   usePlasmaWallet,
   useGaslessTransfer,
   useUSDT0Balance,
+  useFundWallet,
+  useConnectExternalWallet,
+  useAllWallets,
 } from "./hooks";
 export { createPlasmaProviders } from "./providers-factory";
 export type {
@@ -12,5 +15,6 @@ export type {
   GaslessTransferOptions,
   GaslessTransferResult,
   PrivyLoginMethod,
+  FundWalletOptions,
 } from "./types";
 export type { PlasmaProvidersConfig } from "./providers-factory";

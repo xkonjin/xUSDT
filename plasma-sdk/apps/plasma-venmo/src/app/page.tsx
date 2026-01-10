@@ -7,6 +7,8 @@ import { RequestMoneyForm } from "@/components/RequestMoneyForm";
 import { PaymentRequests } from "@/components/PaymentRequests";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { PaymentLinks } from "@/components/PaymentLinks";
+import { FundWalletButton } from "@/components/FundWallet";
+import { WalletManagerButton } from "@/components/WalletManager";
 import { Send, HandCoins } from "lucide-react";
 
 export default function HomePage() {
@@ -70,10 +72,11 @@ export default function HomePage() {
           <span className="gradient-text">Plasma</span>{" "}
           <span className="text-white">Venmo</span>
         </h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <span className="text-white/40 text-sm hidden sm:block px-3 py-1.5 rounded-full liquid-glass-subtle">
             {wallet?.address?.slice(0, 6)}...{wallet?.address?.slice(-4)}
           </span>
+          <WalletManagerButton />
           <button
             onClick={logout}
             className="text-white/50 hover:text-white text-sm transition-colors duration-200 px-3 py-1.5 rounded-full hover:bg-white/10"
@@ -85,7 +88,10 @@ export default function HomePage() {
 
       <div className="max-w-lg mx-auto space-y-6 relative z-10">
         <div className="liquid-glass-elevated rounded-3xl p-8">
-          <div className="text-white/50 text-sm mb-2">Your Balance</div>
+          <div className="flex items-start justify-between mb-2">
+            <div className="text-white/50 text-sm">Your Balance</div>
+            <FundWalletButton walletAddress={wallet?.address} />
+          </div>
           <div className="text-5xl font-bold tracking-tight">
             <span className="gradient-text">${formatted || "0.00"}</span>
             <span className="text-white/30 text-xl ml-3 font-medium">

@@ -97,15 +97,19 @@ function SuccessOverlay({
   amount,
   recipient,
   txHash,
+  claimUrl,
   onClose,
 }: {
   isVisible: boolean;
   amount: string;
   recipient: string;
   txHash?: string;
+  claimUrl?: string;
   onClose: () => void;
 }) {
   if (!isVisible) return null;
+  
+  const isClaimFlow = !!claimUrl;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -134,10 +138,22 @@ function SuccessOverlay({
         </div>
 
         <p className="text-4xl font-bold text-white mb-2">${amount}</p>
-        <p className="text-xl text-white mb-1">sent to</p>
+        <p className="text-xl text-white mb-1">{isClaimFlow ? 'pending for' : 'sent to'}</p>
         <p className="text-lg text-[rgb(0,212,255)] font-medium mb-6">{recipient}</p>
 
-        {txHash && (
+        {isClaimFlow ? (
+          <div className="text-center mb-6">
+            <p className="text-white/70 text-sm mb-3">
+              They&apos;ll receive an email to claim the funds
+            </p>
+            <button
+              onClick={() => navigator.clipboard.writeText(claimUrl!)}
+              className="text-white/50 text-sm hover:text-white/70 underline"
+            >
+              Copy claim link
+            </button>
+          </div>
+        ) : txHash && (
           <a
             href={`https://scan.plasma.to/tx/${txHash}`}
             target="_blank"
@@ -188,6 +204,7 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
+  const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +229,7 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
       if (result.success) {
         setShowConfirm(false);
         setSuccessTxHash(result.txHash);
+        setSuccessClaimUrl(result.claimUrl);
         setShowSuccess(true);
         
         // Haptic feedback
@@ -233,6 +251,7 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
     setRecipient("");
     setAmount("");
     setSuccessTxHash(undefined);
+    setSuccessClaimUrl(undefined);
     onSuccess?.();
   };
 
@@ -332,6 +351,7 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
         amount={amount}
         recipient={recipient}
         txHash={successTxHash}
+        claimUrl={successClaimUrl}
         onClose={handleSuccessClose}
       />
     </>

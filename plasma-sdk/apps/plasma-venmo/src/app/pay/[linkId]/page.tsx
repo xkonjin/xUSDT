@@ -17,6 +17,7 @@ import { ArrowLeft, CheckCircle, Loader2, AlertCircle, Copy, ExternalLink } from
 import Link from "next/link";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
+import { ExternalWalletPayButton } from "@/components/ExternalWalletPay";
 
 // Type for payment link data
 interface PaymentLinkData {
@@ -367,27 +368,61 @@ export default function PayPage({
 
           {/* Action button */}
           {!authenticated ? (
-            <button
-              onClick={login}
-              className="w-full btn-primary"
-            >
-              Login to Pay
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={login}
+                className="w-full btn-primary"
+              >
+                Login to Pay
+              </button>
+              
+              {/* Alternative: External wallet */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-[#0a0a0a] text-white/40">or</span>
+                </div>
+              </div>
+              
+              <ExternalWalletPayButton
+                recipientAddress={paymentLink.creatorAddress}
+                amount={paymentLink.amount?.toString() || amount}
+                memo={paymentLink.memo}
+              />
+            </div>
           ) : (
-            <button
-              onClick={handlePay}
-              disabled={!canPay}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {paying ? (
+            <div className="space-y-3">
+              <button
+                onClick={handlePay}
+                disabled={!canPay}
+                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {paying ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>Pay {amount ? `$${amount}` : ''} USDT0</>
+                )}
+              </button>
+              
+              {/* Show external wallet option if balance is insufficient */}
+              {balance && parseFloat(balance) < parseFloat(amount || '0') && (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
+                  <p className="text-amber-400/80 text-xs text-center">
+                    Insufficient balance. You can also pay with an external wallet:
+                  </p>
+                  <ExternalWalletPayButton
+                    recipientAddress={paymentLink.creatorAddress}
+                    amount={paymentLink.amount?.toString() || amount}
+                    memo={paymentLink.memo}
+                  />
                 </>
-              ) : (
-                <>Pay {amount ? `$${amount}` : ''} USDT0</>
               )}
-            </button>
+            </div>
           )}
 
           {/* Zero gas fees badge */}

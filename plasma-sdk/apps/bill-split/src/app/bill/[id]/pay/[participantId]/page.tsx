@@ -4,13 +4,43 @@
  * Bill Participant Payment Page
  * 
  * Allows a participant to pay their share of a bill.
+ * Includes balance checking and funding options if insufficient funds.
+ * 
+ * User Stories:
+ * 1. User with sufficient balance can pay immediately
+ * 2. User with insufficient balance sees clear funding options
+ * 3. User can buy crypto with card (MoonPay)
+ * 4. User can transfer from external wallet (MetaMask, etc.)
+ * 5. User can see their wallet address to receive funds manually
+ * 6. User gets clear feedback at every step
  */
 
-import { useState, useEffect } from "react";
-import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
-import { parseUnits } from "viem";
+import { useState, useEffect, useCallback } from "react";
+import { 
+  usePlasmaWallet, 
+  useUSDT0Balance, 
+  useFundWallet,
+  useConnectExternalWallet,
+} from "@plasma-pay/privy-auth";
+import { parseUnits, formatUnits } from "viem";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { 
+  ArrowLeft, 
+  CheckCircle, 
+  Loader2, 
+  AlertCircle, 
+  ExternalLink,
+  Wallet,
+  CreditCard,
+  Copy,
+  Check,
+  RefreshCw,
+  Plus,
+  HelpCircle,
+  QrCode,
+  ArrowRightLeft,
+  Info,
+} from "lucide-react";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 
@@ -47,8 +77,10 @@ export default function BillPayPage({
   const participantId = params.participantId;
 
   // Wallet state
-  const { authenticated, ready, wallet, login } = usePlasmaWallet();
-  const { formatted: balance } = useUSDT0Balance();
+  const { authenticated, ready, wallet, login, logout } = usePlasmaWallet();
+  const { balance, formatted: balanceFormatted, loading: balanceLoading, refresh: refreshBalance } = useUSDT0Balance();
+  const { fundWallet } = useFundWallet();
+  const { connectWallet: connectExternalWallet } = useConnectExternalWallet();
 
   // Page state
   const [payData, setPayData] = useState<BillPayData | null>(null);
@@ -56,6 +88,48 @@ export default function BillPayPage({
   const [paying, setPaying] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFundingOptions, setShowFundingOptions] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [fundingInProgress, setFundingInProgress] = useState(false);
+  const [showTooltip, setShowTooltip] = useState<string | null>(null);
+
+  // Calculate if user has sufficient balance (handle NaN edge case)
+  const numericBalance = balanceFormatted ? parseFloat(balanceFormatted) : 0;
+  const safeBalance = isNaN(numericBalance) ? 0 : numericBalance;
+  const requiredAmount = payData?.participant.share ?? 0;
+  // User needs MORE funds if balance is strictly less than required (equal is OK)
+  const hasInsufficientFunds = authenticated && safeBalance < requiredAmount;
+  const shortfall = Math.max(0, requiredAmount - safeBalance);
+
+  // Format balance with appropriate precision
+  const formatBalance = (bal: number): string => {
+    if (bal === 0) return "0.00";
+    if (bal < 0.01) return bal.toFixed(6); // Show more decimals for tiny amounts
+    return bal.toFixed(2);
+  };
+
+  // Copy address helper with better feedback
+  const copyAddress = useCallback(async () => {
+    if (!wallet?.address) return;
+    try {
+      await navigator.clipboard.writeText(wallet.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = wallet.address;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  }, [wallet?.address]);
+
+  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   // Fetch bill and participant data
   useEffect(() => {
@@ -104,6 +178,13 @@ export default function BillPayPage({
   // Handle payment
   async function handlePay() {
     if (!wallet || !payData) return;
+
+    // Check balance before attempting payment
+    if (hasInsufficientFunds) {
+      setError(`Insufficient balance. You have $${numericBalance.toFixed(2)} but need $${requiredAmount.toFixed(2)}`);
+      setShowFundingOptions(true);
+      return;
+    }
 
     setPaying(true);
     setError(null);
@@ -158,10 +239,59 @@ export default function BillPayPage({
         participant: { ...prev.participant, paid: true, txHash: result.txHash },
       } : null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed');
+      const errorMsg = err instanceof Error ? err.message : 'Payment failed';
+      // Check for common balance-related errors and provide user-friendly messages
+      if (errorMsg.includes('exceeds balance') || errorMsg.includes('insufficient') || errorMsg.includes('ERC20')) {
+        setError('Your wallet doesn\'t have enough USDT0 to complete this payment. Add funds below to continue.');
+        setShowFundingOptions(true);
+        // Refresh balance to get latest
+        refreshBalance();
+      } else if (errorMsg.includes('rejected') || errorMsg.includes('denied')) {
+        setError('Transaction was cancelled. Click the pay button to try again.');
+      } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError(`Payment failed: ${errorMsg}`);
+      }
     } finally {
       setPaying(false);
     }
+  }
+
+  // Handle funding wallet with loading state and error handling
+  async function handleFundWallet(method?: string) {
+    setFundingInProgress(true);
+    setError(null);
+    
+    try {
+      // Calculate amount needed (shortfall + small buffer for any fees)
+      const amountNeeded = Math.max(shortfall + 0.01, 1).toFixed(2);
+      
+      await fundWallet({ 
+        amount: amountNeeded,
+        method: method as any,
+      });
+      
+      // Refresh balance after a delay to allow transaction to process
+      setTimeout(() => {
+        refreshBalance();
+        setFundingInProgress(false);
+      }, 3000);
+    } catch (err) {
+      setFundingInProgress(false);
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      if (!errorMsg.includes('cancelled') && !errorMsg.includes('closed')) {
+        setError('Failed to open funding. Please try again.');
+      }
+      console.error("Funding error:", err);
+    }
+  }
+
+  // Retry payment after funding
+  function handleRetryPayment() {
+    setShowFundingOptions(false);
+    setError(null);
+    refreshBalance();
   }
 
   // Loading
@@ -238,7 +368,8 @@ export default function BillPayPage({
         <h1 className="text-xl font-semibold text-white">Pay Your Share</h1>
       </header>
 
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto space-y-4">
+        {/* Payment Amount Card */}
         <div className="p-8 rounded-3xl bg-white/5 text-center">
           <p className="text-white/50 mb-2">{payData.billTitle}</p>
           <p className="text-white/70 text-lg mb-4">
@@ -256,36 +387,239 @@ export default function BillPayPage({
             </div>
           )}
 
-          {authenticated && balance && (
-            <p className="text-white/40 text-sm mb-4">
-              Balance: ${balance} USDT0
-            </p>
-          )}
-
           {!authenticated ? (
-            <button onClick={login} className="w-full btn-primary">
-              Login to Pay
-            </button>
+            <div className="space-y-4">
+              <button onClick={login} className="w-full btn-primary">
+                Connect Wallet to Pay
+              </button>
+              <p className="text-white/40 text-xs">
+                Sign in with email, Google, or connect an existing wallet like MetaMask
+              </p>
+            </div>
           ) : (
-            <button
-              onClick={handlePay}
-              disabled={paying}
-              className="w-full btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {paying ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
-                </>
+            <>
+              {/* Wallet Info Section */}
+              <div className={`p-4 rounded-xl mb-4 ${hasInsufficientFunds ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                      <Wallet className="w-3 h-3 text-white" />
+                    </div>
+                    <div className="relative">
+                      <button
+                        onClick={copyAddress}
+                        onMouseEnter={() => setShowTooltip('address')}
+                        onMouseLeave={() => setShowTooltip(null)}
+                        className="text-white/70 text-sm font-mono hover:text-cyan-400 transition-colors flex items-center gap-1.5"
+                        title="Click to copy full address"
+                      >
+                        {shortenAddress(wallet?.address || '')}
+                        {copied ? (
+                          <span className="flex items-center gap-1 text-green-400 text-xs">
+                            <Check className="w-3 h-3" />
+                            Copied!
+                          </span>
+                        ) : (
+                          <Copy className="w-3 h-3 text-white/40" />
+                        )}
+                      </button>
+                      {showTooltip === 'address' && !copied && (
+                        <div className="absolute left-0 -bottom-8 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                          Click to copy address
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => refreshBalance()}
+                    disabled={balanceLoading}
+                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors group"
+                    title="Refresh balance"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-white/40 group-hover:text-white/70 ${balanceLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <span className="text-white/50 text-sm">Available Balance</span>
+                    <div 
+                      className="relative"
+                      onMouseEnter={() => setShowTooltip('balance')}
+                      onMouseLeave={() => setShowTooltip(null)}
+                    >
+                      <HelpCircle className="w-3 h-3 text-white/30 cursor-help" />
+                      {showTooltip === 'balance' && (
+                        <div className="absolute left-0 -bottom-12 bg-gray-800 text-white text-xs px-2 py-1 rounded w-48 z-10">
+                          USDT0 is a stablecoin worth $1 USD on Plasma Chain
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`font-bold text-lg ${hasInsufficientFunds ? 'text-red-400' : 'text-white'}`}>
+                    {balanceLoading ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      </span>
+                    ) : (
+                      `$${formatBalance(safeBalance)}`
+                    )}
+                  </span>
+                </div>
+                
+                {hasInsufficientFunds && (
+                  <div className="mt-3 p-2 bg-red-500/10 rounded-lg">
+                    <p className="text-red-400 text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>
+                        You need <strong>${shortfall.toFixed(2)}</strong> more to pay this bill
+                      </span>
+                    </p>
+                  </div>
+                )}
+                
+                {!hasInsufficientFunds && safeBalance > 0 && (
+                  <div className="mt-2">
+                    <p className="text-green-400/70 text-xs flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Sufficient balance for this payment
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment / Fund Buttons */}
+              {hasInsufficientFunds || showFundingOptions ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-white/70 text-sm font-medium">Choose how to add funds:</p>
+                    {showFundingOptions && !hasInsufficientFunds && (
+                      <button
+                        onClick={handleRetryPayment}
+                        className="text-cyan-400 text-sm hover:underline"
+                      >
+                        Back to payment
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Recommended: Buy with Card */}
+                  <button
+                    onClick={() => handleFundWallet('card')}
+                    disabled={fundingInProgress}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 hover:border-cyan-400 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-medium">Buy with Card</p>
+                        <span className="text-[10px] bg-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded">Recommended</span>
+                      </div>
+                      <p className="text-white/50 text-xs">Visa, Mastercard, Apple Pay via MoonPay</p>
+                    </div>
+                    {fundingInProgress && <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />}
+                  </button>
+
+                  {/* Transfer from external wallet */}
+                  <button
+                    onClick={() => handleFundWallet('wallet')}
+                    disabled={fundingInProgress}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <ArrowRightLeft className="w-5 h-5 text-white/70" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="text-white font-medium">Transfer from Another Wallet</p>
+                      <p className="text-white/50 text-xs">Bridge USDT from MetaMask, Rabby, Phantom</p>
+                    </div>
+                  </button>
+
+                  {/* Show QR / Manual */}
+                  <button
+                    onClick={() => handleFundWallet('manual')}
+                    disabled={fundingInProgress}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <QrCode className="w-5 h-5 text-white/70" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="text-white font-medium">Receive via QR Code</p>
+                      <p className="text-white/50 text-xs">Show address to receive USDT0 from anyone</p>
+                    </div>
+                  </button>
+
+                  <div className="pt-2 border-t border-white/10">
+                    <button
+                      onClick={() => connectExternalWallet()}
+                      className="w-full text-white/50 hover:text-cyan-400 text-sm py-2 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      Connect a wallet with existing funds
+                    </button>
+                  </div>
+                  
+                  {/* Helpful tip */}
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mt-2">
+                    <p className="text-blue-300/80 text-xs flex items-start gap-2">
+                      <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span>
+                        After adding funds, click "Back to payment" or wait for your balance to update automatically.
+                      </span>
+                    </p>
+                  </div>
+                </div>
               ) : (
-                `Pay $${payData.participant.share.toFixed(2)} USDT0`
+                <div className="space-y-3">
+                  <button
+                    onClick={handlePay}
+                    disabled={paying || balanceLoading}
+                    className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-lg"
+                  >
+                    {paying ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Confirming payment...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-5 h-5" />
+                        Pay ${payData.participant.share.toFixed(2)}
+                      </>
+                    )}
+                  </button>
+                  
+                  {/* Optional: Add more funds button */}
+                  <button
+                    onClick={() => setShowFundingOptions(true)}
+                    className="w-full text-white/40 hover:text-white/60 text-xs py-1 transition-colors"
+                  >
+                    Need to add more funds?
+                  </button>
+                </div>
               )}
-            </button>
+            </>
           )}
 
-          <p className="text-white/30 text-xs mt-4">
-            Zero gas fees on Plasma Chain
-          </p>
+          {/* Footer info */}
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-center gap-4 text-white/30 text-xs">
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3 text-green-400/50" />
+                Zero gas fees
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3 text-green-400/50" />
+                Instant settlement
+              </span>
+            </div>
+            <p className="text-white/20 text-[10px] text-center mt-2">
+              Powered by Plasma Chain
+            </p>
+          </div>
         </div>
       </div>
     </main>
