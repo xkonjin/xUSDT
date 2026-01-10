@@ -192,8 +192,6 @@ export default function MyPredictionsPage() {
     } catch (err) {
       // Ignore abort errors (component unmounted)
       if (err instanceof Error && err.name === "AbortError") return;
-
-      console.error("Error loading predictions:", err);
       setError(err instanceof Error ? err.message : "Failed to load predictions");
     } finally {
       setLoading(false);

@@ -112,8 +112,6 @@ export default function MarketDetailPage() {
     } catch (err) {
       // Ignore abort errors (component unmounted)
       if (err instanceof Error && err.name === "AbortError") return;
-
-      console.error("Error loading market:", err);
       setError(err instanceof Error ? err.message : "Failed to load market");
     } finally {
       setLoading(false);
@@ -180,7 +178,6 @@ export default function MarketDetailPage() {
         setError(data.error);
       }
     } catch (err) {
-      console.error("Error submitting prediction:", err);
       setError(err instanceof Error ? err.message : "Failed to submit prediction");
     } finally {
       setSubmitting(false);

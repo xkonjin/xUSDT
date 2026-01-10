@@ -86,10 +86,21 @@ export function formatProbability(price: number): string {
  * @param atomicAmount - Amount in atomic units
  * @param decimals - Number of decimals (default 6 for USDT0)
  * @returns Display amount as number
+ * @throws RangeError if atomicAmount exceeds safe conversion limits
  */
 export function atomicToDisplay(atomicAmount: number | bigint, decimals = 6): number {
   const divisor = 10 ** decimals;
-  return Number(atomicAmount) / divisor;
+  const n = typeof atomicAmount === "bigint" 
+    ? atomicAmount 
+    : BigInt(Math.trunc(atomicAmount));
+
+  // Safety check: avoid silently returning garbage for very large amounts
+  const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+  if (n > maxSafe || n < -maxSafe) {
+    throw new RangeError("atomicAmount too large to safely convert to number");
+  }
+
+  return Number(n) / divisor;
 }
 
 /**
@@ -99,10 +110,16 @@ export function atomicToDisplay(atomicAmount: number | bigint, decimals = 6): nu
  * @param displayAmount - Amount in display units (e.g., 1.5 USDT0)
  * @param decimals - Number of decimals (default 6 for USDT0)
  * @returns Atomic amount as bigint
+ * @throws TypeError if displayAmount has invalid format
  */
 export function displayToAtomic(displayAmount: string | number, decimals = 6): bigint {
-  // Parse the input as a string to handle decimal precision
-  const amountStr = String(displayAmount);
+  const amountStr = String(displayAmount).trim();
+  
+  // Validate format: only digits and optional decimal point (no scientific notation, commas, negatives)
+  if (!/^\d+(\.\d+)?$/.test(amountStr)) {
+    throw new TypeError("Invalid decimal amount format");
+  }
+  
   const parts = amountStr.split(".");
 
   const wholePart = parts[0] || "0";

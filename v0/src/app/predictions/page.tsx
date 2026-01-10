@@ -201,8 +201,6 @@ export default function PredictionsPage() {
     } catch (err) {
       // Ignore abort errors (component unmounted)
       if (err instanceof Error && err.name === "AbortError") return;
-
-      console.error("Error loading markets:", err);
       setError(err instanceof Error ? err.message : "Failed to load markets");
     } finally {
       setLoading(false);
