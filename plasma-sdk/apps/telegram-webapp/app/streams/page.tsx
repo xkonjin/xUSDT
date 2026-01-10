@@ -53,17 +53,19 @@ export default function StreamsPage() {
   const calculateWithdrawable = (stream: Stream) => {
     const now = Math.floor(Date.now() / 1000);
     const duration = stream.endTime - stream.startTime;
-    const elapsed = Math.min(now - stream.startTime, duration);
+    if (duration <= 0) return 0;
+    const elapsed = Math.max(0, Math.min(now - stream.startTime, duration));
     const vested = (BigInt(stream.depositAmount) * BigInt(elapsed)) / BigInt(duration);
     const withdrawable = vested - BigInt(stream.withdrawnAmount);
-    return Number(withdrawable) / 1_000_000;
+    return Math.max(0, Number(withdrawable)) / 1_000_000;
   };
 
   const calculateProgress = (stream: Stream) => {
     const now = Math.floor(Date.now() / 1000);
     const duration = stream.endTime - stream.startTime;
-    const elapsed = Math.min(now - stream.startTime, duration);
-    return (elapsed / duration) * 100;
+    if (duration <= 0) return 0;
+    const elapsed = Math.max(0, Math.min(now - stream.startTime, duration));
+    return Math.min(100, Math.max(0, (elapsed / duration) * 100));
   };
 
   const handleWithdraw = async (streamId: string) => {

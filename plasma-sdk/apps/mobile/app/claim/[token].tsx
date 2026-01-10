@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { usePostHog } from 'posthog-react-native';
+import { api } from '@/lib/api';
 
 const ACCENT_COLOR = '#00d4ff';
 
@@ -31,34 +32,58 @@ export default function ClaimScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!token) return;
+    
     posthog.capture('claim_page_viewed', { token });
     
-    // Simulate fetching claim data
-    setTimeout(() => {
-      setClaim({
-        amount: 25.00,
-        senderName: 'John',
-        memo: 'Lunch money',
-        status: 'pending',
-      });
-      setLoading(false);
-    }, 1000);
-  }, [token]);
+    async function fetchClaim() {
+      try {
+        const { claim: claimData } = await api.getClaim(token);
+        if (claimData) {
+          setClaim({
+            amount: claimData.amount,
+            senderName: claimData.senderAddress?.slice(0, 6) + '...' + claimData.senderAddress?.slice(-4) || 'Someone',
+            memo: claimData.memo,
+            status: claimData.status,
+          });
+        }
+      } catch (err) {
+        setError('Failed to load claim');
+        posthog.capture('claim_fetch_error', { token, error: err instanceof Error ? err.message : 'Unknown' });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchClaim();
+  }, [token, posthog]);
 
   const handleClaim = async () => {
+    if (!token) return;
+    
     setClaiming(true);
+    setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     posthog.capture('claim_initiated', { token, amount: claim?.amount });
 
-    // Simulate claiming
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    posthog.capture('claim_completed', { token, amount: claim?.amount });
-    
-    setSuccess(true);
-    setClaiming(false);
+    try {
+      // TODO: Get actual claimer address from wallet context
+      const claimerAddress = '0x0000000000000000000000000000000000000000';
+      const result = await api.executeClaim(token, claimerAddress);
+      
+      if (result.txHash) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        posthog.capture('claim_completed', { token, amount: claim?.amount, txHash: result.txHash });
+        setSuccess(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to claim');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      posthog.capture('claim_failed', { token, error: err instanceof Error ? err.message : 'Unknown' });
+    } finally {
+      setClaiming(false);
+    }
   };
 
   const handleClose = () => {
