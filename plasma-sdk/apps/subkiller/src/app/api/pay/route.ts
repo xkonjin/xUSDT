@@ -2,16 +2,12 @@
  * SubKiller Payment API Route
  *
  * Handles gasless USDT0 payment submissions for the SubKiller service.
- * Receives EIP-3009 transferWithAuthorization signatures and executes
- * them on the Plasma chain via the relayer.
- *
- * Uses RELAYER wallet to pay gas (same pattern as bill-split and plasma-stream).
- * The relayer executes transferWithAuthorization on behalf of the user.
+ * Payments are persisted to database for permanent unlock tracking.
  *
  * Flow:
  * 1. Client signs EIP-712 typed data authorizing a $0.99 USDT0 transfer
- * 2. Client sends signature to this endpoint
- * 3. This endpoint uses the RELAYER wallet to execute the transfer on-chain
+ * 2. This endpoint uses the RELAYER wallet to execute the transfer on-chain
+ * 3. Payment is persisted to database for permanent unlock
  * 4. Returns transaction hash on success
  */
 
@@ -25,17 +21,10 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { PLASMA_MAINNET_RPC, plasmaMainnet, USDT0_ADDRESS } from '@plasma-pay/core';
+import { prisma } from '@plasma-pay/db';
 import { SUBKILLER_PRICE } from '@/lib/payment';
 
-// In-memory store for payments (use Redis/DB in production)
-const payments = new Map<string, {
-  status: string;
-  txHash?: string;
-  paidAt?: Date;
-  from: string;
-}>();
-
-// Direct relayer wallet configuration (same as bill-split and plasma-stream)
+// Direct relayer wallet configuration
 const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
 
 // Merchant address to receive payments
@@ -70,6 +59,7 @@ const TRANSFER_WITH_AUTH_ABI = [
 
 interface PaymentRequest {
   from: string;
+  email?: string;
   signature: {
     v: number;
     r: string;
@@ -94,7 +84,6 @@ interface PaymentRequest {
  * POST /api/pay
  *
  * Handles gasless payment submissions from the client.
- * Expects signed EIP-3009 authorization for transferWithAuthorization.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -107,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: PaymentRequest = await req.json();
-    const { from, signature, typedData } = body;
+    const { from, email, signature, typedData } = body;
 
     // Validate required fields
     if (!from || !signature || !typedData) {
@@ -163,19 +152,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate a unique invoice ID for this payment
-    const invoiceId = `sk_${from.slice(2, 10)}_${Date.now()}`;
+    // Check if this wallet already paid (database check)
+    const existingPayment = await prisma.subKillerPayment.findUnique({
+      where: { walletAddress: from.toLowerCase() },
+    });
 
-    // Check if this user already paid
-    const existingPayment = Array.from(payments.values()).find(
-      p => p.from.toLowerCase() === from.toLowerCase() && p.status === 'completed'
-    );
     if (existingPayment) {
       return NextResponse.json({
         type: 'payment-completed',
-        invoiceId,
         txHash: existingPayment.txHash,
         status: 'already-paid',
+        paidAt: existingPayment.createdAt.toISOString(),
       });
     }
 
@@ -218,17 +205,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Store payment record
-    payments.set(invoiceId, {
-      status: 'completed',
-      txHash,
-      paidAt: new Date(),
-      from: from.toLowerCase(),
+    // Persist payment to database
+    await prisma.subKillerPayment.create({
+      data: {
+        walletAddress: from.toLowerCase(),
+        email: email || null,
+        amount: 0.99,
+        txHash,
+      },
     });
 
     return NextResponse.json({
       type: 'payment-completed',
-      invoiceId,
       txHash,
       network: 'plasma',
       status: 'completed',
@@ -242,25 +230,32 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * GET /api/pay?invoiceId=xxx
+ * GET /api/pay?address=0x...
  *
- * Check payment status for a given invoice ID.
+ * Check if a wallet address has paid for SubKiller Pro.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const invoiceId = searchParams.get('invoiceId');
+  const address = searchParams.get('address');
 
-  if (!invoiceId) {
+  if (!address) {
     return NextResponse.json(
-      { error: 'Missing invoiceId' },
+      { error: 'Missing address parameter' },
       { status: 400 }
     );
   }
 
-  const payment = payments.get(invoiceId);
+  const payment = await prisma.subKillerPayment.findUnique({
+    where: { walletAddress: address.toLowerCase() },
+  });
+
   if (!payment) {
-    return NextResponse.json({ status: 'pending' });
+    return NextResponse.json({ hasPaid: false });
   }
 
-  return NextResponse.json(payment);
+  return NextResponse.json({
+    hasPaid: true,
+    txHash: payment.txHash,
+    paidAt: payment.createdAt.toISOString(),
+  });
 }
