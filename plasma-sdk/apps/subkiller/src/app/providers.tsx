@@ -1,16 +1,27 @@
 /**
  * Client-side Providers for SubKiller
  *
- * Uses the shared provider factory from @plasma-pay/privy-auth.
+ * Combines NextAuth SessionProvider with Plasma Privy for dual auth support.
+ * - NextAuth: Google OAuth for Gmail access
+ * - Privy: Embedded wallet for payments
  */
 
 "use client";
 
+import { SessionProvider } from "next-auth/react";
 import { createPlasmaProviders } from "@plasma-pay/privy-auth";
 import { ErrorBoundary } from "@plasma-pay/ui";
 
-export const Providers = createPlasmaProviders({
+const PlasmaProviders = createPlasmaProviders({
   loginMethods: ["email", "google"],
   accentColor: "#00d4ff",
   ErrorBoundary,
 });
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <PlasmaProviders>{children}</PlasmaProviders>
+    </SessionProvider>
+  );
+}
