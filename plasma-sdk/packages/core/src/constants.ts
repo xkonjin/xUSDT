@@ -43,3 +43,6 @@ export const DEFAULT_VALIDITY_PERIOD = 3600;
 
 // Minimum Transfer Amount (in atomic units)
 export const MIN_TRANSFER_AMOUNT = 1000n; // 0.001 USDT0
+
+// Zero Address (burn address / null recipient)
+export const ZERO_ADDRESS = ('0x' + '0'.repeat(40)) as `0x${string}`;
