@@ -6,7 +6,7 @@ Endpoints for market data, betting, and user portfolios.
 
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from .models import (
     PredictionMarket,
     MarketCategory,
@@ -27,6 +27,7 @@ from .sync import (
     get_market_by_id,
     get_market_count,
 )
+from .ratelimit import limiter
 
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
@@ -40,7 +41,9 @@ _LEADERBOARD: List[LeaderboardEntry] = []
 # =============================================================================
 
 @router.get("/markets", response_model=MarketResponse)
+@limiter.limit("120/minute")
 async def list_markets(
+    request: Request,
     category: Optional[str] = Query(None, description="Market category"),
     search: Optional[str] = Query(None, description="Search query"),
     sort_by: Optional[str] = Query("volume", description="Sort field"),
@@ -71,7 +74,8 @@ async def list_markets(
 
 
 @router.get("/markets/{market_id}", response_model=PredictionMarket)
-async def get_market(market_id: str):
+@limiter.limit("120/minute")
+async def get_market(request: Request, market_id: str):
     """Get a single market by ID."""
     market = await get_market_by_id(market_id)
     if not market:
@@ -80,7 +84,8 @@ async def get_market(market_id: str):
 
 
 @router.post("/sync")
-async def trigger_sync():
+@limiter.limit("2/minute")
+async def trigger_sync(request: Request):
     """Manually trigger market sync from Polymarket."""
     markets = await sync_markets_from_polymarket()
     return {"synced": len(markets), "total": get_market_count()}
@@ -91,14 +96,15 @@ async def trigger_sync():
 # =============================================================================
 
 @router.post("/bet", response_model=PlaceBetResponse)
-async def place_bet(request: PlaceBetRequest):
+@limiter.limit("10/minute")
+async def place_bet(request: Request, bet_request: PlaceBetRequest):
     """
     Place a bet on a prediction market.
     
     Accepts EIP-3009 authorization for gasless deposit+swap.
     """
     # Validate market exists
-    market = await get_market_by_id(request.market_id)
+    market = await get_market_by_id(bet_request.market_id)
     if not market:
         raise HTTPException(status_code=404, detail="Market not found")
     
@@ -116,17 +122,17 @@ async def place_bet(request: PlaceBetRequest):
     import uuid
     tx_hash = f"0x{uuid.uuid4().hex}"
     
-    amount = int(request.amount) / 1e6  # Convert from atomic
-    price = market.yes_price if request.outcome.upper() == "YES" else market.no_price
+    amount = int(bet_request.amount) / 1e6  # Convert from atomic
+    price = market.yes_price if bet_request.outcome.upper() == "YES" else market.no_price
     shares = amount / price
     
     # Store bet
-    user_address = request.authorization.get("from", "0x")
+    user_address = bet_request.authorization.get("from", "0x")
     bet = Bet(
         id=str(uuid.uuid4()),
         market_id=market.id,
         user_address=user_address,
-        outcome=request.outcome.upper(),
+        outcome=bet_request.outcome.upper(),
         shares=shares,
         cost_basis=amount,
         current_value=shares * price,
@@ -149,7 +155,8 @@ async def place_bet(request: PlaceBetRequest):
 
 
 @router.post("/cashout", response_model=CashOutResponse)
-async def cash_out(request: CashOutRequest):
+@limiter.limit("10/minute")
+async def cash_out(request: Request, cashout_request: CashOutRequest):
     """
     Cash out a bet position before resolution.
     """
@@ -159,7 +166,7 @@ async def cash_out(request: CashOutRequest):
     
     for addr, bets in _USER_BETS.items():
         for bet in bets:
-            if bet.id == request.bet_id:
+            if bet.id == cashout_request.bet_id:
                 bet_found = bet
                 user_address = addr
                 break
@@ -198,7 +205,9 @@ async def cash_out(request: CashOutRequest):
 # =============================================================================
 
 @router.get("/bets")
+@limiter.limit("30/minute")
 async def get_user_bets(
+    request: Request,
     user: str = Query(..., description="User address"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Bet]:
@@ -256,7 +265,9 @@ async def get_user_stats(address: str):
 # =============================================================================
 
 @router.get("/leaderboard", response_model=List[LeaderboardEntry])
+@limiter.limit("30/minute")
 async def get_leaderboard(
+    request: Request,
     sort_by: str = Query("profit", description="Sort by: profit, accuracy, volume"),
     period: str = Query("all-time", description="Period: weekly, monthly, all-time"),
     limit: int = Query(10, ge=1, le=100),
@@ -300,14 +311,42 @@ async def get_leaderboard(
 
 
 # =============================================================================
+# WebSocket Endpoints
+# =============================================================================
+
+from fastapi import WebSocket
+from .websocket import handle_websocket, get_websocket_stats, broadcast_price_update
+
+
+@router.websocket("/ws")
+async def websocket_all(websocket: WebSocket):
+    """WebSocket endpoint for all market updates."""
+    await handle_websocket(websocket)
+
+
+@router.websocket("/ws/market/{market_id}")
+async def websocket_market(websocket: WebSocket, market_id: str):
+    """WebSocket endpoint for a specific market's updates."""
+    await handle_websocket(websocket, market_id)
+
+
+@router.get("/ws/stats")
+async def websocket_stats():
+    """Get WebSocket connection statistics."""
+    return get_websocket_stats()
+
+
+# =============================================================================
 # Health Check
 # =============================================================================
 
 @router.get("/health")
 async def health_check():
     """Health check endpoint."""
+    stats = get_websocket_stats()
     return {
         "status": "healthy",
         "markets_cached": get_market_count(),
+        "websocket_connections": stats["total_connections"],
         "timestamp": datetime.utcnow().isoformat(),
     }
