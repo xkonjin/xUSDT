@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { User, Mail, Wallet, Settings, Copy, Check, X, ChevronRight, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
 import { Avatar } from "./ui/Avatar";
 import { formatAddress, copyToClipboard } from "@/lib/utils";
@@ -46,9 +47,15 @@ interface UserProfileModalProps extends UserProfileProps {
 
 function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfileModalProps) {
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
   
   const displayName = user?.email?.address || user?.phone?.number || "User";
   const email = user?.email?.address;
+
+  const navigateToSettings = (tab?: string) => {
+    onClose();
+    router.push(tab ? `/settings?tab=${tab}` : "/settings");
+  };
 
   const handleCopyAddress = async () => {
     if (!walletAddress) return;
@@ -123,26 +130,22 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
           <MenuItem
             icon={User}
             label="Edit Profile"
-            onClick={() => {}}
-            disabled
+            onClick={() => navigateToSettings("profile")}
           />
           <MenuItem
             icon={Bell}
             label="Notifications"
-            onClick={() => {}}
-            disabled
+            onClick={() => navigateToSettings("notifications")}
           />
           <MenuItem
             icon={Shield}
             label="Security"
-            onClick={() => {}}
-            disabled
+            onClick={() => navigateToSettings("security")}
           />
           <MenuItem
             icon={Settings}
             label="Settings"
-            onClick={() => {}}
-            disabled
+            onClick={() => navigateToSettings("general")}
           />
           <MenuItem
             icon={HelpCircle}

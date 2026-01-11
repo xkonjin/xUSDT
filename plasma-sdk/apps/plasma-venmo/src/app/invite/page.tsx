@@ -132,7 +132,17 @@ export default function InvitePage() {
         </div>
 
         {/* Stats */}
-        {stats && (
+        {loading ? (
+          <div className="grid grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="liquid-glass-subtle rounded-2xl p-4 text-center animate-pulse">
+                <div className="w-5 h-5 mx-auto mb-2 bg-white/10 rounded" />
+                <div className="h-7 bg-white/10 rounded mx-auto w-12 mb-1" />
+                <div className="h-3 bg-white/10 rounded mx-auto w-10" />
+              </div>
+            ))}
+          </div>
+        ) : stats ? (
           <div className="grid grid-cols-3 gap-4">
             <div className="liquid-glass-subtle rounded-2xl p-4 text-center">
               <Users className="w-5 h-5 mx-auto mb-2 text-purple-400" />
@@ -152,7 +162,7 @@ export default function InvitePage() {
               <p className="text-xs text-white/40">Pending</p>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Referral Link */}
         {loading ? (

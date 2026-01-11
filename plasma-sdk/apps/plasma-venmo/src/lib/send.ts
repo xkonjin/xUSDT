@@ -9,6 +9,7 @@ import {
   PLASMA_MAINNET_CHAIN_ID,
   USDT0_ADDRESS,
 } from '@plasma-pay/core';
+import { withRetry, isRetryableError } from './retry';
 
 interface SendMoneyOptions {
   recipientIdentifier: string;
@@ -74,30 +75,47 @@ export async function sendMoney(
   const signature = await wallet.signTypedData(typedData);
   const { v, r, s } = splitSignature(signature);
 
-  // Step 4: Submit transfer
-  const submitResponse = await fetch('/api/submit-transfer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: params.from,
-      to: params.to,
-      value: params.value.toString(),
-      validAfter: params.validAfter,
-      validBefore: params.validBefore,
-      nonce: params.nonce,
-      v,
-      r,
-      s,
-    }),
-  });
+  // Step 4: Submit transfer with retry
+  try {
+    const result = await withRetry(
+      async () => {
+        const submitResponse = await fetch('/api/submit-transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: params.from,
+            to: params.to,
+            value: params.value.toString(),
+            validAfter: params.validAfter,
+            validBefore: params.validBefore,
+            nonce: params.nonce,
+            v,
+            r,
+            s,
+          }),
+        });
 
-  if (!submitResponse.ok) {
-    const error = await submitResponse.json();
-    return { success: false, error: error.message || 'Failed to submit transfer' };
+        if (!submitResponse.ok) {
+          const error = await submitResponse.json().catch(() => ({}));
+          const errorMessage = error.message || 'Failed to submit transfer';
+          throw new Error(errorMessage);
+        }
+
+        return await submitResponse.json();
+      },
+      {
+        maxAttempts: 3,
+        retryOn: isRetryableError,
+      }
+    );
+
+    return { success: true, txHash: result.txHash };
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to submit transfer' 
+    };
   }
-
-  const result = await submitResponse.json();
-  return { success: true, txHash: result.txHash };
 }
 
 /**

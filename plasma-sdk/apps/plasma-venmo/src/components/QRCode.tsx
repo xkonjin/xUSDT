@@ -106,6 +106,7 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+          aria-label="Close QR code modal"
         >
           <X className="w-5 h-5 text-white/50" />
         </button>

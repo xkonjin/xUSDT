@@ -27,26 +27,35 @@ interface FundWalletProps {
 }
 
 // Transak configuration
-const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY || "your-transak-api-key";
+const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY;
 const TRANSAK_ENV = process.env.NEXT_PUBLIC_TRANSAK_ENV || "STAGING"; // STAGING or PRODUCTION
+const isTransakConfigured = Boolean(TRANSAK_API_KEY && TRANSAK_API_KEY !== "your-transak-api-key");
 
 function getTransakUrl(walletAddress: string, amount?: number): string {
+  if (!TRANSAK_API_KEY) {
+    console.warn("Transak API key not configured");
+    return "#";
+  }
+  
   const baseUrl = TRANSAK_ENV === "PRODUCTION" 
     ? "https://global.transak.com" 
     : "https://global-stg.transak.com";
   
   const params = new URLSearchParams({
     apiKey: TRANSAK_API_KEY,
-    cryptoCurrencyCode: "USDT", // Will need to update when Plasma USDT0 is supported
-    network: "plasma", // May need to verify this network name with Transak
+    cryptoCurrencyCode: "USDT",
+    network: "plasma",
     walletAddress: walletAddress,
     disableWalletAddressForm: "true",
     themeColor: "00d4ff",
     hideMenu: "true",
+    isFeeCalculationHidden: "true",
+    exchangeScreenTitle: "Buy USDT0 for Plasma Venmo",
   });
   
   if (amount) {
     params.set("defaultFiatAmount", amount.toString());
+    params.set("fiatCurrency", "USD");
   }
   
   return `${baseUrl}?${params.toString()}`;
@@ -138,17 +147,39 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
               Purchase USDT using your debit card, credit card, Apple Pay, or Google Pay.
             </p>
 
-            <button
-              onClick={openTransak}
-              className="w-full btn-primary mb-4"
-            >
-              Open Transak
-              <ExternalLink className="w-4 h-4 ml-2" />
-            </button>
-
-            <p className="text-white/30 text-xs">
-              Powered by Transak. Processing may take a few minutes.
-            </p>
+            {isTransakConfigured ? (
+              <>
+                <button
+                  onClick={openTransak}
+                  className="w-full btn-primary mb-4"
+                >
+                  Open Transak
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                </button>
+                <p className="text-white/30 text-xs">
+                  Powered by Transak. Processing may take a few minutes.
+                </p>
+              </>
+            ) : (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-center">
+                <p className="text-amber-400 text-sm mb-2">
+                  Transak is not configured yet
+                </p>
+                <p className="text-white/40 text-xs">
+                  Set NEXT_PUBLIC_TRANSAK_API_KEY in your environment variables.
+                  <br />
+                  Get an API key at{" "}
+                  <a 
+                    href="https://transak.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[rgb(0,212,255)] hover:underline"
+                  >
+                    transak.com
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </ModalBackdrop>

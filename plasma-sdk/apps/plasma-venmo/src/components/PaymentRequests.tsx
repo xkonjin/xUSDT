@@ -7,8 +7,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { HandCoins, Check, X, Loader2, Clock } from "lucide-react";
-import type { Address } from "viem";
+import { HandCoins, X, Loader2, Clock, AlertCircle, RefreshCw } from "lucide-react";
 import { parseUnits } from "viem";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
@@ -16,6 +15,7 @@ import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { Avatar } from "./ui/Avatar";
 import { RequestSkeleton } from "./ui/Skeleton";
 import { formatRelativeTime } from "@/lib/utils";
+import { splitSignature } from "@/lib/crypto";
 
 // Type for payment request
 interface PaymentRequest {
@@ -37,61 +37,63 @@ interface PaymentRequestsProps {
   onRefresh?: () => void;
 }
 
-// Helper to split signature
-function splitSignature(signature: `0x${string}`): { v: number; r: `0x${string}`; s: `0x${string}` } {
-  const sig = signature.slice(2);
-  const r = `0x${sig.slice(0, 64)}` as `0x${string}`;
-  const s = `0x${sig.slice(64, 128)}` as `0x${string}`;
-  let v = parseInt(sig.slice(128, 130), 16);
-  if (v < 27) v += 27;
-  return { v, r, s };
-}
-
 export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequestsProps) {
   // State
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Fetch incoming requests
-  useEffect(() => {
+  const fetchRequests = async () => {
     if (!wallet?.address) {
       setRequests([]);
       setLoading(false);
       return;
     }
-
-    async function fetchRequests() {
-      if (!wallet?.address) return;
-      
-      setLoading(true);
-      try {
-        let url = `/api/requests?address=${wallet.address}&type=received`;
-        if (userEmail) {
-          url += `&email=${encodeURIComponent(userEmail)}`;
-        }
-
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          setRequests(data.requests?.received || []);
-        }
-      } catch {
-        // Silent fail - empty list will be shown
-      } finally {
-        setLoading(false);
+    
+    setLoading(true);
+    setError(null);
+    try {
+      let url = `/api/requests?address=${wallet.address}&type=received`;
+      if (userEmail) {
+        url += `&email=${encodeURIComponent(userEmail)}`;
       }
-    }
 
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error("Failed to load requests");
+      }
+      const data = await response.json();
+      setRequests(data.requests?.received || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load requests");
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRequests();
   }, [wallet?.address, userEmail]);
+
+  // Clear action error after timeout
+  useEffect(() => {
+    if (actionError) {
+      const timeout = setTimeout(() => setActionError(null), 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [actionError]);
 
   // Pay a request
   async function payRequest(request: PaymentRequest) {
     if (!wallet) return;
 
     setPayingId(request.id);
+    setActionError(null);
     try {
       // Parse amount to smallest units
       const amountInUnits = parseUnits(request.amount.toString(), 6);
@@ -130,13 +132,16 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
         }),
       });
 
-      if (response.ok) {
-        // Remove from list
-        setRequests(requests.filter(r => r.id !== request.id));
-        onRefresh?.();
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Payment failed");
       }
-    } catch {
-      // Silent fail - request stays in list
+
+      // Remove from list
+      setRequests(requests.filter(r => r.id !== request.id));
+      onRefresh?.();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Payment failed. Please try again.");
     } finally {
       setPayingId(null);
     }
@@ -147,6 +152,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
     if (!wallet) return;
 
     setDecliningId(request.id);
+    setActionError(null);
     try {
       const response = await fetch(`/api/requests/${request.id}`, {
         method: "DELETE",
@@ -157,12 +163,14 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
         }),
       });
 
-      if (response.ok) {
-        // Remove from list
-        setRequests(requests.filter(r => r.id !== request.id));
+      if (!response.ok) {
+        throw new Error("Failed to decline request");
       }
-    } catch {
-      // Silent fail - request stays in list
+
+      // Remove from list
+      setRequests(requests.filter(r => r.id !== request.id));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to decline. Please try again.");
     } finally {
       setDecliningId(null);
     }
@@ -184,6 +192,29 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
     );
   }
 
+  // Error state
+  if (error) {
+    return (
+      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <HandCoins className="w-5 h-5 text-[rgb(0,212,255)]" />
+          Pending Requests
+        </h2>
+        <div className="flex flex-col items-center gap-3 py-4">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={fetchRequests}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // No requests
   if (requests.length === 0) {
     return null; // Don't show empty state for requests
@@ -198,6 +229,14 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
           {requests.length}
         </span>
       </h2>
+
+      {/* Action error alert */}
+      {actionError && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {actionError}
+        </div>
+      )}
 
       <div className="space-y-3">
         {requests.map((request) => {
@@ -235,12 +274,12 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
                     onClick={() => declineRequest(request)}
                     disabled={decliningId === request.id || payingId === request.id}
                     className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors disabled:opacity-50"
-                    title="Decline"
+                    aria-label={`Decline payment request for $${request.amount}`}
                   >
                     {decliningId === request.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                     ) : (
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5" aria-hidden="true" />
                     )}
                   </button>
                   
@@ -248,10 +287,10 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
                     onClick={() => payRequest(request)}
                     disabled={payingId === request.id || decliningId === request.id}
                     className="px-4 py-2.5 rounded-xl bg-[rgb(0,212,255)] hover:bg-[rgb(0,190,230)] text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                    title="Pay"
+                    aria-label={`Pay $${request.amount} to ${request.fromEmail || request.fromAddress}`}
                   >
                     {payingId === request.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                     ) : (
                       <>Pay</>
                     )}

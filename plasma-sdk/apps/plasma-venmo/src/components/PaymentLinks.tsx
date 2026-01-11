@@ -8,11 +8,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, Share2, DollarSign } from "lucide-react";
+import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, Share2, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import type { Address } from "viem";
 import { PaymentLinkSkeleton } from "./ui/Skeleton";
 import { EmptyState } from "./ui/EmptyState";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, copyToClipboard } from "@/lib/utils";
 
 // Type for payment link
 interface PaymentLink {
@@ -39,6 +39,8 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   // State
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -49,36 +51,51 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   const [newExpires, setNewExpires] = useState("");
 
   // Fetch payment links
-  useEffect(() => {
+  const fetchLinks = async () => {
     if (!address) {
       setLinks([]);
       setLoading(false);
       return;
     }
 
-    async function fetchLinks() {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/payment-links?address=${address}`);
-        if (response.ok) {
-          const data = await response.json();
-          setLinks(data.paymentLinks || []);
-        }
-      } catch {
-        // Silent fail - empty list will be shown
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/payment-links?address=${address}`);
+      if (!response.ok) {
+        throw new Error("Failed to load payment links");
       }
+      const data = await response.json();
+      setLinks(data.paymentLinks || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load payment links");
+      setLinks([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     fetchLinks();
   }, [address]);
 
+  // Clear action error after timeout
+  useEffect(() => {
+    if (actionError) {
+      const timeout = setTimeout(() => setActionError(null), 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [actionError]);
+
   // Copy link URL to clipboard
   async function copyLink(link: PaymentLink) {
-    await navigator.clipboard.writeText(link.url);
-    setCopiedId(link.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    const success = await copyToClipboard(link.url);
+    if (success) {
+      setCopiedId(link.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } else {
+      setActionError("Failed to copy link. Please copy manually.");
+    }
   }
 
   // Create new payment link
@@ -86,6 +103,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     if (!address) return;
 
     setCreating(true);
+    setActionError(null);
     try {
       const response = await fetch("/api/payment-links", {
         method: "POST",
@@ -98,17 +116,20 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setLinks([data.paymentLink, ...links]);
-        setShowCreateForm(false);
-        setNewAmount("");
-        setNewMemo("");
-        setNewExpires("");
-        onRefresh?.();
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to create payment link");
       }
-    } catch {
-      // Silent fail - form stays open for retry
+
+      const data = await response.json();
+      setLinks([data.paymentLink, ...links]);
+      setShowCreateForm(false);
+      setNewAmount("");
+      setNewMemo("");
+      setNewExpires("");
+      onRefresh?.();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to create link. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -119,6 +140,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     if (!address) return;
     if (!confirm("Are you sure you want to cancel this payment link?")) return;
 
+    setActionError(null);
     try {
       const response = await fetch(`/api/payment-links/${linkId}`, {
         method: "DELETE",
@@ -126,13 +148,15 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         body: JSON.stringify({ creatorAddress: address }),
       });
 
-      if (response.ok) {
-        setLinks(links.map(l => 
-          l.id === linkId ? { ...l, status: "cancelled" } : l
-        ));
+      if (!response.ok) {
+        throw new Error("Failed to cancel payment link");
       }
-    } catch {
-      // Silent fail - link status unchanged
+
+      setLinks(links.map(l => 
+        l.id === linkId ? { ...l, status: "cancelled" } : l
+      ));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to cancel link. Please try again.");
     }
   }
 
@@ -147,6 +171,29 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         <div className="space-y-3">
           <PaymentLinkSkeleton />
           <PaymentLinkSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          Payment Links
+        </h2>
+        <div className="flex flex-col items-center gap-3 py-4">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={fetchLinks}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -243,6 +290,14 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
               )}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Action error alert */}
+      {actionError && (
+        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {actionError}
         </div>
       )}
 

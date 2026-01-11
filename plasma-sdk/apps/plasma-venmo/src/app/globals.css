@@ -43,6 +43,78 @@ body {
 }
 
 @layer components {
+  /* Claymorphism - Soft, friendly 3D-like components */
+  .clay {
+    background: linear-gradient(
+      145deg,
+      rgba(var(--glass-white), 0.12) 0%,
+      rgba(var(--glass-white), 0.06) 100%
+    );
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 24px;
+    border: 1px solid rgba(var(--glass-white), 0.1);
+    box-shadow: 
+      8px 8px 24px rgba(0, 0, 0, 0.4),
+      -4px -4px 16px rgba(var(--glass-white), 0.03),
+      inset 0 1px 0 rgba(var(--glass-white), 0.1);
+  }
+
+  .clay-button {
+    background: linear-gradient(
+      145deg,
+      rgba(var(--plasma-cyan), 1) 0%,
+      rgba(0, 180, 220, 1) 100%
+    );
+    border-radius: 16px;
+    border: none;
+    box-shadow: 
+      4px 4px 12px rgba(0, 0, 0, 0.3),
+      -2px -2px 8px rgba(var(--plasma-cyan), 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .clay-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      6px 6px 16px rgba(0, 0, 0, 0.4),
+      -3px -3px 12px rgba(var(--plasma-cyan), 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .clay-button:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 
+      2px 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .clay-input {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    border: 1px solid rgba(var(--glass-white), 0.08);
+    box-shadow: 
+      inset 4px 4px 8px rgba(0, 0, 0, 0.3),
+      inset -2px -2px 6px rgba(var(--glass-white), 0.02);
+  }
+
+  .clay-card {
+    background: linear-gradient(
+      145deg,
+      rgba(var(--glass-white), 0.1) 0%,
+      rgba(var(--glass-white), 0.04) 100%
+    );
+    backdrop-filter: blur(40px);
+    border-radius: 28px;
+    border: 1px solid rgba(var(--glass-white), 0.12);
+    box-shadow: 
+      12px 12px 32px rgba(0, 0, 0, 0.4),
+      -6px -6px 20px rgba(var(--glass-white), 0.02),
+      inset 0 1px 0 rgba(var(--glass-white), 0.15);
+  }
+
   .liquid-glass {
     background: linear-gradient(
       135deg,
@@ -166,4 +238,116 @@ body {
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* Shared Animations */
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes success-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(var(--plasma-cyan), 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(var(--plasma-cyan), 0.6);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation utility classes */
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.2s ease-out forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall 3s linear forwards;
+}
+
+.animate-success-bounce {
+  animation: success-bounce 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

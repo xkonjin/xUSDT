@@ -11,7 +11,9 @@ import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
-import { Send, HandCoins } from "lucide-react";
+import { Send, HandCoins, Sparkles } from "lucide-react";
+import { LiveCounter, LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { SocialFeed } from "@/components/SocialFeed";
 
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } =
@@ -44,20 +46,53 @@ export default function HomePage() {
         <div className="text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
             <span className="gradient-text">Plasma</span>{" "}
-            <span className="text-white">Venmo</span>
+            <span className="text-white">Pay</span>
           </h1>
-          <p className="text-white/50 text-lg max-w-md mx-auto leading-relaxed">
-            Send money to anyone via email or phone. Zero gas fees.
+          <p className="text-white/60 text-xl max-w-md mx-auto leading-relaxed mb-2">
+            Pay anyone instantly. Zero fees.
+          </p>
+          <p className="text-white/40 text-base max-w-sm mx-auto">
+            No crypto jargon. Just simple payments.
           </p>
         </div>
 
-        <button onClick={login} className="btn-primary relative z-10">
-          Get Started
+        {/* Trust signals */}
+        <div className="flex items-center gap-6 text-white/50 text-sm relative z-10">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Bank-grade security</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-[rgb(0,212,255)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Instant transfers</span>
+          </div>
+        </div>
+
+        <button onClick={login} className="btn-primary relative z-10 animate-pulse-glow text-lg px-8 py-4">
+          Get Started Free
         </button>
 
+        <p className="text-white/30 text-sm relative z-10">
+          No signup fees. No hidden charges. Ever.
+        </p>
+
+        {/* Live counter */}
+        <div className="relative z-10 mt-8 clay-card p-6">
+          <LiveCounter />
+        </div>
+
+        {/* Live activity feed preview */}
+        <div className="relative z-10 mt-6 w-full max-w-md">
+          <LiveActivityFeed maxItems={3} />
+        </div>
+
         <div className="text-white/40 text-sm mt-8 relative z-10 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[rgb(0,212,255)]" />
-          Powered by Plasma Chain - Gasless USDT0 transfers
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          Powered by Plasma Chain
         </div>
       </main>
     );
@@ -145,7 +180,11 @@ export default function HomePage() {
 
         {/* Active form */}
         {activeTab === "send" ? (
-          <SendMoneyForm wallet={wallet} onSuccess={refresh} />
+          <SendMoneyForm 
+            wallet={wallet} 
+            balance={formatted || undefined} 
+            onSuccess={refresh} 
+          />
         ) : (
           <RequestMoneyForm walletAddress={wallet?.address} userEmail={userEmail} onSuccess={refresh} />
         )}
@@ -153,6 +192,9 @@ export default function HomePage() {
         <PaymentLinks address={wallet?.address} onRefresh={refresh} />
 
         <TransactionHistory address={wallet?.address} />
+
+        {/* Social Feed */}
+        <SocialFeed address={wallet?.address} className="mt-6" />
       </div>
     </main>
   );

@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Send, User, DollarSign, AlertCircle } from "lucide-react";
+import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { sendMoney } from "@/lib/send";
+import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
+import { playSound, hapticFeedback } from "@/lib/sounds";
 
 interface SendMoneyFormProps {
   wallet: PlasmaEmbeddedWallet | null;
+  balance?: string;
   onSuccess?: () => void;
+  onFundWallet?: () => void;
 }
 
 // Confirmation Modal Component
@@ -194,7 +198,7 @@ function SuccessOverlay({
   );
 }
 
-export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
+export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: SendMoneyFormProps) {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -206,16 +210,39 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
   const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
   const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
 
+  // Amount validation
+  const numericBalance = parseFloat(balance || "0");
+  const numericAmount = parseFloat(amount || "0");
+  const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
+  const amountTooSmall = numericAmount > 0 && numericAmount < MIN_AMOUNT;
+  const amountTooLarge = numericAmount > MAX_AMOUNT;
+
+  // Get amount validation error message
+  const getAmountError = (): string | null => {
+    if (amountTooSmall) return AMOUNT_TOO_SMALL;
+    if (amountTooLarge) return AMOUNT_TOO_LARGE;
+    if (insufficientBalance) return `Insufficient balance. You have $${numericBalance.toFixed(2)} USDT0.`;
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wallet || !recipient || !amount) return;
     
+    // Check amount validation
+    const amountError = getAmountError();
+    if (amountError) {
+      setError(amountError);
+      return;
+    }
+    
     // Show confirmation modal instead of sending immediately
+    setError(null);
     setShowConfirm(true);
   };
 
   const handleConfirmSend = async () => {
-    if (!wallet) return;
+    if (!wallet || loading) return; // Prevent double-submit
 
     setLoading(true);
     setError(null);
@@ -232,12 +259,13 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
         setSuccessClaimUrl(result.claimUrl);
         setShowSuccess(true);
         
-        // Haptic feedback
-        if (navigator.vibrate) {
-          navigator.vibrate([50, 30, 100]);
-        }
+        // Sound and haptic feedback
+        playSound('success');
+        hapticFeedback('medium');
       } else {
-        setError(result.error || "Transaction failed");
+        playSound('error');
+        hapticFeedback('light');
+        setError(result.error || "Oops! Something went wrong. Your money is safe - try again?");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -264,16 +292,16 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
     <>
       <form
         onSubmit={handleSubmit}
-        className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5"
+        className="clay-card p-6 md:p-8 space-y-5"
       >
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-          <Send className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <Zap className="w-5 h-5 text-[rgb(0,212,255)]" />
           Send Money
         </h2>
 
         <div>
-          <label className="block text-white/50 text-sm mb-2 font-medium">
-            To (email, phone, or wallet)
+          <label className="block text-white/60 text-sm mb-2 font-medium">
+            Who are you paying?
           </label>
           <div className="relative">
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
@@ -281,22 +309,28 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
               type="text"
               value={recipient}
               onChange={(e) => setRecipient(e.target.value)}
-              placeholder="friend@email.com"
-              className="input-glass w-full pl-12"
+              placeholder="Email, phone, or wallet address"
+              className="clay-input w-full pl-12 py-4 text-white placeholder:text-white/30"
               disabled={loading}
             />
+            {recipient && isValidRecipient && (
+              <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-400" />
+            )}
           </div>
           {recipient && !isValidRecipient && (
-            <p className="text-amber-400 text-xs mt-2">Enter a valid email, phone, or wallet address</p>
+            <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Enter a valid email, phone, or wallet address
+            </p>
           )}
         </div>
 
         <div>
-          <label className="block text-white/50 text-sm mb-2 font-medium">
-            Amount
+          <label className="block text-white/60 text-sm mb-2 font-medium">
+            How much?
           </label>
           <div className="relative">
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" />
             <input
               type="number"
               value={amount}
@@ -304,14 +338,59 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
               placeholder="0.00"
               step="0.01"
               min="0"
-              className="input-glass w-full pl-12 text-2xl font-semibold"
+              className="clay-input w-full pl-14 pr-20 py-5 text-3xl font-bold text-white placeholder:text-white/20"
               disabled={loading}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 font-medium">
-              USDT0
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm">
+              USD
             </span>
           </div>
+          
+          {/* Quick amount buttons */}
+          <div className="flex gap-2 mt-3">
+            {[5, 10, 25, 50, 100].map((quickAmount) => (
+              <button
+                key={quickAmount}
+                type="button"
+                onClick={() => {
+                  setAmount(quickAmount.toString());
+                  playSound('tap');
+                }}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+                  amount === quickAmount.toString()
+                    ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] border border-[rgb(0,212,255)]/30"
+                    : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
+                }`}
+              >
+                ${quickAmount}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Amount validation warning */}
+        {(insufficientBalance || amountTooSmall || amountTooLarge) && !error && (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>
+                {amountTooSmall && AMOUNT_TOO_SMALL}
+                {amountTooLarge && AMOUNT_TOO_LARGE}
+                {insufficientBalance && !amountTooSmall && !amountTooLarge && `Insufficient balance (${numericBalance.toFixed(2)} available)`}
+              </span>
+            </div>
+            {insufficientBalance && onFundWallet && !amountTooSmall && !amountTooLarge && (
+              <button
+                type="button"
+                onClick={onFundWallet}
+                className="flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200 transition-colors"
+              >
+                <Wallet className="w-3 h-3" />
+                Add funds to your wallet
+              </button>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm flex items-center gap-2">
@@ -323,16 +402,22 @@ export function SendMoneyForm({ wallet, onSuccess }: SendMoneyFormProps) {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+          className="w-full clay-button py-4 text-black font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
         >
           <Send className="w-5 h-5" />
-          Review Payment
+          {amount && parseFloat(amount) > 0 ? `Send $${parseFloat(amount).toFixed(2)} Now` : "Review Payment"}
         </button>
 
-        <p className="text-white/30 text-xs text-center flex items-center justify-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-green-400" />
-          Zero gas fees on Plasma Chain
-        </p>
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <p className="text-white/40 text-xs flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+            Zero fees
+          </p>
+          <p className="text-white/40 text-xs flex items-center gap-1.5">
+            <Zap className="w-3 h-3 text-[rgb(0,212,255)]" />
+            Instant delivery
+          </p>
+        </div>
       </form>
 
       {/* Confirmation Modal */}

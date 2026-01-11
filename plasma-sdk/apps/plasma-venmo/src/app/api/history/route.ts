@@ -16,6 +16,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address') as Address | null;
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     if (!address) {
       return NextResponse.json(
@@ -84,10 +86,22 @@ export async function GET(request: Request) {
 
     transactions.sort((a, b) => b.timestamp - a.timestamp);
 
-    return NextResponse.json({ transactions: transactions.slice(0, 50) });
+    // Apply pagination
+    const paginatedTransactions = transactions.slice(offset, offset + limit);
+
+    return NextResponse.json({ 
+      transactions: paginatedTransactions,
+      total: transactions.length,
+      hasMore: offset + limit < transactions.length,
+    });
   } catch (error) {
     console.error('History error:', error);
-    return NextResponse.json({ transactions: [] });
+    return NextResponse.json({ 
+      transactions: [],
+      total: 0,
+      hasMore: false,
+      error: 'Failed to fetch transaction history',
+    });
   }
 }
 

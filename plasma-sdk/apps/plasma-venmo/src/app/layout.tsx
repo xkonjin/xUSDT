@@ -8,6 +8,7 @@
 import { ReactNode } from 'react';
 import './globals.css';
 import { Providers } from './providers';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata = {
   title: 'Plasma Venmo - Send Money Instantly',
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="bg-black min-h-screen">
         <Providers>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </Providers>
       </body>
     </html>
