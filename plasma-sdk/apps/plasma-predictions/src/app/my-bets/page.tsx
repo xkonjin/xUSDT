@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Wallet, TrendingUp, Clock, ChevronRight, Sparkles, Filter } from "lucide-react";
+import { Wallet, TrendingUp, Clock, ChevronRight, Sparkles, Filter, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
 import { Header } from "@/components/Header";
@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { BetCard } from "@/components/BetCard";
 import { BettingModal } from "@/components/BettingModal";
 import { useUserBets } from "@/hooks/useBets";
+import { useDemoStore, formatDemoBalance } from "@/lib/demo-store";
 import { formatUSDT, formatVolume } from "@/lib/constants";
 
 type BetFilter = "all" | "active" | "won" | "lost";
@@ -110,9 +111,19 @@ export default function MyBetsPage() {
   const [filter, setFilter] = useState<BetFilter>("all");
   
   const { data: bets, isLoading } = useUserBets(wallet?.address);
+  
+  // Demo mode
+  const { isDemoMode, demoBets, getDemoStats, getActiveDemoBets, enableDemoMode } = useDemoStore();
+  const demoStats = getDemoStats();
+  const activeDemoBets = getActiveDemoBets();
 
-  // Mock stats - replace with real data
-  const stats = {
+  // Use demo data when in demo mode
+  const stats = isDemoMode ? {
+    totalProfit: demoStats.totalProfit,
+    winRate: demoStats.winRate,
+    activeBets: activeDemoBets.length,
+    totalVolume: demoStats.totalWagered,
+  } : {
     totalProfit: 1234.56,
     winRate: 0.67,
     activeBets: 3,
@@ -131,7 +142,8 @@ export default function MyBetsPage() {
     );
   }
 
-  if (!authenticated) {
+  // Show connect prompt only if NOT in demo mode and NOT authenticated
+  if (!isDemoMode && !authenticated) {
     return (
       <div className="min-h-screen pb-24 md:pb-8">
         <Header />
@@ -142,7 +154,23 @@ export default function MyBetsPage() {
     );
   }
 
-  const filteredBets = bets?.filter((bet) => {
+  // Use demo bets when in demo mode
+  const sourceBets = isDemoMode 
+    ? demoBets.map((db) => ({
+        id: db.id,
+        marketId: db.marketId,
+        market: db.market,
+        userAddress: "demo",
+        outcome: db.outcome,
+        shares: db.shares,
+        amount: db.amount,
+        status: db.status,
+        createdAt: db.placedAt,
+        txHash: "demo-" + db.id,
+      }))
+    : bets || [];
+
+  const filteredBets = sourceBets.filter((bet) => {
     switch (filter) {
       case "active":
         return bet.status === "active";
@@ -153,7 +181,7 @@ export default function MyBetsPage() {
       default:
         return true;
     }
-  }) || [];
+  });
 
   return (
     <div className="min-h-screen pb-24 md:pb-8">
@@ -167,10 +195,21 @@ export default function MyBetsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-              My Bets
-            </h1>
-            <p className="text-white/50">Track your predictions and performance</p>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white">
+                My Bets
+              </h1>
+              {isDemoMode && (
+                <span className="px-3 py-1 rounded-full bg-[rgba(var(--accent-cyan),0.15)] text-[rgb(var(--accent-cyan))] text-sm font-semibold border border-[rgba(var(--accent-cyan),0.3)]">
+                  Demo
+                </span>
+              )}
+            </div>
+            <p className="text-white/50">
+              {isDemoMode 
+                ? "Track your paper trading performance" 
+                : "Track your predictions and performance"}
+            </p>
           </motion.div>
 
           {/* Stats Grid */}

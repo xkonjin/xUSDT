@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Check, Loader2, AlertCircle, ArrowRight, Info } from "lucide-react";
+import { X, Zap, Check, Loader2, AlertCircle, ArrowRight, Info, Gamepad2 } from "lucide-react";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { usePredictionStore } from "@/lib/store";
 import { usePlaceBet } from "@/hooks/useBets";
+import { useDemoStore, formatDemoBalance } from "@/lib/demo-store";
 import {
   formatUSDT,
   formatPrice,
@@ -20,6 +21,9 @@ export function BettingModal() {
   const { authenticated, login, wallet } = usePlasmaWallet();
   const { balance, refresh: refreshBalance } = useUSDT0Balance();
   const placeBet = usePlaceBet();
+  
+  // Demo mode
+  const { isDemoMode, demoBalance, placeDemoBet } = useDemoStore();
 
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<"input" | "signing" | "submitting" | "success" | "error">("input");
@@ -35,8 +39,11 @@ export function BettingModal() {
   }, [parsedAmount]);
 
   const balanceNum = useMemo(() => {
+    if (isDemoMode) {
+      return demoBalance;
+    }
     return Number(balance || BigInt(0)) / 10 ** USDT0_DECIMALS;
-  }, [balance]);
+  }, [balance, isDemoMode, demoBalance]);
 
   const shares = useMemo(() => {
     if (!market || !outcome || parsedAmount <= 0) return 0;
@@ -53,7 +60,8 @@ export function BettingModal() {
     return BigInt(Math.floor(minShares * 10 ** USDT0_DECIMALS));
   }, [shares, slippage]);
 
-  const canSubmit = authenticated && parsedAmount >= 1 && parsedAmount <= balanceNum;
+  // In demo mode, can submit without authentication
+  const canSubmit = (isDemoMode || authenticated) && parsedAmount >= 1 && parsedAmount <= balanceNum;
 
   const handleClose = () => {
     if (step === "signing" || step === "submitting") return;
@@ -67,6 +75,31 @@ export function BettingModal() {
     if (!canSubmit || !market) return;
 
     try {
+      // Demo mode: instant bet placement without wallet
+      if (isDemoMode) {
+        setStep("submitting");
+        
+        // Simulate a small delay for UX
+        await new Promise((r) => setTimeout(r, 800));
+        
+        const demoBet = placeDemoBet({
+          market,
+          outcome: outcome!,
+          amount: parsedAmount,
+        });
+        
+        if (!demoBet) {
+          throw new Error("Insufficient demo balance");
+        }
+        
+        setStep("success");
+        setTimeout(() => {
+          handleClose();
+        }, 2000);
+        return;
+      }
+      
+      // Real mode: sign and submit
       setStep("signing");
       
       await placeBet.mutateAsync({
@@ -118,6 +151,15 @@ export function BettingModal() {
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="flex-1">
+              {/* Demo Badge */}
+              {isDemoMode && (
+                <div className="flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-lg bg-[rgba(var(--accent-cyan),0.15)] border border-[rgba(var(--accent-cyan),0.3)] w-fit">
+                  <Gamepad2 className="w-3.5 h-3.5 text-[rgb(var(--accent-cyan))]" />
+                  <span className="text-xs font-semibold text-[rgb(var(--accent-cyan))] uppercase tracking-wide">
+                    Demo Bet
+                  </span>
+                </div>
+              )}
               <div className={`${isYes ? 'badge-yes' : 'badge-no'} inline-block mb-3`}>
                 {outcome}
               </div>
@@ -144,7 +186,7 @@ export function BettingModal() {
                   </label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-white/40">
-                      Balance: {formatUSDT(balance || BigInt(0))}
+                      {isDemoMode ? 'Demo' : ''} Balance: {isDemoMode ? formatDemoBalance(demoBalance) : formatUSDT(balance || BigInt(0))}
                     </span>
                     <button
                       onClick={() => setAmount(balanceNum.toString())}
@@ -236,7 +278,7 @@ export function BettingModal() {
               </div>
 
               {/* Submit Button */}
-              {authenticated ? (
+              {isDemoMode || authenticated ? (
                 <button
                   onClick={handleSubmit}
                   disabled={!canSubmit}
@@ -248,7 +290,7 @@ export function BettingModal() {
                       : "bg-white/10 text-white/40 cursor-not-allowed"
                     }`}
                 >
-                  <span>Place Bet</span>
+                  <span>{isDemoMode ? 'Place Demo Bet' : 'Place Bet'}</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               ) : (
@@ -262,8 +304,17 @@ export function BettingModal() {
 
               {/* Gasless Notice */}
               <div className="flex items-center justify-center gap-2 mt-4 text-sm text-white/40">
-                <Zap className="w-4 h-4 text-[rgb(var(--accent-cyan))]" />
-                <span>Zero gas fees • Instant execution</span>
+                {isDemoMode ? (
+                  <>
+                    <Gamepad2 className="w-4 h-4 text-[rgb(var(--accent-cyan))]" />
+                    <span>Demo mode • No real money involved</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-[rgb(var(--accent-cyan))]" />
+                    <span>Zero gas fees • Instant execution</span>
+                  </>
+                )}
               </div>
             </>
           )}

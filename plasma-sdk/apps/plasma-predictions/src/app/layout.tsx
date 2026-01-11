@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "./providers";
+import { DemoModeBanner } from "@/components/DemoModeBanner";
 
 export const metadata = {
   title: "Plasma Predictions - Bet on What Happens Next",
@@ -17,7 +18,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-black min-h-screen">
-        <Providers>{children}</Providers>
+        <Providers>
+          <DemoModeBanner />
+          {children}
+        </Providers>
       </body>
     </html>
   );

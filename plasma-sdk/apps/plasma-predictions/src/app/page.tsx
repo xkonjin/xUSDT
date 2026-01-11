@@ -12,7 +12,9 @@ import {
   Sparkles,
   ChevronRight,
   BarChart3,
+  Gamepad2,
 } from "lucide-react";
+import { useDemoStore } from "@/lib/demo-store";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useTrendingMarkets } from "@/hooks/useMarkets";
@@ -50,6 +52,12 @@ const STATS = [
 function HeroSection() {
   const router = useRouter();
   const { authenticated, login, ready } = usePlasmaWallet();
+  const { isDemoMode, enableDemoMode } = useDemoStore();
+  
+  const handleTryDemo = () => {
+    enableDemoMode();
+    router.push("/predictions");
+  };
 
   return (
     <section className="relative px-4 pt-12 pb-20 sm:pt-20 sm:pb-32 overflow-hidden">
@@ -121,13 +129,13 @@ function HeroSection() {
             <span>Browse Markets</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
-          {!authenticated && ready && (
+          {!authenticated && !isDemoMode && ready && (
             <button
-              onClick={login}
-              className="btn-secondary text-lg px-8 py-4 w-full sm:w-auto flex items-center justify-center gap-2"
+              onClick={handleTryDemo}
+              className="btn-secondary text-lg px-8 py-4 w-full sm:w-auto flex items-center justify-center gap-2 border-[rgba(var(--accent-cyan),0.3)] hover:border-[rgba(var(--accent-cyan),0.5)]"
             >
-              <Sparkles className="w-5 h-5" />
-              <span>Start Free</span>
+              <Gamepad2 className="w-5 h-5 text-[rgb(var(--accent-cyan))]" />
+              <span>Try Demo - $10K Free</span>
             </button>
           )}
         </motion.div>

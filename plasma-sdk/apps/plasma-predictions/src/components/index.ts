@@ -5,3 +5,4 @@ export { BetCard } from "./BetCard";
 export { BettingModal } from "./BettingModal";
 export { SearchBar } from "./SearchBar";
 export { CategoryTabs } from "./CategoryTabs";
+export { DemoModeBanner } from "./DemoModeBanner";
