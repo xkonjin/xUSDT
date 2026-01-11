@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { fetchSubscriptionEmails } from '@/lib/gmail';
 import { detectSubscriptions, calculateTotals } from '@/lib/subscription-detector';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession() as any;
+    const session = await getServerSession(authOptions) as any;
     
     if (!session?.accessToken) {
       return NextResponse.json(

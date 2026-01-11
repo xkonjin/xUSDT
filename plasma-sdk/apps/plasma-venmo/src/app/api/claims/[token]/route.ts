@@ -15,8 +15,8 @@ import { USDT0_ADDRESS, PLASMA_MAINNET_RPC, plasmaMainnet } from '@plasma-pay/co
 // Relayer key for executing transfers
 const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
 
-// ABI for transferWithAuthorization
-const TRANSFER_WITH_AUTH_ABI = [
+// ABI for USDT0 token functions
+const USDT0_ABI = [
   {
     inputs: [
       { name: 'from', type: 'address' },
@@ -34,7 +34,27 @@ const TRANSFER_WITH_AUTH_ABI = [
     stateMutability: 'nonpayable',
     type: 'function',
   },
+  {
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+    ],
+    name: 'transfer',
+    outputs: [{ name: '', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'account', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
 ] as const;
+
+// Escrow/Treasury address that holds claimed funds
+const ESCROW_ADDRESS = process.env.MERCHANT_ADDRESS || process.env.NEXT_PUBLIC_MERCHANT_ADDRESS;
 
 interface RouteParams {
   params: Promise<{ token: string }>;
@@ -172,43 +192,11 @@ export async function POST(
       );
     }
 
-    // Parse the stored authorization
-    let authorization;
-    try {
-      authorization = JSON.parse(claim.authorization);
-    } catch {
+    // Validate escrow address is configured
+    if (!ESCROW_ADDRESS) {
       return NextResponse.json(
-        { error: 'Invalid stored authorization' },
+        { error: 'Escrow address not configured' },
         { status: 500 }
-      );
-    }
-
-    // The original authorization was for the recipient (who may not exist yet)
-    // We need to execute it to transfer to the claimer
-    // The authorization should have been created with a placeholder or escrow address
-    // For now, we'll modify the 'to' field if the authorization supports it
-    
-    // Validate authorization has required fields
-    const { from, value, validAfter, validBefore, nonce, v, r, s } = authorization;
-    
-    if (!from || !value || !nonce || v === undefined || !r || !s) {
-      return NextResponse.json(
-        { error: 'Incomplete authorization data' },
-        { status: 500 }
-      );
-    }
-
-    // Check authorization timing
-    const now = Math.floor(Date.now() / 1000);
-    if (now < validAfter || now > validBefore) {
-      // Authorization expired - mark claim as expired
-      await prisma.claim.update({
-        where: { id: claim.id },
-        data: { status: 'expired' },
-      });
-      return NextResponse.json(
-        { error: 'Authorization has expired' },
-        { status: 400 }
       );
     }
 
@@ -224,25 +212,35 @@ export async function POST(
       transport: http(PLASMA_MAINNET_RPC),
     });
 
-    // Execute the transfer to the claimer
-    // NOTE: The 'to' address in the original authorization should be
-    // the claimer's address. If it was signed to a placeholder/escrow,
-    // we would need a two-step process. For simplicity, we assume the
-    // sender signed for the specific claimer address.
+    // Calculate amount in atomic units (6 decimals for USDT0)
+    const amountInUnits = BigInt(Math.floor(claim.amount * 1_000_000));
+
+    // Check escrow has sufficient balance
+    const escrowBalance = await publicClient.readContract({
+      address: USDT0_ADDRESS,
+      abi: USDT0_ABI,
+      functionName: 'balanceOf',
+      args: [ESCROW_ADDRESS as Address],
+    });
+
+    if (escrowBalance < amountInUnits) {
+      return NextResponse.json(
+        { error: 'Insufficient escrow balance. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    // Transfer from escrow to claimer using a simple transfer
+    // The RELAYER wallet must be the owner/operator of the escrow address
+    // or the escrow must have approved the RELAYER
+    // For MVP: We assume RELAYER IS the escrow (MERCHANT_ADDRESS == RELAYER wallet)
     const txHash = await walletClient.writeContract({
       address: USDT0_ADDRESS,
-      abi: TRANSFER_WITH_AUTH_ABI,
-      functionName: 'transferWithAuthorization',
+      abi: USDT0_ABI,
+      functionName: 'transfer',
       args: [
-        from as Address,
-        claimerAddress as Address, // Transfer to claimer
-        BigInt(value),
-        BigInt(validAfter),
-        BigInt(validBefore),
-        nonce as Hex,
-        v,
-        r as Hex,
-        s as Hex,
+        claimerAddress as Address,
+        amountInUnits,
       ],
     });
 
