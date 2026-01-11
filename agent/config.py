@@ -87,13 +87,14 @@ class Settings(BaseSettings):
     )
 
     # -------------------------------------------------------------------------
-    # Polymarket Integration Configuration (MVP - Mock Mode)
+    # Polymarket Integration Configuration
     # -------------------------------------------------------------------------
     # Polymarket prediction markets integration settings.
-    # In MVP mode, we use the public Gamma API for market discovery
-    # and mock order placement (no real CLOB orders).
+    # Supports both MVP mode (mock orders) and production mode (real CLOB).
     # API Docs: https://docs.polymarket.com
     # -------------------------------------------------------------------------
+    
+    # Gamma API (public, no auth required)
     POLYMARKET_GAMMA_API_URL: str = Field(
         default="https://gamma-api.polymarket.com",
         description="Polymarket Gamma API URL for market discovery (public, no auth)"
@@ -105,6 +106,65 @@ class Settings(BaseSettings):
     POLYMARKET_API_TIMEOUT: float = Field(
         default=30.0,
         description="HTTP timeout in seconds for Polymarket API requests"
+    )
+    
+    # CLOB API (requires authentication)
+    POLYMARKET_CLOB_API_URL: str = Field(
+        default="https://clob.polymarket.com",
+        description="Polymarket CLOB API URL for trading operations"
+    )
+    POLYMARKET_ENABLE_TRADING: bool = Field(
+        default=False,
+        description="When true, enable real order placement on CLOB (requires auth)"
+    )
+    
+    # Authentication (optional - only needed for trading)
+    POLYMARKET_PRIVATE_KEY: Optional[str] = Field(
+        default=None,
+        description="Private key for Polymarket trading (can be same as RELAYER or separate)"
+    )
+    POLYMARKET_FUNDER_ADDRESS: Optional[str] = Field(
+        default=None,
+        description="Proxy wallet address holding funds on Polymarket"
+    )
+    POLYMARKET_SIGNATURE_TYPE: int = Field(
+        default=2,
+        description="Wallet type: 0=EOA, 1=POLY_PROXY (Magic Link), 2=GNOSIS_SAFE"
+    )
+    
+    # Pre-generated API credentials (optional - can be derived from private key)
+    POLYMARKET_API_KEY: Optional[str] = Field(
+        default=None,
+        description="Pre-generated L2 API key (UUID)"
+    )
+    POLYMARKET_API_SECRET: Optional[str] = Field(
+        default=None,
+        description="Pre-generated L2 API secret (base64)"
+    )
+    POLYMARKET_API_PASSPHRASE: Optional[str] = Field(
+        default=None,
+        description="Pre-generated L2 API passphrase"
+    )
+    
+    # Polygon Network Configuration
+    POLYGON_RPC: str = Field(
+        default="https://polygon-rpc.com",
+        description="Polygon mainnet RPC URL for USDC.e operations"
+    )
+    POLYGON_CHAIN_ID: int = Field(default=137)
+    
+    # Contract addresses (Polygon mainnet)
+    POLYMARKET_CTF_ADDRESS: str = Field(
+        default="0x4D97DCd97eC945f40cF65F87097ACe5EA0476045",
+        description="Conditional Token Framework contract on Polygon"
+    )
+    POLYMARKET_CTF_EXCHANGE: str = Field(
+        default="0xC5d563A36AE78145C45a50134d48A1215220f80a",
+        description="CTF Exchange contract on Polygon"
+    )
+    USDC_E_ADDRESS: str = Field(
+        default="0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        description="USDC.e (bridged USDC) on Polygon"
     )
 
     # Protocol fee parameters
