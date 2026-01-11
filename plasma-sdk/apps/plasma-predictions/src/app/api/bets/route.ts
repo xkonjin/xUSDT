@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("Bets API error:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch bets" },
       { status: 500 }
@@ -56,8 +55,7 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("Bet submission error:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to submit bet" },
       { status: 500 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { memo, useRef, useEffect } from "react";
 import { MARKET_CATEGORIES } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
 import type { MarketCategory } from "@/lib/types";
 
-export function CategoryTabs() {
+function CategoryTabsComponent() {
   const { selectedCategory, setCategory } = usePredictionStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -42,3 +42,6 @@ export function CategoryTabs() {
     </div>
   );
 }
+
+export const CategoryTabs = memo(CategoryTabsComponent);
+CategoryTabs.displayName = "CategoryTabs";

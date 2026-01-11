@@ -456,4 +456,3 @@ export function createRelayHandler(
 
   return { POST, GET };
 }
-
