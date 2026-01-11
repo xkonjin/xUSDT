@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Play, Pause, Clock, User, Download } from 'lucide-react';
+import { Play, Pause, Clock, User, Download, XCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Stream } from '@plasma-pay/core';
 
 interface StreamCardProps {
   stream: Stream;
   role: 'sending' | 'receiving';
+  walletAddress?: string;
   onWithdraw?: () => void;
 }
 
-export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
+export function StreamCard({ stream, role, walletAddress, onWithdraw }: StreamCardProps) {
   const [withdrawable, setWithdrawable] = useState(0n);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const now = BigInt(Math.floor(Date.now() / 1000));
@@ -42,14 +44,17 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
   }, [stream]);
 
   const handleWithdraw = async () => {
-    if (withdrawable <= 0n) return;
+    if (withdrawable <= 0n || !walletAddress) return;
     setWithdrawing(true);
 
     try {
       const res = await fetch('/api/streams/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streamId: stream.id.toString() }),
+        body: JSON.stringify({ 
+          streamId: stream.id.toString(),
+          recipientAddress: walletAddress,
+        }),
       });
 
       if (res.ok) {
@@ -59,6 +64,30 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
       // Silent fail - button re-enables for retry
     } finally {
       setWithdrawing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!walletAddress || !stream.cancelable || !stream.active) return;
+    setCancelling(true);
+
+    try {
+      const res = await fetch('/api/streams/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          streamId: stream.id.toString(),
+          senderAddress: walletAddress,
+        }),
+      });
+
+      if (res.ok) {
+        onWithdraw?.();
+      }
+    } catch {
+      // Silent fail - button re-enables for retry
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -134,6 +163,26 @@ export function StreamCard({ stream, role, onWithdraw }: StreamCardProps) {
             <>
               <Download className="w-4 h-4" />
               Withdraw ${availableAmount.toFixed(2)}
+            </>
+          )}
+        </button>
+      )}
+
+      {role === 'sending' && stream.cancelable && stream.active && (
+        <button
+          onClick={handleCancel}
+          disabled={cancelling}
+          className="w-full mt-3 px-4 py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 flex items-center justify-center gap-2 transition-colors"
+        >
+          {cancelling ? (
+            <>
+              <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              Cancelling...
+            </>
+          ) : (
+            <>
+              <XCircle className="w-4 h-4" />
+              Cancel Stream
             </>
           )}
         </button>

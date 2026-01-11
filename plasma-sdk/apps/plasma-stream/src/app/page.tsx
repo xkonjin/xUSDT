@@ -286,6 +286,7 @@ export default function DashboardPage() {
                 key={stream.id}
                 stream={stream as any}
                 role={tab}
+                walletAddress={wallet?.address}
                 onWithdraw={handleRefresh}
               />
             ))}

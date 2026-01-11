@@ -36,8 +36,8 @@ const publicClient = createPublicClient({
   transport: http(PLASMA_MAINNET_RPC),
 });
 
-// ABI for transferWithAuthorization function
-const TRANSFER_WITH_AUTH_ABI = [
+// ABI for USDT0 functions
+const USDT0_ABI = [
   {
     name: 'transferWithAuthorization',
     type: 'function',
@@ -54,6 +54,23 @@ const TRANSFER_WITH_AUTH_ABI = [
       { name: 's', type: 'bytes32' },
     ],
     outputs: [],
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'authorizationState',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'authorizer', type: 'address' },
+      { name: 'nonce', type: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
   },
 ] as const;
 
@@ -166,6 +183,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Check user has sufficient balance before executing (saves gas on failure)
+    const balance = await publicClient.readContract({
+      address: USDT0_ADDRESS,
+      abi: USDT0_ABI,
+      functionName: 'balanceOf',
+      args: [message.from as Address],
+    });
+
+    if (balance < paymentAmount) {
+      return NextResponse.json(
+        { error: 'Insufficient USDT0 balance. You need at least $0.99 USDT0.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if nonce is already used (prevents replay attacks)
+    const nonceUsed = await publicClient.readContract({
+      address: USDT0_ADDRESS,
+      abi: USDT0_ABI,
+      functionName: 'authorizationState',
+      args: [message.from as Address, message.nonce as Hex],
+    });
+
+    if (nonceUsed) {
+      return NextResponse.json(
+        { error: 'Authorization already used. Please sign a new authorization.' },
+        { status: 400 }
+      );
+    }
+
     // Create wallet client with relayer account
     const account = privateKeyToAccount(RELAYER_KEY);
     const walletClient = createWalletClient({
@@ -177,7 +224,7 @@ export async function POST(req: NextRequest) {
     // Execute transferWithAuthorization on-chain
     const txHash = await walletClient.writeContract({
       address: USDT0_ADDRESS,
-      abi: TRANSFER_WITH_AUTH_ABI,
+      abi: USDT0_ABI,
       functionName: 'transferWithAuthorization',
       args: [
         message.from as Address,
@@ -205,15 +252,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Persist payment to database
-    await prisma.subKillerPayment.create({
-      data: {
-        walletAddress: from.toLowerCase(),
-        email: email || null,
-        amount: 0.99,
-        txHash,
-      },
-    });
+    // Persist payment to database (handle race condition with upsert)
+    try {
+      await prisma.subKillerPayment.create({
+        data: {
+          walletAddress: from.toLowerCase(),
+          email: email || null,
+          amount: 0.99,
+          txHash,
+        },
+      });
+    } catch (dbError: unknown) {
+      // If unique constraint violation, payment was already recorded by concurrent request
+      const prismaError = dbError as { code?: string };
+      if (prismaError.code === 'P2002') {
+        const existing = await prisma.subKillerPayment.findUnique({
+          where: { walletAddress: from.toLowerCase() },
+        });
+        return NextResponse.json({
+          type: 'payment-completed',
+          txHash: existing?.txHash || txHash,
+          status: 'already-paid',
+        });
+      }
+      throw dbError;
+    }
 
     return NextResponse.json({
       type: 'payment-completed',
