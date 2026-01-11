@@ -1,11 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, TrendingUp, Droplets, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { PredictionMarket } from "@/lib/types";
 import { formatUSDT, formatPrice, formatTimeLeft, formatVolume } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
+import { usePriceHistoryStore, formatPriceChange } from "@/lib/price-history";
+import { useDemoStore } from "@/lib/demo-store";
+import { Sparkline } from "./Sparkline";
+import { LivePriceIndicator, PriceChangeAnimation } from "./LivePriceIndicator";
+import { usePriceUpdates } from "@/hooks/usePriceUpdates";
+import type { PriceChange } from "@/lib/price-updater";
 
 interface MarketCardProps {
   market: PredictionMarket;
@@ -15,8 +22,39 @@ interface MarketCardProps {
 
 export function MarketCard({ market, index = 0, featured = false }: MarketCardProps) {
   const { openBettingModal } = usePredictionStore();
-  const yesPercent = Math.round(market.yesPrice * 100);
+  const { isDemoMode } = useDemoStore();
+  const { 
+    getHistoryForRange, 
+    getPriceChange, 
+    addPriceSnapshot,
+    generateDemoHistory,
+    getHistory 
+  } = usePriceHistoryStore();
+  
+  // Real-time price updates
+  const { priceUpdate, isLive, priceChange: realtimePriceChange } = usePriceUpdates(market.id);
+  
+  // Use real-time price if available, otherwise fall back to prop
+  const currentYesPrice = priceUpdate?.yesPrice ?? market.yesPrice;
+  const currentNoPrice = priceUpdate?.noPrice ?? market.noPrice;
+  const yesPercent = Math.round(currentYesPrice * 100);
   const isEnded = new Date(market.endDate) < new Date();
+  
+  // Get price history and change for sparkline
+  const priceHistory = getHistoryForRange(market.id, "24h");
+  const historicalPriceChange = getPriceChange(market.id, "24h");
+
+  // Generate demo history if in demo mode and no history exists
+  useEffect(() => {
+    if (isDemoMode && getHistory(market.id).length === 0) {
+      generateDemoHistory(market.id, market.yesPrice);
+    }
+  }, [isDemoMode, market.id, market.yesPrice, getHistory, generateDemoHistory]);
+
+  // Track price changes (both from props and real-time updates)
+  useEffect(() => {
+    addPriceSnapshot(market.id, currentYesPrice);
+  }, [market.id, currentYesPrice, addPriceSnapshot]);
 
   return (
     <motion.div
@@ -71,16 +109,38 @@ export function MarketCard({ market, index = 0, featured = false }: MarketCardPr
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-[rgb(var(--yes-green))]">
-              {yesPercent}%
-            </span>
+            <PriceChangeAnimation 
+              priceChange={realtimePriceChange} 
+              animationKey={priceUpdate?.timestamp}
+            >
+              <span className="text-2xl font-bold text-[rgb(var(--yes-green))]">
+                {yesPercent}%
+              </span>
+            </PriceChangeAnimation>
             <span className="text-sm text-white/40">Yes</span>
+            {/* Live indicator */}
+            <LivePriceIndicator isLive={isLive} />
+            {/* Price change indicator */}
+            {priceHistory.length > 1 && !isLive && (
+              <span className={`text-xs font-medium ${historicalPriceChange.isPositive ? 'text-[rgb(var(--yes-green))]' : 'text-[rgb(var(--no-red))]'}`}>
+                {formatPriceChange(historicalPriceChange)}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Sparkline */}
+            {priceHistory.length > 1 && (
+              <Sparkline data={priceHistory} width={50} height={20} />
+            )}
             <span className="text-sm text-white/40">No</span>
-            <span className="text-2xl font-bold text-[rgb(var(--no-red))]">
-              {100 - yesPercent}%
-            </span>
+            <PriceChangeAnimation 
+              priceChange={realtimePriceChange} 
+              animationKey={priceUpdate?.timestamp}
+            >
+              <span className="text-2xl font-bold text-[rgb(var(--no-red))]">
+                {100 - yesPercent}%
+              </span>
+            </PriceChangeAnimation>
           </div>
         </div>
         
@@ -117,7 +177,7 @@ export function MarketCard({ market, index = 0, featured = false }: MarketCardPr
           className="flex-1 btn-yes touch-target flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span className="font-bold">Bet YES</span>
-          <span className="opacity-70 font-medium">{formatPrice(market.yesPrice)}</span>
+          <span className="opacity-70 font-medium">{formatPrice(currentYesPrice)}</span>
         </button>
         <button
           onClick={() => openBettingModal(market, "NO")}
@@ -125,7 +185,7 @@ export function MarketCard({ market, index = 0, featured = false }: MarketCardPr
           className="flex-1 btn-no touch-target flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span className="font-bold">Bet NO</span>
-          <span className="opacity-70 font-medium">{formatPrice(market.noPrice)}</span>
+          <span className="opacity-70 font-medium">{formatPrice(currentNoPrice)}</span>
         </button>
       </div>
     </motion.div>

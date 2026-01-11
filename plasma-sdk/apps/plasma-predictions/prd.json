@@ -1,0 +1,164 @@
+{
+  "name": "Plasma Predictions Production Release",
+  "version": "1.0.0",
+  "description": "Prediction market app with Polymarket integration - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Smart Contract & Backend Foundation",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "PRED-001",
+          "title": "Deploy Prediction Market Smart Contracts",
+          "description": "Deploy CTF (Conditional Token Framework), AMM Factory, and Settlement Oracle contracts",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "PRED-002",
+          "title": "Implement Gasless Bet Submission",
+          "description": "Connect betting flow to relay with signed EIP-3009 transfers",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "PRED-003",
+          "title": "Backend: User Position Tracking",
+          "description": "Store bets in database, sync positions with on-chain state",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "PRED-004",
+          "title": "Backend: Market Resolution",
+          "description": "Integrate oracle for market settlement and payout distribution",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Real-time Data & Trading",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "PRED-005",
+          "title": "Real-time Price Updates",
+          "description": "WebSocket integration for live price changes",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "PRED-006",
+          "title": "Leaderboard Backend",
+          "description": "Calculate rankings from on-chain position data",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "PRED-007",
+          "title": "Price History Charts",
+          "description": "Add sparklines and detailed price charts to market cards",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "PRED-008",
+          "title": "Order Book Display",
+          "description": "Show market depth and liquidity visualization",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Social & Analytics Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "PRED-009",
+          "title": "Market Comments/Discussion",
+          "description": "Add social features - comments and discussion threads",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "PRED-010",
+          "title": "Related Markets",
+          "description": "Cross-linking between related prediction markets",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "PRED-011",
+          "title": "Push Notifications",
+          "description": "Price alerts, position updates, settlement notifications",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "PRED-012",
+          "title": "Portfolio Analytics",
+          "description": "Win rate charts, P&L breakdown, performance metrics",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Advanced Features & Polish",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "PRED-013",
+          "title": "Dark/Light Mode Toggle",
+          "description": "Theme switching functionality",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "PRED-014",
+          "title": "Social Sharing",
+          "description": "Twitter/Discord integration for sharing positions",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "PRED-015",
+          "title": "Market Creation",
+          "description": "User-generated prediction markets",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "PRED-016",
+          "title": "LP Positions",
+          "description": "Liquidity provider UI for market making",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 45,
+    "productionReadiness": 35,
+    "testCoverage": 30,
+    "targetTestCoverage": 80
+  },
+  "designReferences": [
+    "Polymarket - Price sparklines, clean market cards, activity feed",
+    "Kalshi - Order book depth, position summary cards",
+    "Manifold Markets - Social features, comments"
+  ],
+  "blockers": [
+    "No smart contracts deployed",
+    "Real bet execution requires CTF integration",
+    "Settlement requires oracle infrastructure"
+  ]
+}

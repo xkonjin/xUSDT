@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -14,8 +15,11 @@ import {
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { BettingModal } from "@/components/BettingModal";
+import { PriceChart } from "@/components/PriceChart";
 import { useMarket } from "@/hooks/useMarkets";
 import { usePredictionStore } from "@/lib/store";
+import { usePriceHistoryStore } from "@/lib/price-history";
+import { useDemoStore } from "@/lib/demo-store";
 import {
   formatUSDT,
   formatPrice,
@@ -28,6 +32,28 @@ export default function MarketDetailPage() {
   const marketId = params.marketId as string;
   const { data: market, isLoading } = useMarket(marketId);
   const { openBettingModal } = usePredictionStore();
+  const { isDemoMode } = useDemoStore();
+  const { 
+    getHistoryForRange, 
+    getPriceChange, 
+    addPriceSnapshot,
+    generateDemoHistory,
+    getHistory 
+  } = usePriceHistoryStore();
+
+  // Generate demo history if in demo mode
+  useEffect(() => {
+    if (market && isDemoMode && getHistory(market.id).length === 0) {
+      generateDemoHistory(market.id, market.yesPrice);
+    }
+  }, [isDemoMode, market, getHistory, generateDemoHistory]);
+
+  // Track current price
+  useEffect(() => {
+    if (market) {
+      addPriceSnapshot(market.id, market.yesPrice);
+    }
+  }, [market, addPriceSnapshot]);
 
   if (isLoading) {
     return (
@@ -163,6 +189,23 @@ export default function MarketDetailPage() {
               Bet NO {formatPrice(market.noPrice)}
             </button>
           </div>
+        </motion.div>
+
+        {/* Price History Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="liquid-glass rounded-2xl p-6 mb-6"
+        >
+          <h2 className="text-lg font-semibold text-white mb-4">Price History</h2>
+          <PriceChart
+            marketId={market.id}
+            currentPrice={market.yesPrice}
+            priceChange={getPriceChange(market.id, "24h")}
+            getHistoryForRange={getHistoryForRange}
+            height={220}
+          />
         </motion.div>
 
         {/* Market Stats */}

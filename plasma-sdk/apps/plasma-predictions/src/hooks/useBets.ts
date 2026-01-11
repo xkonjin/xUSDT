@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePlasmaWallet, useGaslessTransfer } from "@plasma-pay/privy-auth";
-import type { Bet, PlaceBetParams, CashOutParams, BetResult, UserBet } from "@/lib/types";
+import type { Bet, PlaceBetParams, CashOutParams, BetResult, UserBet, PredictionMarket } from "@/lib/types";
 import { GASLESS_ROUTER_ADDRESS } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
+import { useDemoStore, type DemoBet, type DemoPortfolioStats } from "@/lib/demo-store";
 import type { Address } from "viem";
 
 const MOCK_BETS: UserBet[] = [];
@@ -188,6 +189,190 @@ export function useCashOut() {
         });
         closeCashOutModal();
         queryClient.invalidateQueries({ queryKey: ["user-bets", address] });
+      } else {
+        setRecentTx({
+          hash: "",
+          type: "cashout",
+          status: "failed",
+        });
+      }
+    },
+    onError: () => {
+      setRecentTx({
+        hash: "",
+        type: "cashout",
+        status: "failed",
+      });
+    },
+  });
+}
+
+// =====================
+// DEMO MODE HOOKS
+// =====================
+
+/**
+ * Convert a DemoBet to UserBet format for consistency
+ */
+function demoBetToUserBet(demoBet: DemoBet): UserBet {
+  return {
+    id: demoBet.id,
+    marketId: demoBet.marketId,
+    market: demoBet.market,
+    userAddress: "DEMO_USER",
+    outcome: demoBet.outcome,
+    shares: demoBet.shares,
+    amount: demoBet.amount,
+    status: demoBet.status === "cashed_out" ? "cashed_out" : demoBet.status,
+    createdAt: demoBet.placedAt,
+    settledAt: demoBet.resolvedAt,
+    txHash: `demo-tx-${demoBet.id}`,
+  };
+}
+
+/**
+ * Hook to get user bets in demo mode
+ * Returns demo bets converted to UserBet format
+ */
+export function useDemoUserBets() {
+  const demoBets = useDemoStore((state) => state.demoBets);
+  
+  // Convert demo bets to UserBet format
+  const data: UserBet[] = demoBets.map(demoBetToUserBet);
+  
+  return {
+    data,
+    isLoading: false,
+    isError: false,
+    error: null,
+  };
+}
+
+/**
+ * Hook to get portfolio stats in demo mode
+ */
+export function useDemoPortfolioStats(currentMarkets: PredictionMarket[]): DemoPortfolioStats {
+  const getPortfolioStats = useDemoStore((state) => state.getPortfolioStats);
+  return getPortfolioStats(currentMarkets);
+}
+
+/**
+ * Parameters for placing a demo bet
+ */
+export interface DemoPlaceBetParams {
+  market: PredictionMarket;
+  outcome: "YES" | "NO";
+  amount: number;
+}
+
+/**
+ * Hook to place a bet in demo mode
+ */
+export function useDemoPlaceBet() {
+  const placeDemoBet = useDemoStore((state) => state.placeDemoBet);
+  const { setRecentTx, closeBettingModal } = usePredictionStore();
+
+  return useMutation({
+    mutationFn: async (params: DemoPlaceBetParams) => {
+      // Simulate a small delay for UX
+      await new Promise((r) => setTimeout(r, 500));
+      
+      const bet = placeDemoBet({
+        market: params.market,
+        outcome: params.outcome,
+        amount: params.amount,
+      });
+      
+      if (!bet) {
+        throw new Error("Failed to place bet. Check your balance.");
+      }
+      
+      return {
+        success: true,
+        txHash: `demo-tx-${bet.id}`,
+        shares: bet.shares,
+        bet,
+      };
+    },
+    onMutate: () => {
+      setRecentTx({
+        hash: "",
+        type: "bet",
+        status: "pending",
+      });
+    },
+    onSuccess: (result) => {
+      if (result.success && result.txHash) {
+        setRecentTx({
+          hash: result.txHash,
+          type: "bet",
+          status: "success",
+        });
+        closeBettingModal();
+      } else {
+        setRecentTx({
+          hash: "",
+          type: "bet",
+          status: "failed",
+        });
+      }
+    },
+    onError: () => {
+      setRecentTx({
+        hash: "",
+        type: "bet",
+        status: "failed",
+      });
+    },
+  });
+}
+
+/**
+ * Parameters for cashing out a demo bet
+ */
+export interface DemoCashOutParams {
+  betId: string;
+  currentPrice: number;
+}
+
+/**
+ * Hook to cash out a bet in demo mode
+ */
+export function useDemoCashOut() {
+  const cashOutDemoBet = useDemoStore((state) => state.cashOutDemoBet);
+  const { setRecentTx, closeCashOutModal } = usePredictionStore();
+
+  return useMutation({
+    mutationFn: async (params: DemoCashOutParams) => {
+      // Simulate a small delay for UX
+      await new Promise((r) => setTimeout(r, 500));
+      
+      const success = cashOutDemoBet(params.betId, params.currentPrice);
+      
+      if (!success) {
+        throw new Error("Failed to cash out. Bet may already be resolved.");
+      }
+      
+      return {
+        success: true,
+        txHash: `demo-cashout-${params.betId}`,
+      };
+    },
+    onMutate: () => {
+      setRecentTx({
+        hash: "",
+        type: "cashout",
+        status: "pending",
+      });
+    },
+    onSuccess: (result) => {
+      if (result.success && result.txHash) {
+        setRecentTx({
+          hash: result.txHash,
+          type: "cashout",
+          status: "success",
+        });
+        closeCashOutModal();
       } else {
         setRecentTx({
           hash: "",

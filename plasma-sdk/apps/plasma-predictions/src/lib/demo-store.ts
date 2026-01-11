@@ -13,8 +13,11 @@ export interface DemoBet {
   amount: number;
   shares: number;
   price: number;
-  status: "active" | "won" | "lost";
+  status: "active" | "won" | "lost" | "cashed_out";
   placedAt: string;
+  resolvedAt?: string;
+  cashOutPrice?: number;
+  cashOutValue?: number;
 }
 
 export interface DemoStats {
@@ -26,6 +29,14 @@ export interface DemoStats {
   winRate: number;
 }
 
+export interface DemoPortfolioStats {
+  totalValue: number;
+  totalPnl: number;
+  totalPnlPercent: number;
+  activeBets: number;
+  resolvedBets: number;
+}
+
 interface DemoStore {
   isDemoMode: boolean;
   demoBalance: number;
@@ -34,6 +45,7 @@ interface DemoStore {
   // Computed
   getDemoStats: () => DemoStats;
   getActiveDemoBets: () => DemoBet[];
+  getPortfolioStats: (currentMarkets: PredictionMarket[]) => DemoPortfolioStats;
   
   // Actions
   enableDemoMode: () => void;
@@ -45,6 +57,8 @@ interface DemoStore {
     amount: number;
   }) => DemoBet | null;
   resolveDemoBet: (betId: string, won: boolean) => void;
+  cashOutDemoBet: (betId: string, currentPrice: number) => boolean;
+  checkAndResolveExpiredBets: () => void;
   resetDemoAccount: () => void;
 }
 
@@ -132,9 +146,10 @@ export const useDemoStore = create<DemoStore>()(
           updatedBets[betIndex] = {
             ...bet,
             status: won ? "won" : "lost",
+            resolvedAt: new Date().toISOString(),
           };
 
-          // If won, add winnings to balance
+          // If won, add winnings to balance (shares pay $1 each on win)
           const balanceChange = won ? bet.shares : 0;
 
           return {
@@ -142,6 +157,106 @@ export const useDemoStore = create<DemoStore>()(
             demoBalance: state.demoBalance + balanceChange,
           };
         });
+      },
+
+      cashOutDemoBet: (betId, currentPrice) => {
+        const state = get();
+        const betIndex = state.demoBets.findIndex((b) => b.id === betId);
+        if (betIndex === -1) return false;
+
+        const bet = state.demoBets[betIndex];
+        if (bet.status !== "active") return false;
+
+        const cashOutValue = bet.shares * currentPrice;
+
+        set((state) => {
+          const updatedBets = [...state.demoBets];
+          updatedBets[betIndex] = {
+            ...bet,
+            status: "cashed_out",
+            resolvedAt: new Date().toISOString(),
+            cashOutPrice: currentPrice,
+            cashOutValue,
+          };
+
+          return {
+            demoBets: updatedBets,
+            demoBalance: state.demoBalance + cashOutValue,
+          };
+        });
+
+        return true;
+      },
+
+      checkAndResolveExpiredBets: () => {
+        set((state) => {
+          const now = new Date();
+          let balanceChange = 0;
+
+          const updatedBets = state.demoBets.map((bet) => {
+            // Skip already resolved bets
+            if (bet.status !== "active") return bet;
+
+            // Check if market has ended and resolved
+            const market = bet.market;
+            if (!market.resolved || !market.outcome) return bet;
+
+            const endDate = new Date(market.endDate);
+            if (endDate > now) return bet;
+
+            // Market is resolved, determine if bet won
+            const won = bet.outcome === market.outcome;
+            
+            if (won) {
+              balanceChange += bet.shares; // Each share pays $1 on win
+            }
+
+            return {
+              ...bet,
+              status: won ? "won" as const : "lost" as const,
+              resolvedAt: new Date().toISOString(),
+            };
+          });
+
+          return {
+            demoBets: updatedBets,
+            demoBalance: state.demoBalance + balanceChange,
+          };
+        });
+      },
+
+      getPortfolioStats: (currentMarkets) => {
+        const bets = get().demoBets;
+        const active = bets.filter((b) => b.status === "active");
+        const resolved = bets.filter((b) => 
+          ["won", "lost", "cashed_out"].includes(b.status)
+        );
+
+        // Calculate total value based on current market prices
+        let totalValue = 0;
+        let totalCost = 0;
+
+        for (const bet of active) {
+          // Find the current market data
+          const currentMarket = currentMarkets.find((m) => m.id === bet.marketId);
+          const currentPrice = currentMarket
+            ? bet.outcome === "YES" ? currentMarket.yesPrice : currentMarket.noPrice
+            : bet.price; // Fall back to purchase price if market not found
+          
+          totalValue += bet.shares * currentPrice;
+          totalCost += bet.amount;
+        }
+
+        const totalPnl = totalValue - totalCost;
+        const totalPnlPercent = totalCost > 0 ? totalPnl / totalCost : 0;
+
+        return {
+          totalValue,
+          totalPnl,
+          totalPnlPercent,
+          activeBets: active.length,
+          resolvedBets: resolved.length,
+        };
       },
 
       resetDemoAccount: () =>

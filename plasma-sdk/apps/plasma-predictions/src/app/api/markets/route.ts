@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCorsHeaders } from "@/lib/cors";
 
 const GAMMA_API_URL = "https://gamma-api.polymarket.com";
 
@@ -28,9 +29,10 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     
     // Return with CORS headers
+    const origin = request.headers.get("origin");
     return NextResponse.json(data, {
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        ...getCorsHeaders(origin),
         "Cache-Control": "s-maxage=30, stale-while-revalidate=60",
       },
     });

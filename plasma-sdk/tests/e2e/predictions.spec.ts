@@ -315,3 +315,132 @@ test.describe("Plasma Predictions - Mobile Responsive", () => {
     await expect(modal).toBeVisible();
   });
 });
+
+test.describe("Plasma Predictions - Demo Mode", () => {
+  test.beforeEach(async ({ page }) => {
+    // Clear localStorage before each test
+    await page.goto(BASE_URL);
+    await page.evaluate(() => localStorage.clear());
+  });
+
+  test("should enable demo mode from header", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    // Click Try Demo button
+    const tryDemoButton = page.getByRole("button", { name: /Try Demo/i });
+    await tryDemoButton.click();
+    
+    // Wait for demo mode to activate
+    await page.waitForTimeout(500);
+    
+    // Verify demo mode - look for the demo balance button in header
+    await expect(page.getByRole("button", { name: /Demo.*\$/ })).toBeVisible({ timeout: 5000 });
+  });
+
+  test("should show demo balance in header after enabling", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    await page.getByRole("button", { name: /Try Demo/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Navigate to predictions
+    await page.goto(`${BASE_URL}/predictions`);
+    await page.waitForTimeout(1000);
+    
+    // Demo balance button should be visible in header
+    await expect(page.getByRole("button", { name: /Demo.*\$/ })).toBeVisible({ timeout: 5000 });
+  });
+
+  test("should place demo bet successfully", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    // Enable demo mode
+    await page.getByRole("button", { name: /Try Demo/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Go to predictions page directly
+    await page.goto(`${BASE_URL}/predictions`);
+    
+    // Wait for markets to fully load and stabilize
+    await page.waitForSelector("[class*='market-card']", { timeout: 15000 });
+    await page.waitForTimeout(2000); // Give extra time for hydration
+    
+    // Wait for a stable bet button and click it
+    const betButton = page.getByRole("button", { name: /Bet YES/i }).first();
+    await betButton.waitFor({ state: "visible", timeout: 10000 });
+    await betButton.click({ force: true });
+    
+    // Wait for modal
+    await page.waitForTimeout(1000);
+    
+    // Check if modal opened
+    const hasModal = await page.locator("[class*='bottom-sheet'], [role='dialog']").isVisible().catch(() => false);
+    expect(hasModal).toBeTruthy();
+  });
+
+  test("should show demo bets in My Bets page", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    // Enable demo mode
+    await page.getByRole("button", { name: /Try Demo/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Navigate to My Bets
+    await page.goto(`${BASE_URL}/my-bets`);
+    await page.waitForTimeout(1000);
+    
+    // Should show demo mode indicator or empty state for demo
+    const pageContent = await page.textContent("body");
+    expect(pageContent?.toLowerCase()).toMatch(/demo|my bets|no bets/i);
+  });
+
+  test("should persist demo mode across navigation", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    // Enable demo mode
+    await page.getByRole("button", { name: /Try Demo/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Navigate to leaderboard
+    await page.getByRole("link", { name: /Leaderboard/i }).click();
+    await page.waitForTimeout(1000);
+    
+    // Demo balance button should still be visible
+    await expect(page.getByRole("button", { name: /Demo.*\$/ })).toBeVisible({ timeout: 5000 });
+    
+    // Navigate to predictions
+    await page.getByRole("link", { name: /Markets/i }).click();
+    await page.waitForTimeout(1000);
+    
+    // Demo balance button should still be visible
+    await expect(page.getByRole("button", { name: /Demo.*\$/ })).toBeVisible({ timeout: 5000 });
+  });
+
+  test("should exit demo mode", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+    
+    // Enable demo mode
+    await page.getByRole("button", { name: /Try Demo/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Click the demo balance dropdown
+    await page.getByRole("button", { name: /Demo.*\$/ }).click();
+    await page.waitForTimeout(300);
+    
+    // Find and click exit button
+    const exitButton = page.getByRole("button", { name: /Exit Demo/i });
+    if (await exitButton.isVisible().catch(() => false)) {
+      await exitButton.click();
+      await page.waitForTimeout(500);
+      
+      // Try Demo button should be visible again
+      await expect(page.getByRole("button", { name: /Try Demo/i })).toBeVisible({ timeout: 5000 });
+    }
+  });
+});

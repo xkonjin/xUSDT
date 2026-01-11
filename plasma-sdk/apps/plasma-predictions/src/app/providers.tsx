@@ -4,6 +4,7 @@ import { createPlasmaProviders } from "@plasma-pay/privy-auth";
 import { ErrorBoundary } from "@plasma-pay/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, ReactNode } from "react";
+import { PriceUpdaterProvider } from "@/lib/price-updater-context";
 
 const PlasmaProviders = createPlasmaProviders({
   loginMethods: ["email", "google", "apple", "sms", "wallet"],
@@ -26,7 +27,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PlasmaProviders>{children}</PlasmaProviders>
+      <PlasmaProviders>
+        <PriceUpdaterProvider pollingInterval={30000}>
+          {children}
+        </PriceUpdaterProvider>
+      </PlasmaProviders>
     </QueryClientProvider>
   );
 }
