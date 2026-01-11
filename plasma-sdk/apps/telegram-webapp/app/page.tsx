@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Send, Receipt, Clock, Gift } from "lucide-react";
 import {
   initTelegramWebApp,
-  getTelegramUser,
-  getStartParam,
   hapticFeedback,
   isTelegramWebApp,
 } from "@/lib/telegram";
+import { useTelegramAuth } from "@/lib/use-telegram-auth";
 
 export default function TelegramHome() {
-  const [user, setUser] = useState<{ id: number; first_name: string } | null>(null);
-  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const { isLoading, isAuthenticated, user, startParam: referralCode, error } = useTelegramAuth();
 
   useEffect(() => {
     initTelegramWebApp();
-    setUser(getTelegramUser());
-    setReferralCode(getStartParam());
   }, []);
 
   const handleAction = (action: string) => {

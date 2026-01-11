@@ -1,0 +1,151 @@
+{
+  "name": "Splitzy Bot Production Release",
+  "version": "1.0.0",
+  "description": "Telegram bill splitting bot with AI OCR - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Persistence & Security",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLITZY-001",
+          "title": "Migrate payment intents to database",
+          "description": "Replace in-memory Map with @plasma-pay/db",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLITZY-002",
+          "title": "Save wallet addresses to database",
+          "description": "Persist TelegramWallet mapping",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLITZY-003",
+          "title": "Production webhook setup",
+          "description": "Configure HTTPS + webhook secret",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLITZY-004",
+          "title": "Add rate limiting",
+          "description": "Prevent abuse of bot commands",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Feature Completion",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLITZY-005",
+          "title": "Implement /history command",
+          "description": "Query bills from database",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLITZY-006",
+          "title": "Add payment completion notifications",
+          "description": "Send Telegram message when paid",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLITZY-007",
+          "title": "DM participants with payment links",
+          "description": "Auto-message @mentioned users",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLITZY-008",
+          "title": "Connect Privy wallet flow",
+          "description": "Implement Mini App wallet connection",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Payment Integration",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLITZY-009",
+          "title": "Create payment page integration",
+          "description": "Link QR codes to actual payment UI",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLITZY-010",
+          "title": "Bridge transaction execution",
+          "description": "Complete the cross-chain payment flow",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLITZY-011",
+          "title": "Add edit/remove items in scan flow",
+          "description": "Allow item modification after OCR",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLITZY-012",
+          "title": "Copy all links button",
+          "description": "Implement callback for bulk copy",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "UX Improvements",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLITZY-013",
+          "title": "Add error recovery flows",
+          "description": "Handle OCR failures gracefully",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLITZY-014",
+          "title": "Photo compression guidance",
+          "description": "Help users with poor scans",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLITZY-015",
+          "title": "Add receipt templates",
+          "description": "Common restaurant/store patterns",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 70,
+    "productionReadiness": 55,
+    "testCoverage": 0,
+    "targetTestCoverage": 50
+  },
+  "designReferences": [
+    "Splitwise bot patterns",
+    "Telegram bot best practices"
+  ]
+}

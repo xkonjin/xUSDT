@@ -328,6 +328,7 @@ export default function NewBillPage() {
           ) : receiptPreview ? (
             <div className="space-y-4">
               <div className="relative rounded-xl overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={receiptPreview} 
                   alt="Receipt" 

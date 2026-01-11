@@ -49,13 +49,13 @@ export default function PayScreen() {
     setPaying(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    posthog.capture('payment_initiated', { linkId, amount: paymentLink?.amount });
+    posthog.capture('payment_initiated', { linkId, amount: paymentLink?.amount ?? null });
 
     // Simulate payment
     await new Promise((resolve) => setTimeout(resolve, 2000));
     
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    posthog.capture('payment_completed', { linkId, amount: paymentLink?.amount });
+    posthog.capture('payment_completed', { linkId, amount: paymentLink?.amount ?? null });
     
     setSuccess(true);
     setPaying(false);

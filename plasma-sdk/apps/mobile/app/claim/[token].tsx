@@ -65,7 +65,7 @@ export default function ClaimScreen() {
     setError(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
-    posthog.capture('claim_initiated', { token, amount: claim?.amount });
+    posthog.capture('claim_initiated', { token, amount: claim?.amount ?? null });
 
     try {
       // TODO: Get actual claimer address from wallet context
@@ -74,7 +74,7 @@ export default function ClaimScreen() {
       
       if (result.txHash) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        posthog.capture('claim_completed', { token, amount: claim?.amount, txHash: result.txHash });
+        posthog.capture('claim_completed', { token, amount: claim?.amount ?? null, txHash: result.txHash });
         setSuccess(true);
       }
     } catch (err) {

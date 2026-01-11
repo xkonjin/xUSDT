@@ -6,12 +6,17 @@ import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
+import { RecentContacts } from "./RecentContacts";
+import type { Contact } from "./ContactList";
 
 interface SendMoneyFormProps {
   wallet: PlasmaEmbeddedWallet | null;
   balance?: string;
   onSuccess?: () => void;
   onFundWallet?: () => void;
+  contacts?: Contact[];
+  contactsLoading?: boolean;
+  onPaymentSuccess?: (recipientAddress: string) => void;
 }
 
 // Confirmation Modal Component
@@ -198,11 +203,43 @@ function SuccessOverlay({
   );
 }
 
-export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: SendMoneyFormProps) {
+export function SendMoneyForm({ 
+  wallet, 
+  balance, 
+  onSuccess, 
+  onFundWallet,
+  contacts = [],
+  contactsLoading = false,
+  onPaymentSuccess,
+}: SendMoneyFormProps) {
   const [recipient, setRecipient] = useState("");
+  const [recipientName, setRecipientName] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle selecting a contact
+  const handleSelectContact = (contact: Contact) => {
+    if (contact.contactAddress) {
+      setRecipient(contact.contactAddress);
+      setRecipientName(contact.name);
+    } else if (contact.email) {
+      setRecipient(contact.email);
+      setRecipientName(contact.name);
+    } else if (contact.phone) {
+      setRecipient(contact.phone);
+      setRecipientName(contact.name);
+    }
+    playSound('tap');
+  };
+
+  // Clear recipient name when manually editing
+  const handleRecipientChange = (value: string) => {
+    setRecipient(value);
+    if (recipientName && value !== recipient) {
+      setRecipientName(null);
+    }
+  };
   
   // Modal states
   const [showConfirm, setShowConfirm] = useState(false);
@@ -262,6 +299,11 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
         // Sound and haptic feedback
         playSound('success');
         hapticFeedback('medium');
+        
+        // Notify parent about payment success (for updating contact's lastPayment)
+        if (onPaymentSuccess && /^0x[a-fA-F0-9]{40}$/.test(recipient)) {
+          onPaymentSuccess(recipient);
+        }
       } else {
         playSound('error');
         hapticFeedback('light');
@@ -277,6 +319,7 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
   const handleSuccessClose = () => {
     setShowSuccess(false);
     setRecipient("");
+    setRecipientName(null);
     setAmount("");
     setSuccessTxHash(undefined);
     setSuccessClaimUrl(undefined);
@@ -299,6 +342,16 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
           Send Money
         </h2>
 
+        {/* Recent contacts */}
+        {contacts.length > 0 && !recipient && (
+          <RecentContacts
+            contacts={contacts}
+            onSelect={handleSelectContact}
+            loading={contactsLoading}
+            limit={5}
+          />
+        )}
+
         <div>
           <label className="block text-white/60 text-sm mb-2 font-medium">
             Who are you paying?
@@ -307,8 +360,8 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
             <input
               type="text"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
+              value={recipientName || recipient}
+              onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
               className="clay-input w-full pl-12 py-4 text-white placeholder:text-white/30"
               disabled={loading}
@@ -317,7 +370,12 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
               <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-400" />
             )}
           </div>
-          {recipient && !isValidRecipient && (
+          {recipientName && (
+            <p className="text-[rgb(0,212,255)] text-xs mt-2 flex items-center gap-1">
+              Sending to {recipientName}
+            </p>
+          )}
+          {recipient && !isValidRecipient && !recipientName && (
             <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
               Enter a valid email, phone, or wallet address
@@ -426,7 +484,7 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
         onClose={() => setShowConfirm(false)}
         onConfirm={handleConfirmSend}
         loading={loading}
-        recipient={recipient}
+        recipient={recipientName || recipient}
         amount={amount}
       />
 
@@ -434,7 +492,7 @@ export function SendMoneyForm({ wallet, balance, onSuccess, onFundWallet }: Send
       <SuccessOverlay
         isVisible={showSuccess}
         amount={amount}
-        recipient={recipient}
+        recipient={recipientName || recipient}
         txHash={successTxHash}
         claimUrl={successClaimUrl}
         onClose={handleSuccessClose}

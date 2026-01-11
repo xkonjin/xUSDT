@@ -1,0 +1,187 @@
+{
+  "name": "Plasma Venmo Production Release",
+  "version": "1.0.0",
+  "description": "P2P payment app with gasless USDT0 transfers - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Security & Testing Foundation",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "VENMO-001",
+          "title": "Add E2E tests with Playwright",
+          "description": "Cover send/receive/claim flows end-to-end",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "VENMO-002", 
+          "title": "Add API route tests",
+          "description": "All 14 API route directories need test coverage",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "VENMO-003",
+          "title": "Implement rate limiting middleware",
+          "description": "Add rate limiting to all API routes to prevent abuse",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "VENMO-004",
+          "title": "Add CSRF protection",
+          "description": "Protect state-changing API routes from CSRF attacks",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "VENMO-005",
+          "title": "Audit environment variables",
+          "description": "Ensure no secrets leaked to client-side code",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Core Feature Completion",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "VENMO-006",
+          "title": "Implement real social feed",
+          "description": "Replace mock data with actual transaction feed from database",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "VENMO-007",
+          "title": "Add friend/contact system",
+          "description": "User connections, favorites, recent payees functionality",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "VENMO-008",
+          "title": "Implement search",
+          "description": "Search users, transactions, and payment links",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "VENMO-009",
+          "title": "Add input validation middleware",
+          "description": "Sanitize all API inputs for security",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "VENMO-010",
+          "title": "Mobile responsive fixes",
+          "description": "Full mobile optimization pass for all screens",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Advanced Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "VENMO-011",
+          "title": "Add split bills feature",
+          "description": "Multi-party payment splitting functionality",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "VENMO-012",
+          "title": "Add recurring payments",
+          "description": "Scheduled/recurring transfer functionality",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "VENMO-013",
+          "title": "Implement notification center",
+          "description": "In-app notifications beyond email",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "VENMO-014",
+          "title": "Add transaction categories",
+          "description": "Tagging and filtering for transactions",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "VENMO-015",
+          "title": "Implement user onboarding",
+          "description": "Tutorial flow for new users",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Polish & Launch",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "VENMO-016",
+          "title": "Accessibility audit",
+          "description": "ARIA labels, keyboard navigation, screen reader support",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "VENMO-017",
+          "title": "Add light theme",
+          "description": "Complete theme toggle functionality",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "VENMO-018",
+          "title": "Implement help center",
+          "description": "In-app FAQ and support system",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "VENMO-019",
+          "title": "Performance optimization",
+          "description": "Bundle analysis, lazy loading, caching",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "VENMO-020",
+          "title": "Add analytics integration",
+          "description": "Mixpanel/PostHog for user behavior tracking",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 55,
+    "productionReadiness": 40,
+    "testCoverage": 40,
+    "targetTestCoverage": 80
+  },
+  "designReferences": [
+    "Venmo - Social feed, emoji reactions, profile photos",
+    "Cash App - Clean send flow, quick amounts, dark theme",
+    "PayPal - Transaction history, categorization"
+  ]
+}

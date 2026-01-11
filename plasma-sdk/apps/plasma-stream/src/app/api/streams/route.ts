@@ -2,14 +2,15 @@
  * Plasma Stream API Routes
  *
  * Handles stream creation and listing for the Plasma Stream app.
- * Streams are now persisted to database (no longer demo mode).
+ * Uses the StreamService abstraction for easy swapping between
+ * mock (database) and real contract implementations.
  *
- * NOTE: This is a simulation - no actual funds are locked on-chain.
- * For production, integrate with on-chain streaming contracts (Sablier-style).
+ * NOTE: Set STREAM_CONTRACT_ADDRESS env var to use real contracts.
+ * Without it, uses mock (database) implementation.
  */
 
 import { NextResponse } from "next/server";
-import { prisma } from "@plasma-pay/db";
+import { getStreamService } from "@/lib/contracts";
 
 /**
  * GET /api/streams
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get("address");
-    const role = searchParams.get("role") || "sending";
+    const role = (searchParams.get("role") || "sending") as "sending" | "receiving";
 
     if (!address) {
       return NextResponse.json(
@@ -33,33 +34,12 @@ export async function GET(request: Request) {
       );
     }
 
-    // Query streams from database (normalize address for case-insensitive matching)
-    const normalizedAddress = address.toLowerCase();
-    const streams = await prisma.stream.findMany({
-      where: role === "sending"
-        ? { sender: normalizedAddress }
-        : { recipient: normalizedAddress },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Transform for frontend (convert string BigInts back)
-    const serializedStreams = streams.map((stream) => ({
-      id: stream.id,
-      sender: stream.sender,
-      recipient: stream.recipient,
-      depositAmount: stream.depositAmount,
-      withdrawnAmount: stream.withdrawnAmount,
-      startTime: stream.startTime,
-      endTime: stream.endTime,
-      cliffTime: stream.cliffTime,
-      cliffAmount: stream.cliffAmount,
-      ratePerSecond: stream.ratePerSecond,
-      cancelable: stream.cancelable,
-      active: stream.active,
-    }));
+    // Use stream service abstraction (mock or contract implementation)
+    const streamService = getStreamService();
+    const streams = await streamService.getStreamsByAddress(address, role);
 
     return NextResponse.json({
-      streams: serializedStreams,
+      streams,
     });
   } catch (error) {
     return NextResponse.json(
@@ -82,10 +62,8 @@ export async function GET(request: Request) {
  * - cliffDuration: Optional cliff period in seconds (default: 0)
  * - cancelable: Whether sender can cancel the stream (default: true)
  *
- * NOTE: This simulates stream creation. In production, this would:
- * 1. Verify sender has sufficient USDT0 balance
- * 2. Lock funds in a streaming contract
- * 3. Return the stream ID from the contract event
+ * Uses StreamService abstraction - will use real contracts when
+ * STREAM_CONTRACT_ADDRESS is set.
  */
 export async function POST(request: Request) {
   try {
@@ -139,49 +117,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate stream parameters
-    const now = Math.floor(Date.now() / 1000);
-    const depositAmountBigInt = BigInt(depositAmount);
-    const durationBigInt = BigInt(duration);
-    const ratePerSecond = depositAmountBigInt / durationBigInt;
-    const cliffAmount =
-      cliffDuration > 0
-        ? (depositAmountBigInt * BigInt(cliffDuration)) / durationBigInt
-        : BigInt(0);
-
-    // Create stream in database
-    const stream = await prisma.stream.create({
-      data: {
-        sender: sender.toLowerCase(),
-        recipient: recipient.toLowerCase(),
-        depositAmount: depositAmountBigInt.toString(),
-        withdrawnAmount: "0",
-        startTime: now,
-        endTime: now + duration,
-        cliffTime: now + cliffDuration,
-        cliffAmount: cliffAmount.toString(),
-        ratePerSecond: ratePerSecond.toString(),
-        cancelable,
-        active: true,
-      },
+    // Use stream service abstraction (mock or contract implementation)
+    const streamService = getStreamService();
+    const result = await streamService.createStream({
+      sender,
+      recipient,
+      depositAmount: depositAmount.toString(),
+      duration,
+      cliffDuration,
+      cancelable,
     });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || "Failed to create stream" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      streamId: stream.id,
-      stream: {
-        id: stream.id,
-        sender: stream.sender,
-        recipient: stream.recipient,
-        depositAmount: stream.depositAmount,
-        withdrawnAmount: "0",
-        startTime: stream.startTime,
-        endTime: stream.endTime,
-        cliffTime: stream.cliffTime,
-        ratePerSecond: stream.ratePerSecond,
-        cancelable: stream.cancelable,
-        active: stream.active,
-      },
+      streamId: result.streamId,
+      stream: result.stream,
+      txHash: result.txHash,
     });
   } catch (error) {
     return NextResponse.json(

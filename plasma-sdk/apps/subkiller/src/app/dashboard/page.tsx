@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [hasPaid, setHasPaid] = useState(false);
   const [paymentTxHash, setPaymentTxHash] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(true);
   
   // Filter state
   const [filter, setFilter] = useState<string>('all');
@@ -70,15 +71,32 @@ export default function Dashboard() {
     }
   }, [status, router]);
 
-  // Check payment status on mount (could persist to localStorage or backend)
+  // SUB-002: Check payment status from server on mount
+  // Queries database instead of localStorage for security
   useEffect(() => {
-    const savedPayment = localStorage.getItem('subkiller_paid');
-    if (savedPayment) {
-      const parsed = JSON.parse(savedPayment);
-      setHasPaid(parsed.hasPaid || false);
-      setPaymentTxHash(parsed.txHash || null);
-    }
-  }, []);
+    const checkPaymentStatus = async () => {
+      // Need wallet address to check payment status
+      if (!wallet?.address) {
+        setIsCheckingPayment(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/payment-status?address=${wallet.address}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHasPaid(data.hasPaid || false);
+          setPaymentTxHash(data.txHash || null);
+        }
+      } catch (error) {
+        console.error('Failed to check payment status:', error);
+      } finally {
+        setIsCheckingPayment(false);
+      }
+    };
+
+    checkPaymentStatus();
+  }, [wallet?.address]);
 
   /**
    * Start scanning Gmail for subscription emails
@@ -140,19 +158,15 @@ export default function Dashboard() {
 
   /**
    * Handle successful payment
-   * Persists payment status to localStorage and unlocks features
+   * SUB-002: Payment is persisted to database by /api/pay
+   * We just update local state here - no more localStorage
    */
   const handlePaymentSuccess = (txHash: string) => {
     setHasPaid(true);
     setPaymentTxHash(txHash);
     setShowPaymentModal(false);
-    
-    // Persist payment status
-    localStorage.setItem('subkiller_paid', JSON.stringify({
-      hasPaid: true,
-      txHash,
-      paidAt: new Date().toISOString(),
-    }));
+    // Note: Payment is already persisted to database by /api/pay endpoint
+    // No localStorage needed - server is source of truth
   };
 
   /**

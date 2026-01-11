@@ -1,0 +1,187 @@
+{
+  "name": "Bill Split (Splitzy) Production Release",
+  "version": "1.0.0",
+  "description": "AI-powered bill splitting with gasless payments - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Security & Testing Foundation",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLIT-001",
+          "title": "Add API authentication middleware",
+          "description": "Verify caller identity on protected routes",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLIT-002",
+          "title": "Implement rate limiting",
+          "description": "Prevent abuse of payment/scan endpoints",
+          "status": "completed",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLIT-003",
+          "title": "Add comprehensive test suite",
+          "description": "Unit tests for share calculation, E2E for payment flow",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLIT-004",
+          "title": "Fix cross-chain bridge integration",
+          "description": "Complete Li.Fi/deBridge transaction building",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SPLIT-005",
+          "title": "Add input validation/sanitization",
+          "description": "Prevent XSS in user-generated content",
+          "status": "completed",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Core Feature Completion",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLIT-006",
+          "title": "Add bill editing functionality",
+          "description": "Allow modifying items/participants after creation",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLIT-007",
+          "title": "Implement notification system",
+          "description": "Telegram/email reminders for unpaid participants",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLIT-008",
+          "title": "Add balance dashboard",
+          "description": "Show who owes whom across all bills",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLIT-009",
+          "title": "Implement simplify debts algorithm",
+          "description": "Reduce payment transactions between users",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SPLIT-010",
+          "title": "Add receipt image storage/preview",
+          "description": "Save scanned receipts to view later",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Social & Organization Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLIT-011",
+          "title": "Implement user profiles/avatars",
+          "description": "Visual differentiation of participants",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLIT-012",
+          "title": "Add expense categorization",
+          "description": "Group bills by type (food, travel, utilities)",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLIT-013",
+          "title": "Add activity feed",
+          "description": "Timeline of payments and bill updates",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLIT-014",
+          "title": "Implement group management",
+          "description": "Create recurring groups (roommates, travel buddies)",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SPLIT-015",
+          "title": "Add export/reports",
+          "description": "PDF/CSV download of expenses",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Polish & Launch",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SPLIT-016",
+          "title": "Improve empty states",
+          "description": "Better onboarding for new users",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLIT-017",
+          "title": "Add payment confirmation modal",
+          "description": "Pre-transaction summary before signing",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLIT-018",
+          "title": "Implement dark/light mode",
+          "description": "User preference support for themes",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLIT-019",
+          "title": "Add animations for state changes",
+          "description": "Payment success, loading, errors",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SPLIT-020",
+          "title": "Configure proper CORS",
+          "description": "Restrict API access to known origins",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 65,
+    "productionReadiness": 45,
+    "testCoverage": 0,
+    "targetTestCoverage": 70
+  },
+  "designReferences": [
+    "Splitwise - Group avatars, debt simplification viz, activity timeline",
+    "Venmo - Split requests, social confirmation",
+    "Tricount - Clean bill creation flow"
+  ]
+}

@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@plasma-pay/db';
+import { validateBillCreate, ValidationError } from '@/lib/validation';
 
 /**
  * POST /api/bills
@@ -19,6 +20,21 @@ import { prisma } from '@plasma-pay/db';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Validate and sanitize input
+    let validatedData;
+    try {
+      validatedData = validateBillCreate(body);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return NextResponse.json(
+          { error: error.message, errors: error.errors },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+    
     const {
       creatorAddress,
       title,
@@ -30,29 +46,7 @@ export async function POST(request: Request) {
       tip,
       tipPercent,
       total,
-    } = body;
-
-    // Validate required fields
-    if (!creatorAddress || !title) {
-      return NextResponse.json(
-        { error: 'creatorAddress and title are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!items || items.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one item is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!participants || participants.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one participant is required' },
-        { status: 400 }
-      );
-    }
+    } = validatedData;
 
     // Create bill with items and participants in a transaction
     const bill = await prisma.bill.create({

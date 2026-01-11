@@ -1,0 +1,178 @@
+{
+  "name": "Plasma Pay Mobile Production Release",
+  "version": "1.0.0",
+  "description": "React Native mobile app for Plasma Pay - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Foundation & Build Fixes",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "MOBILE-001",
+          "title": "Fix TypeScript configuration",
+          "description": "Fix tsconfig.json, install missing expo dependencies",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "MOBILE-002",
+          "title": "Add wallet onboarding flow",
+          "description": "Create/import wallet on first launch",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "MOBILE-003",
+          "title": "Connect wallet to app state",
+          "description": "Replace hardcoded address with real wallet",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "MOBILE-004",
+          "title": "Implement send money flow",
+          "description": "Wire up handleSend to wallet signing + API",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Core Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "MOBILE-005",
+          "title": "Create stream implementation",
+          "description": "Add create stream screen and logic",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "MOBILE-006",
+          "title": "Bill splitting receipt OCR",
+          "description": "Process captured images with AI/OCR",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "MOBILE-007",
+          "title": "Add missing assets",
+          "description": "icon.png, splash.png, adaptive-icon.png, etc.",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "MOBILE-008",
+          "title": "Add comprehensive test suite",
+          "description": "Jest + Testing Library + Detox E2E",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "MOBILE-009",
+          "title": "Implement transaction history",
+          "description": "Fetch and display on home screen",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "MOBILE-010",
+          "title": "Add error boundaries",
+          "description": "Global error handling with recovery",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Security & Polish",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "MOBILE-011",
+          "title": "Add biometric auth",
+          "description": "FaceID/TouchID for sensitive operations",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "MOBILE-012",
+          "title": "Accessibility audit",
+          "description": "Add a11y labels throughout",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "MOBILE-013",
+          "title": "Offline support",
+          "description": "Cache data, show offline banner",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "MOBILE-014",
+          "title": "Pull-to-refresh patterns",
+          "description": "Standard mobile pattern for data refresh",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Native Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "MOBILE-015",
+          "title": "Push notifications",
+          "description": "Payment received notifications",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "MOBILE-016",
+          "title": "Contact picker integration",
+          "description": "Use expo-contacts for sending",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "MOBILE-017",
+          "title": "QR code scanning",
+          "description": "Camera-based address/link scanning",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "MOBILE-018",
+          "title": "Share integration",
+          "description": "Deep link sharing for payment requests",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 25,
+    "productionReadiness": 20,
+    "testCoverage": 0,
+    "targetTestCoverage": 60
+  },
+  "designReferences": [
+    "Cash App - Clean send flow, quick amounts",
+    "Venmo - Social feed, payment history",
+    "Strike - Bitcoin/Lightning native feel"
+  ],
+  "blockers": [
+    "TypeScript configuration broken (300+ errors)",
+    "Missing app assets",
+    "Wallet not integrated"
+  ]
+}
