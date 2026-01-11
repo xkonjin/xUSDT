@@ -1,131 +1,130 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Clock, TrendingUp, ExternalLink, ArrowUpRight, ArrowDownRight } from "lucide-react";
-import Link from "next/link";
-import type { UserBet } from "@/lib/types";
-import { formatUSDT, formatTimeLeft, formatVolume } from "@/lib/constants";
+import { TrendingUp, TrendingDown, Clock } from "lucide-react";
+import type { Bet } from "@/lib/types";
+import { formatUSDT, formatTimeLeft, formatPercent } from "@/lib/constants";
+import { usePredictionStore } from "@/lib/store";
 
 interface BetCardProps {
-  bet: UserBet;
+  bet: Bet;
   index?: number;
 }
 
-export function BetCard({ bet, index = 0 }: BetCardProps) {
-  const isActive = bet.status === "active";
-  const isWon = bet.status === "won";
-  const isLost = bet.status === "lost";
-  const isYes = bet.outcome === "YES";
-
-  const currentValue = isActive 
-    ? bet.shares * (isYes ? bet.market?.yesPrice || 0.5 : bet.market?.noPrice || 0.5)
-    : isWon 
-      ? bet.shares 
-      : 0;
+function BetCardComponent({ bet, index = 0 }: BetCardProps) {
+  const { openCashOutModal } = usePredictionStore();
   
-  const profitLoss = currentValue - bet.amount;
-  const profitPercent = bet.amount > 0 ? (profitLoss / bet.amount) * 100 : 0;
+  // Memoize computed values to prevent recalculations on re-renders
+  const { isYes, isProfitable } = useMemo(() => ({
+    isYes: bet.outcome === "YES",
+    isProfitable: bet.pnl > 0,
+  }), [bet.outcome, bet.pnl]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={`market-card p-5 ${isWon ? 'border-[rgba(var(--yes-green),0.3)]' : ''} ${isLost ? 'border-[rgba(var(--no-red),0.3)]' : ''}`}
+      className="prediction-card p-4"
     >
-      {/* Status Badge */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className={`${isYes ? 'badge-yes' : 'badge-no'}`}>
-            {bet.outcome}
-          </span>
-          {isActive && <span className="badge-live">Active</span>}
-          {isWon && (
-            <span className="text-xs font-semibold text-[rgb(var(--yes-green))] flex items-center gap-1">
-              <ArrowUpRight className="w-3 h-3" />
-              Won
-            </span>
-          )}
-          {isLost && (
-            <span className="text-xs font-semibold text-[rgb(var(--no-red))] flex items-center gap-1">
-              <ArrowDownRight className="w-3 h-3" />
-              Lost
-            </span>
-          )}
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className={`badge-${isYes ? "yes" : "no"}`}>
+          {bet.outcome}
         </div>
-        
-        {/* Link to Market */}
-        <Link
-          href={`/predictions/${bet.marketId}`}
-          className="p-2 rounded-lg hover:bg-white/5 transition text-white/30 hover:text-white/60"
-        >
-          <ExternalLink className="w-4 h-4" />
-        </Link>
+        {bet.status === "active" && (
+          <div className="flex items-center gap-1.5 text-white/50 text-xs">
+            <Clock className="w-3.5 h-3.5" />
+            {formatTimeLeft(bet.market.endDate)}
+          </div>
+        )}
+        {bet.status === "won" && (
+          <span className="badge-yes">Won</span>
+        )}
+        {bet.status === "lost" && (
+          <span className="badge-no">Lost</span>
+        )}
+        {bet.status === "cashed_out" && (
+          <span className="badge-pending">Cashed Out</span>
+        )}
       </div>
 
       {/* Question */}
-      <Link href={`/predictions/${bet.marketId}`}>
-        <h3 className="text-base sm:text-lg font-semibold text-white mb-4 leading-snug hover:text-white/90 transition line-clamp-2">
-          {bet.market?.question || "Market"}
-        </h3>
-      </Link>
+      <h3 className="text-sm font-medium text-white mb-3 leading-snug">
+        {bet.market.question}
+      </h3>
 
-      {/* Position Details */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="stat-card py-3">
-          <span className="text-xs text-white/40 block mb-1">Your Position</span>
-          <span className="text-lg font-bold text-white">
-            {bet.shares.toFixed(2)} shares
-          </span>
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="stat-card">
+          <p className="text-white/50 text-xs mb-1">Cost Basis</p>
+          <p className="text-white font-medium">
+            {formatUSDT(bet.costBasis)}
+          </p>
         </div>
-        <div className="stat-card py-3">
-          <span className="text-xs text-white/40 block mb-1">Cost Basis</span>
-          <span className="text-lg font-bold text-white">
-            ${bet.amount.toFixed(2)}
-          </span>
+        <div className="stat-card">
+          <p className="text-white/50 text-xs mb-1">Current Value</p>
+          <div className="flex items-center gap-2">
+            <p className="text-white font-medium">
+              {formatUSDT(bet.currentValue)}
+            </p>
+            <div
+              className={`flex items-center gap-0.5 text-xs font-medium
+                ${isProfitable ? "text-yes" : "text-no"}`}
+            >
+              {isProfitable ? (
+                <TrendingUp className="w-3.5 h-3.5" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5" />
+              )}
+              {formatPercent(Math.abs(bet.pnlPercent))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Value & P/L */}
-      <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
-        <div>
-          <span className="text-xs text-white/40 block mb-1">
-            {isActive ? "Current Value" : "Final Value"}
-          </span>
-          <span className="text-xl font-bold text-white">
-            ${currentValue.toFixed(2)}
-          </span>
-        </div>
-        <div className="text-right">
-          <span className="text-xs text-white/40 block mb-1">P&L</span>
-          <span className={`text-xl font-bold ${
-            profitLoss >= 0 
-              ? 'text-[rgb(var(--yes-green))]' 
-              : 'text-[rgb(var(--no-red))]'
-          }`}>
-            {profitLoss >= 0 ? '+' : ''}{formatVolume(profitLoss)}
-            <span className="text-sm ml-1 opacity-70">
-              ({profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(0)}%)
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Meta Row */}
-      <div className="flex items-center justify-between mt-4 text-xs text-white/40">
-        <div className="flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          <span>
-            {isActive 
-              ? formatTimeLeft(bet.market?.endDate || new Date().toISOString())
-              : new Date(bet.settledAt || bet.createdAt).toLocaleDateString()
-            }
-          </span>
-        </div>
+      {/* Shares Info */}
+      <div className="flex items-center justify-between text-sm text-white/60 mb-4">
+        <span>{bet.shares.toFixed(2)} shares</span>
         <span>
-          Avg price: {((bet.amount / bet.shares) * 100).toFixed(0)}¢
+          P&L: {isProfitable ? "+" : ""}{formatUSDT(bet.pnl)}
         </span>
       </div>
+
+      {/* Cash Out Button */}
+      {bet.status === "active" && (
+        <button
+          onClick={() => openCashOutModal(bet)}
+          className={`w-full touch-target rounded-xl font-medium
+            ${isProfitable
+              ? "btn-yes"
+              : "bg-white/10 text-white hover:bg-white/15"
+            }`}
+        >
+          Cash Out {formatUSDT(bet.currentValue)}
+        </button>
+      )}
     </motion.div>
+  );
+}
+
+export const BetCard = memo(BetCardComponent);
+BetCard.displayName = "BetCard";
+
+export function BetCardSkeleton() {
+  return (
+    <div className="prediction-card p-4 animate-pulse">
+      <div className="flex justify-between mb-3">
+        <div className="h-5 w-12 bg-white/10 rounded-full" />
+        <div className="h-4 w-16 bg-white/10 rounded" />
+      </div>
+      <div className="h-5 w-3/4 bg-white/10 rounded mb-3" />
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="h-16 bg-white/10 rounded-xl" />
+        <div className="h-16 bg-white/10 rounded-xl" />
+      </div>
+      <div className="h-11 bg-white/10 rounded-xl" />
+    </div>
   );
 }

@@ -1,45 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCorsHeaders } from "@/lib/cors";
 
-const GAMMA_API_URL = "https://gamma-api.polymarket.com";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const slug = searchParams.get("slug");
-    const limit = searchParams.get("limit") || "100";
+    const category = searchParams.get("category") || "all";
+    const search = searchParams.get("search") || "";
+    const page = searchParams.get("page") || "0";
 
-    // Build Polymarket Gamma API URL
-    let apiUrl = `${GAMMA_API_URL}/markets?closed=false&active=true&limit=${limit}`;
-    if (slug) {
-      apiUrl = `${GAMMA_API_URL}/markets?slug=${encodeURIComponent(slug)}&limit=1`;
-    }
+    // Proxy to FastAPI backend
+    const backendUrl = new URL(`${BACKEND_URL}/api/predictions/markets`);
+    backendUrl.searchParams.set("category", category);
+    backendUrl.searchParams.set("search", search);
+    backendUrl.searchParams.set("page", page);
 
-    const response = await fetch(apiUrl, {
+    const response = await fetch(backendUrl.toString(), {
       headers: {
-        "Accept": "application/json",
+        "Content-Type": "application/json",
       },
-      next: { revalidate: 30 }, // Cache for 30 seconds
+      cache: "no-store",
     });
 
     if (!response.ok) {
-      throw new Error(`Gamma API error: ${response.status}`);
+      throw new Error(`Backend error: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    // Return with CORS headers
-    const origin = request.headers.get("origin");
-    return NextResponse.json(data, {
-      headers: {
-        ...getCorsHeaders(origin),
-        "Cache-Control": "s-maxage=30, stale-while-revalidate=60",
-      },
-    });
-  } catch (error) {
-    console.error("Markets API proxy error:", error);
+    return NextResponse.json(data);
+  } catch {
     return NextResponse.json(
-      { error: "Failed to fetch markets", markets: [] },
+      { error: "Failed to fetch markets" },
       { status: 500 }
     );
   }

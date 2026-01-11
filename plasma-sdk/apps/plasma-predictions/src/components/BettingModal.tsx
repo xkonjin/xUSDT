@@ -115,9 +115,10 @@ export function BettingModal() {
       setTimeout(() => {
         handleClose();
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStep("error");
-      setErrorMsg(error?.message || "Transaction failed");
+      const message = error instanceof Error ? error.message : "Transaction failed";
+      setErrorMsg(message);
     }
   };
 
