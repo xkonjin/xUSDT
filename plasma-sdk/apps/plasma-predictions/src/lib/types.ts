@@ -86,8 +86,24 @@ export interface LeaderboardEntry {
 export interface MarketFilters {
   category?: MarketCategory;
   search?: string;
-  sortBy?: "volume" | "endDate" | "liquidity" | "newest";
+  sortBy?: MarketSortBy;
   resolved?: boolean;
+}
+
+export type MarketSortBy = "volume" | "volume24h" | "endDate" | "liquidity" | "newest";
+
+export interface UserBet {
+  id: string;
+  marketId: string;
+  market?: PredictionMarket;
+  userAddress: string;
+  outcome: "YES" | "NO";
+  shares: number;
+  amount: number;
+  status: "active" | "won" | "lost" | "cashed_out";
+  createdAt: string;
+  settledAt?: string;
+  txHash: string;
 }
 
 export interface PlaceBetParams {

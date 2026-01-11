@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePlasmaWallet, useGaslessTransfer } from "@plasma-pay/privy-auth";
-import type { Bet, PlaceBetParams, CashOutParams, BetResult } from "@/lib/types";
+import type { Bet, PlaceBetParams, CashOutParams, BetResult, UserBet } from "@/lib/types";
 import { GASLESS_ROUTER_ADDRESS } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
 import type { Address } from "viem";
 
-const MOCK_BETS: Bet[] = [];
+const MOCK_BETS: UserBet[] = [];
 
-async function fetchUserBets(address: string): Promise<Bet[]> {
+async function fetchUserBets(address: string): Promise<UserBet[]> {
   // In production: fetch from backend
   // const res = await fetch(`${BACKEND_URL}/api/predictions/bets?user=${address}`);
 
@@ -43,14 +43,14 @@ async function submitCashOut(params: CashOutParams & { signature: any }): Promis
   };
 }
 
-export function useUserBets() {
+export function useUserBets(address?: string) {
   const { wallet, authenticated } = usePlasmaWallet();
-  const address = wallet?.address;
+  const userAddress = address || wallet?.address;
 
   return useQuery({
-    queryKey: ["user-bets", address],
-    queryFn: () => fetchUserBets(address!),
-    enabled: authenticated && !!address,
+    queryKey: ["user-bets", userAddress],
+    queryFn: () => fetchUserBets(userAddress!),
+    enabled: authenticated && !!userAddress,
   });
 }
 
@@ -70,8 +70,12 @@ export function usePortfolioStats() {
   const active = bets.filter((b) => b.status === "active");
   const resolved = bets.filter((b) => ["won", "lost", "cashed_out"].includes(b.status));
 
-  const totalValue = active.reduce((sum, b) => sum + b.currentValue, 0);
-  const totalCost = active.reduce((sum, b) => sum + b.costBasis, 0);
+  // Calculate value based on shares and current market prices
+  const totalValue = active.reduce((sum, b) => {
+    const price = b.outcome === "YES" ? (b.market?.yesPrice || 0.5) : (b.market?.noPrice || 0.5);
+    return sum + (b.shares * price);
+  }, 0);
+  const totalCost = active.reduce((sum, b) => sum + b.amount, 0);
   const totalPnl = totalValue - totalCost;
   const totalPnlPercent = totalCost > 0 ? totalPnl / totalCost : 0;
 

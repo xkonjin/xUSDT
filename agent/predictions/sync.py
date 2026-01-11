@@ -7,12 +7,17 @@ Handles market creation, price updates, and resolution tracking.
 
 import asyncio
 import logging
+import json
 from datetime import datetime
 from typing import Dict, List, Optional
-from ..polymarket.client import get_polymarket_client
+import aiohttp
+
 from .models import PredictionMarket, MarketCategory
 
 logger = logging.getLogger(__name__)
+
+# Polymarket Gamma API endpoint
+GAMMA_API_URL = "https://gamma-api.polymarket.com"
 
 # In-memory market cache (replace with Redis/PostgreSQL in production)
 _MARKET_CACHE: Dict[str, PredictionMarket] = {}
@@ -44,60 +49,80 @@ def _map_polymarket_category(tags: List[str]) -> MarketCategory:
 
 def _polymarket_to_plasma_market(poly_market: dict) -> PredictionMarket:
     """Convert Polymarket market data to our model."""
-    # Extract prices from tokens
+    # Extract prices from outcomePrices JSON string
     yes_price = 0.5
     no_price = 0.5
     
-    tokens = poly_market.get("tokens", [])
-    for token in tokens:
-        if token.get("outcome", "").upper() == "YES":
-            yes_price = float(token.get("price", 0.5))
-        elif token.get("outcome", "").upper() == "NO":
-            no_price = float(token.get("price", 0.5))
+    outcome_prices_str = poly_market.get("outcomePrices", "[]")
+    try:
+        prices = json.loads(outcome_prices_str) if isinstance(outcome_prices_str, str) else outcome_prices_str
+        if prices and len(prices) >= 2:
+            yes_price = float(prices[0])
+            no_price = float(prices[1])
+    except (json.JSONDecodeError, ValueError, TypeError):
+        pass
     
     # Normalize prices (should sum to ~1)
     total = yes_price + no_price
-    if total > 0:
+    if total > 0 and total != 1.0:
         yes_price = yes_price / total
         no_price = no_price / total
     
     # Parse end date
-    end_date_str = poly_market.get("end_date_iso", poly_market.get("end_date"))
+    end_date_str = poly_market.get("endDate", poly_market.get("end_date_iso", poly_market.get("end_date")))
     if end_date_str:
         try:
-            end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+            # Handle ISO format with Z suffix
+            if end_date_str.endswith("Z"):
+                end_date_str = end_date_str[:-1] + "+00:00"
+            end_date = datetime.fromisoformat(end_date_str)
         except ValueError:
             end_date = datetime.utcnow()
     else:
         end_date = datetime.utcnow()
     
-    # Build market ID
-    condition_id = poly_market.get("condition_id", poly_market.get("id", "unknown"))
-    market_id = f"plasma-{condition_id[:16]}"
+    # Build market ID from slug or condition_id
+    slug = poly_market.get("slug", "")
+    condition_id = poly_market.get("conditionId", poly_market.get("condition_id", poly_market.get("id", "unknown")))
+    market_id = slug if slug else f"plasma-{condition_id[:16]}"
+    
+    # Detect category from events or use general mapping
+    category = MarketCategory.ALL
+    events = poly_market.get("events", [])
+    if events:
+        event_title = events[0].get("title", "").lower() if events else ""
+        if any(x in event_title for x in ["trump", "president", "election", "congress", "senate"]):
+            category = MarketCategory.POLITICS
+        elif any(x in event_title for x in ["bitcoin", "btc", "eth", "crypto", "coin"]):
+            category = MarketCategory.CRYPTO
+        elif any(x in event_title for x in ["super bowl", "nfl", "nba", "world cup", "championship"]):
+            category = MarketCategory.SPORTS
+        elif any(x in event_title for x in ["ai", "openai", "apple", "google", "tech"]):
+            category = MarketCategory.TECH
     
     return PredictionMarket(
         id=market_id,
-        polymarket_id=poly_market.get("condition_id"),
+        polymarket_id=condition_id,
         condition_id=condition_id,
         question=poly_market.get("question", "Unknown"),
         description=poly_market.get("description"),
-        category=_map_polymarket_category(poly_market.get("tags", [])),
+        category=category,
         end_date=end_date,
         resolved=poly_market.get("closed", False),
         outcome=poly_market.get("winner") if poly_market.get("closed") else None,
         yes_price=yes_price,
         no_price=no_price,
-        volume_24h=float(poly_market.get("volume_24h", 0)),
-        total_volume=float(poly_market.get("volume", 0)),
-        liquidity=float(poly_market.get("liquidity", 0)),
+        volume_24h=float(poly_market.get("volume24hr", poly_market.get("volume_24h", 0)) or 0),
+        total_volume=float(poly_market.get("volumeNum", poly_market.get("volume", 0)) or 0),
+        liquidity=float(poly_market.get("liquidityNum", poly_market.get("liquidity", 0)) or 0),
         image_url=poly_market.get("image"),
-        polymarket_url=f"https://polymarket.com/event/{poly_market.get('slug', '')}",
+        polymarket_url=f"https://polymarket.com/event/{slug}" if slug else None,
         amm_address=None,  # Set when deployed on Plasma
         created_at=datetime.utcnow(),
     )
 
 
-async def sync_markets_from_polymarket(limit: int = 50) -> List[PredictionMarket]:
+async def sync_markets_from_polymarket(limit: int = 100) -> List[PredictionMarket]:
     """
     Sync markets from Polymarket Gamma API.
     
@@ -110,25 +135,30 @@ async def sync_markets_from_polymarket(limit: int = 50) -> List[PredictionMarket
     global _LAST_SYNC
     
     try:
-        client = get_polymarket_client()
+        # Fetch markets directly from Gamma API
+        url = f"{GAMMA_API_URL}/markets?closed=false&active=true&limit={limit}"
         
-        # Fetch active markets
-        events = await client.get_events(active=True, closed=False, limit=limit)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                if response.status != 200:
+                    logger.error(f"Gamma API error: {response.status}")
+                    return list(_MARKET_CACHE.values())
+                
+                markets_data = await response.json()
         
         synced_markets = []
         
-        for event in events:
-            for market_data in event.get("markets", [event]):
-                try:
-                    market = _polymarket_to_plasma_market(market_data)
-                    _MARKET_CACHE[market.id] = market
-                    synced_markets.append(market)
-                except Exception as e:
-                    logger.warning(f"Failed to parse market: {e}")
-                    continue
+        for market_data in markets_data:
+            try:
+                market = _polymarket_to_plasma_market(market_data)
+                _MARKET_CACHE[market.id] = market
+                synced_markets.append(market)
+            except Exception as e:
+                logger.warning(f"Failed to parse market: {e}")
+                continue
         
         _LAST_SYNC = datetime.utcnow()
-        logger.info(f"Synced {len(synced_markets)} markets from Polymarket")
+        logger.info(f"Synced {len(synced_markets)} markets from Polymarket Gamma API")
         
         return synced_markets
         

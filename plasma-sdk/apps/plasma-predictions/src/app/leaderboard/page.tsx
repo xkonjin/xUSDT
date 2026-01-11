@@ -2,219 +2,235 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, TrendingUp, Target, BarChart2 } from "lucide-react";
+import { Trophy, TrendingUp, Target, Flame, Medal } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { formatUSDT, formatAddress, formatPercent } from "@/lib/constants";
-import type { LeaderboardEntry } from "@/lib/types";
+import { BettingModal } from "@/components/BettingModal";
+import { formatAddress, formatVolume } from "@/lib/constants";
 
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  {
-    rank: 1,
-    address: "0x1234567890abcdef1234567890abcdef12345678",
-    displayName: "PredictionKing",
-    profit: 125000_000000,
-    accuracy: 0.72,
-    totalBets: 156,
-    volume: 850000_000000,
-  },
-  {
-    rank: 2,
-    address: "0xabcdef1234567890abcdef1234567890abcdef12",
-    displayName: "CryptoOracle",
-    profit: 89000_000000,
-    accuracy: 0.68,
-    totalBets: 98,
-    volume: 520000_000000,
-  },
-  {
-    rank: 3,
-    address: "0x9876543210fedcba9876543210fedcba98765432",
-    profit: 67500_000000,
-    accuracy: 0.65,
-    totalBets: 234,
-    volume: 1200000_000000,
-  },
-  {
-    rank: 4,
-    address: "0xfedcba9876543210fedcba9876543210fedcba98",
-    displayName: "MarketMaven",
-    profit: 45200_000000,
-    accuracy: 0.61,
-    totalBets: 87,
-    volume: 380000_000000,
-  },
-  {
-    rank: 5,
-    address: "0x2468ace02468ace02468ace02468ace02468ace0",
-    profit: 32100_000000,
-    accuracy: 0.58,
-    totalBets: 145,
-    volume: 620000_000000,
-  },
+type LeaderboardPeriod = "daily" | "weekly" | "monthly" | "all-time";
+type LeaderboardSort = "profit" | "winRate" | "volume";
+
+const MOCK_LEADERS = [
+  { rank: 1, address: "0x1234567890abcdef1234567890abcdef12345678", profit: 125420, winRate: 0.78, totalBets: 156, volume: 450000 },
+  { rank: 2, address: "0xabcdef1234567890abcdef1234567890abcdef12", profit: 98340, winRate: 0.72, totalBets: 203, volume: 380000 },
+  { rank: 3, address: "0x9876543210fedcba9876543210fedcba98765432", profit: 76890, winRate: 0.68, totalBets: 89, volume: 290000 },
+  { rank: 4, address: "0xfedcba9876543210fedcba9876543210fedcba98", profit: 54320, winRate: 0.65, totalBets: 167, volume: 245000 },
+  { rank: 5, address: "0x1111222233334444555566667777888899990000", profit: 43210, winRate: 0.71, totalBets: 78, volume: 198000 },
+  { rank: 6, address: "0xaaaa111122223333444455556666777788889999", profit: 38900, winRate: 0.63, totalBets: 234, volume: 176000 },
+  { rank: 7, address: "0xbbbb222233334444555566667777888899990000", profit: 32100, winRate: 0.59, totalBets: 145, volume: 154000 },
+  { rank: 8, address: "0xcccc333344445555666677778888999900001111", profit: 28700, winRate: 0.66, totalBets: 92, volume: 132000 },
+  { rank: 9, address: "0xdddd444455556666777788889999000011112222", profit: 24300, winRate: 0.61, totalBets: 178, volume: 118000 },
+  { rank: 10, address: "0xeeee555566667777888899990000111122223333", profit: 21500, winRate: 0.58, totalBets: 201, volume: 105000 },
 ];
 
-type SortBy = "profit" | "accuracy" | "volume";
-type Period = "weekly" | "monthly" | "all-time";
+const PERIOD_OPTIONS: { value: LeaderboardPeriod; label: string }[] = [
+  { value: "daily", label: "Today" },
+  { value: "weekly", label: "This Week" },
+  { value: "monthly", label: "This Month" },
+  { value: "all-time", label: "All Time" },
+];
+
+const SORT_OPTIONS: { value: LeaderboardSort; label: string; icon: typeof Trophy }[] = [
+  { value: "profit", label: "Profit", icon: TrendingUp },
+  { value: "winRate", label: "Win Rate", icon: Target },
+  { value: "volume", label: "Volume", icon: Flame },
+];
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <div className="rank-badge rank-1">
+        <Trophy className="w-4 h-4" />
+      </div>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <div className="rank-badge rank-2">
+        <Medal className="w-4 h-4" />
+      </div>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <div className="rank-badge rank-3">
+        <Medal className="w-4 h-4" />
+      </div>
+    );
+  }
+  return (
+    <div className="rank-badge rank-other">
+      {rank}
+    </div>
+  );
+}
 
 export default function LeaderboardPage() {
-  const [sortBy, setSortBy] = useState<SortBy>("profit");
-  const [period, setPeriod] = useState<Period>("weekly");
+  const [period, setPeriod] = useState<LeaderboardPeriod>("weekly");
+  const [sortBy, setSortBy] = useState<LeaderboardSort>("profit");
 
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) return "🥇";
-    if (rank === 2) return "🥈";
-    if (rank === 3) return "🥉";
-    return `#${rank}`;
-  };
+  const sortedLeaders = [...MOCK_LEADERS].sort((a, b) => {
+    switch (sortBy) {
+      case "winRate":
+        return b.winRate - a.winRate;
+      case "volume":
+        return b.volume - a.volume;
+      default:
+        return b.profit - a.profit;
+    }
+  });
 
   return (
     <div className="min-h-screen pb-24 md:pb-8">
       <Header />
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-white mb-2">Leaderboard</h1>
-          <p className="text-white/60">Top predictors on Plasma</p>
-        </motion.div>
+      <section className="px-4 pt-8 pb-6">
+        <div className="max-w-3xl mx-auto">
+          {/* Hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-10"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[rgba(255,215,100,0.2)] to-[rgba(255,180,50,0.1)] mx-auto mb-6 flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-[rgb(255,215,100)]" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+              Leaderboard
+            </h1>
+            <p className="text-white/50 text-lg">
+              Top predictors ranked by performance
+            </p>
+          </motion.div>
 
-        {/* Period Tabs */}
-        <div className="flex justify-center gap-2 mb-6">
-          {(["weekly", "monthly", "all-time"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition
-                ${period === p
-                  ? "bg-prediction-primary text-white"
-                  : "bg-white/5 text-white/60 hover:bg-white/10"
+          {/* Period Tabs */}
+          <div className="flex justify-center gap-2 mb-8 overflow-x-auto pb-2">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setPeriod(opt.value)}
+                className={`category-tab ${period === opt.value ? "active" : ""}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort Options */}
+          <div className="flex justify-center gap-2 mb-8">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSortBy(opt.value)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                  sortBy === opt.value
+                    ? "bg-white/10 text-white border border-white/20"
+                    : "bg-white/5 text-white/50 border border-transparent hover:text-white/80"
                 }`}
-            >
-              {p === "all-time"
-                ? "All Time"
-                : p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
-        </div>
+              >
+                <opt.icon className="w-4 h-4" />
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Sort Options */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <button
-            onClick={() => setSortBy("profit")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap
-              ${sortBy === "profit"
-                ? "bg-yes/20 text-yes"
-                : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
+          {/* Top 3 Podium */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-3 gap-3 mb-8"
           >
-            <TrendingUp className="w-4 h-4" />
-            Profit
-          </button>
-          <button
-            onClick={() => setSortBy("accuracy")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap
-              ${sortBy === "accuracy"
-                ? "bg-prediction-primary/20 text-prediction-primary"
-                : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
-          >
-            <Target className="w-4 h-4" />
-            Accuracy
-          </button>
-          <button
-            onClick={() => setSortBy("volume")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap
-              ${sortBy === "volume"
-                ? "bg-plasma-500/20 text-plasma-400"
-                : "bg-white/5 text-white/60 hover:bg-white/10"
-              }`}
-          >
-            <BarChart2 className="w-4 h-4" />
-            Volume
-          </button>
-        </div>
-
-        {/* Leaderboard List */}
-        <div className="space-y-3">
-          {MOCK_LEADERBOARD.map((entry, i) => (
-            <motion.div
-              key={entry.address}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`prediction-card p-4 ${
-                entry.rank <= 3 ? "border-yellow-500/30" : ""
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                {/* Rank */}
-                <div className="w-12 text-center">
-                  <span className="text-2xl">{getRankBadge(entry.rank)}</span>
-                </div>
-
-                {/* User Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">
-                    {entry.displayName || formatAddress(entry.address)}
-                  </p>
-                  <p className="text-white/40 text-sm">
-                    {entry.totalBets} bets
-                  </p>
-                </div>
-
-                {/* Stats */}
-                <div className="text-right">
-                  {sortBy === "profit" && (
-                    <>
-                      <p className="text-yes font-semibold">
-                        +{formatUSDT(entry.profit)}
-                      </p>
-                      <p className="text-white/40 text-sm">
-                        {formatPercent(entry.accuracy)} accuracy
-                      </p>
-                    </>
-                  )}
-                  {sortBy === "accuracy" && (
-                    <>
-                      <p className="text-prediction-primary font-semibold">
-                        {formatPercent(entry.accuracy)}
-                      </p>
-                      <p className="text-white/40 text-sm">
-                        {entry.totalBets} bets
-                      </p>
-                    </>
-                  )}
-                  {sortBy === "volume" && (
-                    <>
-                      <p className="text-plasma-400 font-semibold">
-                        {formatUSDT(entry.volume)}
-                      </p>
-                      <p className="text-white/40 text-sm">
-                        +{formatUSDT(entry.profit)}
-                      </p>
-                    </>
-                  )}
-                </div>
+            {/* 2nd Place */}
+            <div className="market-card p-4 text-center order-1 md:order-1 self-end">
+              <div className="rank-badge rank-2 mx-auto mb-3">
+                <Medal className="w-4 h-4" />
               </div>
-            </motion.div>
-          ))}
-        </div>
+              <p className="text-sm font-mono text-white/60 mb-1">
+                {formatAddress(sortedLeaders[1].address, 3)}
+              </p>
+              <p className="text-lg font-bold text-white">
+                {formatVolume(sortedLeaders[1].profit)}
+              </p>
+              <p className="text-xs text-white/40">
+                {(sortedLeaders[1].winRate * 100).toFixed(0)}% win rate
+              </p>
+            </div>
 
-        {/* Info */}
-        <div className="text-center mt-8">
-          <p className="text-white/40 text-sm">
-            Rankings update every hour. Min 10 bets to qualify.
-          </p>
+            {/* 1st Place */}
+            <div className="market-card-featured p-5 text-center order-0 md:order-2 scale-105 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="text-2xl">👑</span>
+              </div>
+              <div className="rank-badge rank-1 mx-auto mb-3 mt-2">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <p className="text-sm font-mono text-white/60 mb-1">
+                {formatAddress(sortedLeaders[0].address, 3)}
+              </p>
+              <p className="text-2xl font-bold text-gradient-gold">
+                {formatVolume(sortedLeaders[0].profit)}
+              </p>
+              <p className="text-xs text-white/40">
+                {(sortedLeaders[0].winRate * 100).toFixed(0)}% win rate
+              </p>
+            </div>
+
+            {/* 3rd Place */}
+            <div className="market-card p-4 text-center order-2 md:order-3 self-end">
+              <div className="rank-badge rank-3 mx-auto mb-3">
+                <Medal className="w-4 h-4" />
+              </div>
+              <p className="text-sm font-mono text-white/60 mb-1">
+                {formatAddress(sortedLeaders[2].address, 3)}
+              </p>
+              <p className="text-lg font-bold text-white">
+                {formatVolume(sortedLeaders[2].profit)}
+              </p>
+              <p className="text-xs text-white/40">
+                {(sortedLeaders[2].winRate * 100).toFixed(0)}% win rate
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Rest of Leaderboard */}
+          <div className="space-y-3">
+            {sortedLeaders.slice(3).map((leader, i) => (
+              <motion.div
+                key={leader.address}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 + i * 0.03 }}
+                className="leaderboard-row flex items-center gap-4"
+              >
+                <RankBadge rank={leader.rank} />
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-mono text-white truncate">
+                    {formatAddress(leader.address, 6)}
+                  </p>
+                  <p className="text-xs text-white/40">
+                    {leader.totalBets} bets • {formatVolume(leader.volume)} volume
+                  </p>
+                </div>
+                
+                <div className="text-right">
+                  <p className="text-lg font-bold text-[rgb(var(--yes-green))]">
+                    +{formatVolume(leader.profit)}
+                  </p>
+                  <p className="text-xs text-white/40">
+                    {(leader.winRate * 100).toFixed(0)}% win rate
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
 
       <BottomNav />
+      <BettingModal />
     </div>
   );
 }
