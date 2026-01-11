@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "hardhat compile",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "lint": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "solhint 'contracts/**/*.sol' --fix"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +17,7 @@
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.26.3",
+    "solhint": "^6.0.2",
     "stacktrace-parser": "^0.1.11"
   },
   "dependencies": {
