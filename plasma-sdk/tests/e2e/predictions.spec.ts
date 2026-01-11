@@ -250,9 +250,9 @@ test.describe("Plasma Predictions - Leaderboard", () => {
     await page.waitForTimeout(2000);
 
     // Sort options are displayed as buttons
-    await expect(page.getByText("Profit").first()).toBeVisible();
-    await expect(page.getByText("Win Rate")).toBeVisible();
-    await expect(page.getByText("Volume")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Profit" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Win Rate" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Volume" })).toBeVisible();
   });
 
   test("should display leaderboard entries", async ({ page }) => {

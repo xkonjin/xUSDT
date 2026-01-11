@@ -130,20 +130,8 @@ export default function MyBetsPage() {
     totalVolume: 8900,
   };
 
-  if (!ready) {
-    return (
-      <div className="min-h-screen pb-24 md:pb-8">
-        <Header />
-        <div className="flex items-center justify-center py-32">
-          <div className="w-12 h-12 border-2 border-[rgb(var(--accent-cyan))] border-t-transparent rounded-full animate-spin" />
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
-
-  // Show connect prompt only if NOT in demo mode and NOT authenticated
-  if (!isDemoMode && !authenticated) {
+  // Show connect prompt only if NOT in demo mode and NOT authenticated (or not ready)
+  if (!isDemoMode && (!authenticated || !ready)) {
     return (
       <div className="min-h-screen pb-24 md:pb-8">
         <Header />

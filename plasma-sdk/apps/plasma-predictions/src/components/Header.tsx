@@ -209,9 +209,7 @@ export function Header() {
           {/* Real Wallet Section - Only show when NOT in demo mode */}
           {!isDemoMode && (
             <>
-              {!ready ? (
-                <div className="w-32 h-10 rounded-xl bg-white/5 animate-pulse" />
-              ) : authenticated ? (
+              {authenticated ? (
                 <div className="relative">
                   <button
                     onClick={() => setMenuOpen(!menuOpen)}
