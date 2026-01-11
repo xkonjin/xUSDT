@@ -304,7 +304,7 @@ describe('PriceUpdater', () => {
     })
 
     it('should update status to disconnected when stopped', () => {
-      const statusListener: ConnectionListener = jest.fn()
+      const statusListener: MockConnectionListener = jest.fn()
       priceUpdater.onConnectionChange(statusListener)
       
       priceUpdater.start()
@@ -366,7 +366,7 @@ describe('PriceUpdater', () => {
 
   describe('Cleanup', () => {
     it('should clean up resources on destroy()', () => {
-      const statusListener: ConnectionListener = jest.fn()
+      const statusListener: MockConnectionListener = jest.fn()
       priceUpdater.onConnectionChange(statusListener)
       priceUpdater.subscribe('test-market-1', jest.fn())
       priceUpdater.start()

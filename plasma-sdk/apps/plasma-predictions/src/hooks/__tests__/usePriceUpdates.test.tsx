@@ -2,13 +2,14 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { usePriceUpdates, usePriceConnection } from '../usePriceUpdates'
 import { PriceUpdaterProvider, usePriceUpdaterContext } from '@/lib/price-updater-context'
+import type { PriceUpdate, ConnectionStatus } from '@/lib/price-updater'
 
 // Mock the price updater module
-const mockSubscribe = jest.fn(() => jest.fn())
+const mockSubscribe = jest.fn<() => void, [string, (update: PriceUpdate) => void]>(() => jest.fn())
 const mockStart = jest.fn()
 const mockStop = jest.fn()
-const mockOnConnectionChange = jest.fn(() => jest.fn())
-const mockGetConnectionStatus = jest.fn(() => 'disconnected')
+const mockOnConnectionChange = jest.fn<() => void, [(status: ConnectionStatus) => void]>(() => jest.fn())
+const mockGetConnectionStatus = jest.fn<ConnectionStatus, []>(() => 'disconnected')
 
 jest.mock('@/lib/price-updater', () => ({
   PriceUpdater: jest.fn().mockImplementation(() => ({
@@ -84,8 +85,8 @@ describe('usePriceUpdates', () => {
     })
 
     it('should update state when price update is received', async () => {
-      let priceListener: Function = () => {}
-      mockSubscribe.mockImplementation((_marketId, listener) => {
+      let priceListener: (update: PriceUpdate) => void = () => {}
+      mockSubscribe.mockImplementation((_marketId: string, listener: (update: PriceUpdate) => void) => {
         priceListener = listener
         return jest.fn()
       })
@@ -112,8 +113,8 @@ describe('usePriceUpdates', () => {
     })
 
     it('should track price change direction', async () => {
-      let priceListener: Function = () => {}
-      mockSubscribe.mockImplementation((_marketId, listener) => {
+      let priceListener: (update: PriceUpdate) => void = () => {}
+      mockSubscribe.mockImplementation((_marketId: string, listener: (update: PriceUpdate) => void) => {
         priceListener = listener
         return jest.fn()
       })
@@ -148,8 +149,8 @@ describe('usePriceUpdates', () => {
     it('should clear isLive after timeout', async () => {
       jest.useFakeTimers()
       
-      let priceListener: Function = () => {}
-      mockSubscribe.mockImplementation((_marketId, listener) => {
+      let priceListener: (update: PriceUpdate) => void = () => {}
+      mockSubscribe.mockImplementation((_marketId: string, listener: (update: PriceUpdate) => void) => {
         priceListener = listener
         return jest.fn()
       })
@@ -181,8 +182,8 @@ describe('usePriceUpdates', () => {
   describe('With onUpdate callback', () => {
     it('should call onUpdate callback when price changes', () => {
       const onUpdate = jest.fn()
-      let priceListener: Function = () => {}
-      mockSubscribe.mockImplementation((_marketId, listener) => {
+      let priceListener: (update: PriceUpdate) => void = () => {}
+      mockSubscribe.mockImplementation((_marketId: string, listener: (update: PriceUpdate) => void) => {
         priceListener = listener
         return jest.fn()
       })
@@ -224,8 +225,8 @@ describe('usePriceConnection', () => {
   })
 
   it('should return connected status', () => {
-    let connectionListener: Function = () => {}
-    mockOnConnectionChange.mockImplementation((listener) => {
+    let connectionListener: (status: ConnectionStatus) => void = () => {}
+    mockOnConnectionChange.mockImplementation((listener: (status: ConnectionStatus) => void) => {
       connectionListener = listener
       return jest.fn()
     })
@@ -243,8 +244,8 @@ describe('usePriceConnection', () => {
   })
 
   it('should return connecting status', () => {
-    let connectionListener: Function = () => {}
-    mockOnConnectionChange.mockImplementation((listener) => {
+    let connectionListener: (status: ConnectionStatus) => void = () => {}
+    mockOnConnectionChange.mockImplementation((listener: (status: ConnectionStatus) => void) => {
       connectionListener = listener
       return jest.fn()
     })
@@ -260,8 +261,8 @@ describe('usePriceConnection', () => {
   })
 
   it('should return error status', () => {
-    let connectionListener: Function = () => {}
-    mockOnConnectionChange.mockImplementation((listener) => {
+    let connectionListener: (status: ConnectionStatus) => void = () => {}
+    mockOnConnectionChange.mockImplementation((listener: (status: ConnectionStatus) => void) => {
       connectionListener = listener
       return jest.fn()
     })
