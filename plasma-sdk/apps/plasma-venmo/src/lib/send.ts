@@ -10,6 +10,7 @@ import {
   USDT0_ADDRESS,
 } from '@plasma-pay/core';
 import { withRetry, isRetryableError } from './retry';
+import { splitSignature } from './crypto';
 
 interface SendMoneyOptions {
   recipientIdentifier: string;
@@ -239,11 +240,4 @@ async function createClaimForUnregisteredRecipient(
   };
 }
 
-function splitSignature(signature: Hex): { v: number; r: Hex; s: Hex } {
-  const sig = signature.slice(2);
-  const r = `0x${sig.slice(0, 64)}` as Hex;
-  const s = `0x${sig.slice(64, 128)}` as Hex;
-  let v = parseInt(sig.slice(128, 130), 16);
-  if (v < 27) v += 27;
-  return { v, r, s };
-}
+// Note: splitSignature is now imported from './crypto' to avoid duplication

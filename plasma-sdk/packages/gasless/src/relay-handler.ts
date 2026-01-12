@@ -54,6 +54,11 @@ export function isNonceUsed(from: string, nonce: string): boolean {
   return true;
 }
 
+// Counter for periodic cleanup
+let nonceInsertCount = 0;
+const CLEANUP_INTERVAL = 100; // Clean up every 100 insertions
+const MAX_NONCE_CACHE_SIZE = 5000; // Reduced from 10000
+
 /**
  * Mark a nonce as used.
  *
@@ -63,13 +68,30 @@ export function isNonceUsed(from: string, nonce: string): boolean {
 function markNonceUsed(from: string, nonce: string): void {
   const key = `${from.toLowerCase()}:${nonce}`;
   usedNonces.set(key, Date.now());
+  nonceInsertCount++;
 
-  // Periodic cleanup of old nonces (keep memory bounded)
-  if (usedNonces.size > 10000) {
-    const now = Date.now();
-    for (const [k, v] of usedNonces.entries()) {
-      if (now - v > NONCE_EXPIRY_MS) usedNonces.delete(k);
+  // More aggressive cleanup - run every 100 insertions OR when size exceeds limit
+  if (nonceInsertCount >= CLEANUP_INTERVAL || usedNonces.size > MAX_NONCE_CACHE_SIZE) {
+    cleanupExpiredNonces();
+    nonceInsertCount = 0;
+  }
+}
+
+/**
+ * Clean up expired nonces from the cache.
+ * Called periodically to prevent unbounded memory growth.
+ */
+function cleanupExpiredNonces(): void {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [k, v] of usedNonces.entries()) {
+    if (now - v > NONCE_EXPIRY_MS) {
+      usedNonces.delete(k);
+      cleaned++;
     }
+  }
+  if (cleaned > 0) {
+    console.log(`[gasless] Cleaned ${cleaned} expired nonces, cache size: ${usedNonces.size}`);
   }
 }
 

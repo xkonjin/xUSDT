@@ -384,12 +384,13 @@ export function SendMoneyForm({
         </div>
 
         <div>
-          <label className="block text-white/60 text-sm mb-2 font-medium">
+          <label htmlFor="send-amount" className="block text-white/60 text-sm mb-2 font-medium">
             How much?
           </label>
           <div className="relative">
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" />
+            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" aria-hidden="true" />
             <input
+              id="send-amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -398,14 +399,17 @@ export function SendMoneyForm({
               min="0"
               className="clay-input w-full pl-14 pr-20 py-5 text-3xl font-bold text-white placeholder:text-white/20"
               disabled={loading}
+              aria-label="Amount in USD"
+              aria-invalid={insufficientBalance || amountTooSmall || amountTooLarge}
+              aria-describedby={insufficientBalance || amountTooSmall || amountTooLarge ? "amount-error" : undefined}
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm" aria-hidden="true">
               USD
             </span>
           </div>
           
-          {/* Quick amount buttons */}
-          <div className="flex gap-2 mt-3">
+          {/* Quick amount buttons - responsive grid for mobile */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
             {[5, 10, 25, 50, 100].map((quickAmount) => (
               <button
                 key={quickAmount}
@@ -414,7 +418,7 @@ export function SendMoneyForm({
                   setAmount(quickAmount.toString());
                   playSound('tap');
                 }}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`py-2 px-3 rounded-xl text-sm font-medium transition-all ${
                   amount === quickAmount.toString()
                     ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] border border-[rgb(0,212,255)]/30"
                     : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
