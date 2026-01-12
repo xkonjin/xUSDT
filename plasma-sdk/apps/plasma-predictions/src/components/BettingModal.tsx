@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Check, Loader2, AlertCircle, ArrowRight, Info, Gamepad2 } from "lucide-react";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
@@ -28,6 +28,50 @@ export function BettingModal() {
   const [amount, setAmount] = useState("");
   const [step, setStep] = useState<"input" | "signing" | "submitting" | "success" | "error">("input");
   const [errorMsg, setErrorMsg] = useState("");
+  
+  // Focus trap for accessibility (Issue #219)
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  
+  // Store the previously focused element and trap focus when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      // Focus the modal container after a short delay to allow render
+      const timer = setTimeout(() => {
+        const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        firstFocusable?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Restore focus when modal closes
+      previousFocusRef.current?.focus();
+    }
+  }, [isOpen]);
+  
+  // Handle keyboard navigation for focus trap
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    
+    const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    
+    if (!focusableElements || focusableElements.length === 0) return;
+    
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    if (e.shiftKey && document.activeElement === firstElement) {
+      e.preventDefault();
+      lastElement.focus();
+    } else if (!e.shiftKey && document.activeElement === lastElement) {
+      e.preventDefault();
+      firstElement.focus();
+    }
+  }, []);
 
   const parsedAmount = useMemo(() => {
     const val = parseFloat(amount);
@@ -137,12 +181,17 @@ export function BettingModal() {
         onClick={handleClose}
       >
         <motion.div
+          ref={modalRef}
           initial={{ y: "100%", opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 400 }}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
           className="bottom-sheet w-full sm:max-w-md sm:rounded-2xl p-6 safe-area-bottom"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="betting-modal-title"
         >
           {/* Drag Handle (mobile) */}
           <div className="flex justify-center mb-5 sm:hidden">

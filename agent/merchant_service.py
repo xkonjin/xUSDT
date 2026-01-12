@@ -11,6 +11,10 @@ import json
 from web3 import Web3
 from typing import Optional
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 from .merchant_agent import build_payment_required, verify_and_settle
 from .x402_models import PaymentSubmitted
 from .config import settings
@@ -25,7 +29,15 @@ from .polymarket import polymarket_router
 # Import predictions router for Plasma Predictions
 from .predictions import router as predictions_router
 
+# =============================================================================
+# Rate Limiting Configuration (Issue #212)
+# =============================================================================
+# Using slowapi for rate limiting to prevent DoS and abuse
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS configuration - restrict origins in production
 # Set CORS_ORIGINS env var to comma-separated list of allowed origins
@@ -83,7 +95,8 @@ def health() -> dict:
 
 
 @app.get("/premium")
-def get_premium(invoiceId: Optional[str] = None) -> Response:
+@limiter.limit("30/minute")
+def get_premium(request: Request, invoiceId: Optional[str] = None) -> Response:
     # If an invoiceId is provided and marked confirmed, grant access (200)
     if invoiceId:
         from .merchant_agent import get_invoice_record
@@ -108,6 +121,7 @@ def get_premium(invoiceId: Optional[str] = None) -> Response:
 
 
 @app.post("/pay")
+@limiter.limit("10/minute")
 def post_pay(request: Request, submitted: PaymentSubmitted) -> dict:
     # Extract user IP for rate limiting (check X-Forwarded-For for proxied requests)
     user_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
@@ -243,7 +257,8 @@ class RelayTotalIn(BaseModel):
 
 
 @app.post("/router/relay_total")
-def router_relay_total(body: RelayTotalIn) -> dict:
+@limiter.limit("5/minute")
+def router_relay_total(request: Request, body: RelayTotalIn) -> dict:
     """Relay a signed EIP‑712 PaymentRouter.gaslessTransfer using the relayer key.
 
     Expects signature as a 65‑byte 0x hex string; splits into v/r/s and submits the tx.
