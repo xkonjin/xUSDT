@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Wallet, Settings, Copy, Check, X, ChevronRight, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
+import { User, Wallet, Settings, Copy, Check, X, ChevronRight, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
 import { Avatar } from "./ui/Avatar";
 import { formatAddress, copyToClipboard } from "@/lib/utils";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface UserProfileProps {
   user: {
@@ -72,12 +73,14 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-sm bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden animate-slide-down">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose}
+      zIndex={110}
+      containerClassName="items-start pt-20"
+      wrapperClassName="max-w-sm"
+    >
+      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden">
         {/* Header with profile info */}
         <div className="relative bg-gradient-to-br from-[rgb(0,212,255)]/20 to-purple-500/20 p-6 pb-16">
           <button
@@ -166,27 +169,11 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
         {/* Footer */}
         <div className="px-4 pb-4">
           <p className="text-white/30 text-xs text-center">
-            Plasma Venmo v0.1.0 • Powered by Plasma Chain
+            Plenmo v0.1.0 • Powered by Plasma Chain
           </p>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-down {
-          animation: slide-down 0.2s ease-out;
-        }
-      `}</style>
-    </div>
+    </ModalPortal>
   );
 }
 

@@ -67,8 +67,7 @@ export function Header({
       <header className={cn("flex items-center justify-between mb-8 relative z-10", className)}>
         {/* Logo */}
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="gradient-text">Plasma</span>{" "}
-          <span className="text-white">Venmo</span>
+          <span className="gradient-text">Plenmo</span>
         </h1>
 
         {/* Desktop: Inline Search + Actions */}

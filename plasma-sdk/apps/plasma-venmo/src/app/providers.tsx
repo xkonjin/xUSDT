@@ -1,5 +1,5 @@
 /**
- * Client-side Providers for Plasma Venmo
+ * Client-side Providers for Plenmo
  *
  * Uses the shared provider factory from @plasma-pay/privy-auth.
  */

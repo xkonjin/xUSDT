@@ -58,8 +58,7 @@ describe('Header', () => {
       />
     );
     
-    expect(screen.getByText('Plasma')).toBeInTheDocument();
-    expect(screen.getByText('Venmo')).toBeInTheDocument();
+    expect(screen.getByText('Plenmo')).toBeInTheDocument();
   });
 
   it('renders inline search bar on desktop (isDesktop=true)', () => {

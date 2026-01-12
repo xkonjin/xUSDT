@@ -236,6 +236,13 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('List requests error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({
+        success: true,
+        requests: { sent: [], received: [] },
+        warning: 'Database unavailable',
+      });
+    }
     return NextResponse.json(
       { error: 'Failed to list payment requests' },
       { status: 500 }

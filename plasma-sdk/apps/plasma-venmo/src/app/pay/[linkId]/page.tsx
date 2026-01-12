@@ -189,7 +189,7 @@ export default function PayPage({
             className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -209,7 +209,7 @@ export default function PayPage({
             className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -248,7 +248,7 @@ export default function PayPage({
                 href="/"
                 className="btn-primary inline-block"
               >
-                Open Plasma Venmo
+                Open Plenmo
               </Link>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function PayPage({
             className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -295,7 +295,7 @@ export default function PayPage({
           className="inline-flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Plasma Venmo
+          Back to Plenmo
         </Link>
 
         {/* Payment Card */}

@@ -9,7 +9,8 @@
  */
 
 import { useState } from "react";
-import { Wallet, Copy, Check, ExternalLink, AlertCircle, QrCode, X } from "lucide-react";
+import { Wallet, Copy, Check, ExternalLink, AlertCircle, X } from "lucide-react";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface ExternalWalletPayProps {
   recipientAddress: string;
@@ -110,13 +111,8 @@ export function ExternalWalletPayModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 animate-fade-in-scale max-h-[90vh] overflow-y-auto">
+    <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={110}>
+      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -248,7 +244,7 @@ export function ExternalWalletPayModal({
           After sending, the payment will be confirmed automatically
         </p>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 

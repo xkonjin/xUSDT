@@ -16,6 +16,7 @@ import {
   RefreshCw,
   AlertCircle
 } from "lucide-react";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface FeedItem {
   id: string;
@@ -388,10 +389,13 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative w-full max-w-md clay-card p-6 animate-fade-in-scale">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose}
+      zIndex={110}
+      backdropClassName="bg-black/80 backdrop-blur-sm"
+    >
+      <div className="relative w-full max-w-md clay-card p-6">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-white/40 hover:text-white transition-colors"
@@ -447,7 +451,7 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 

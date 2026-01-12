@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useUSDT0Balance, useAllWallets, useConnectExternalWallet } from "@plasma-pay/privy-auth";
 import { FundWalletModal } from "./FundWallet";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface WalletManagerProps {
   isOpen: boolean;
@@ -55,13 +56,8 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col animate-fade-in-scale">
+    <ModalPortal isOpen={true} onClose={onClose} zIndex={110}>
+      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -271,7 +267,7 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
           onClose={() => setShowFundModal(false)} 
         />
       )}
-    </div>
+    </ModalPortal>
   );
 }
 

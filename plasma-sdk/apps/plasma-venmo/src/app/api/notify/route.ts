@@ -41,8 +41,7 @@ function wrapEmailTemplate(content: string): string {
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
               <h1 style="margin: 0; font-size: 24px; font-weight: 700;">
-                <span style="color: #00d4ff;">Plasma</span>
-                <span style="color: #ffffff;">Venmo</span>
+                <span style="color: #00d4ff;">Plenmo</span>
               </h1>
             </td>
           </tr>
@@ -102,7 +101,7 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
       </p>
       ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plasma Venmo</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plenmo</a>
       </div>
     `),
   },
@@ -262,7 +261,7 @@ export async function POST(request: Request) {
     }
 
     // Send via Resend SDK
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plasma Venmo <onboarding@resend.dev>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plenmo <onboarding@resend.dev>';
     
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,

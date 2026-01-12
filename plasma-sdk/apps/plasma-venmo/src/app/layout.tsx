@@ -1,5 +1,5 @@
 /**
- * Root Layout for Plasma Venmo App
+ * Root Layout for Plenmo App
  * 
  * Server component that wraps the app with client-side providers.
  * Requires NEXT_PUBLIC_PRIVY_APP_ID environment variable for production.
@@ -11,7 +11,7 @@ import { Providers } from './providers';
 import { ToastProvider } from '@/components/ui/Toast';
 
 export const metadata = {
-  title: 'Plasma Venmo - Send Money Instantly',
+  title: 'Plenmo - Send Money Instantly',
   description: 'Send money to anyone instantly using gasless USDT0 on Plasma.',
 };
 

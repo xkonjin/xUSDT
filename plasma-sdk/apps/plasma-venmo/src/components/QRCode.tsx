@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { QrCode, Copy, Check, X, Download, Share2 } from "lucide-react";
 import { copyToClipboard } from "@/lib/utils";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface QRCodeButtonProps {
   walletAddress?: string;
@@ -59,8 +60,8 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Pay me on Plasma Venmo",
-          text: `Send me money on Plasma Venmo`,
+          title: "Pay me on Plenmo",
+          text: `Send me money on Plenmo`,
           url: paymentUrl,
         });
       } catch {
@@ -88,7 +89,7 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
       ctx?.drawImage(img, 0, 0);
       const pngUrl = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
-      downloadLink.download = `plasma-venmo-qr-${walletAddress.slice(0, 8)}.png`;
+      downloadLink.download = `plenmo-qr-${walletAddress.slice(0, 8)}.png`;
       downloadLink.href = pngUrl;
       downloadLink.click();
     };
@@ -97,12 +98,8 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-sm bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 animate-fade-in-scale">
+    <ModalPortal isOpen={true} onClose={onClose} zIndex={110} wrapperClassName="max-w-sm">
+      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -173,23 +170,7 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in-scale {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        .animate-fade-in-scale {
-          animation: fade-in-scale 0.2s ease-out;
-        }
-      `}</style>
-    </div>
+    </ModalPortal>
   );
 }
 

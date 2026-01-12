@@ -563,3 +563,61 @@ model UserSettings {
   @@index([referralCode])
 }
 
+// ============================================================================
+// CONTACTS - User contact list for Plenmo
+// ============================================================================
+model Contact {
+  id             String    @id @default(uuid())
+
+  // Owner of the contact list
+  ownerAddress   String
+
+  // Contact details
+  contactAddress String?
+  name           String
+  email          String?
+  phone          String?
+  isFavorite     Boolean   @default(false)
+  lastPayment    DateTime?
+
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([ownerAddress, contactAddress])
+  @@index([ownerAddress])
+  @@index([isFavorite])
+  @@index([lastPayment])
+}
+
+// ============================================================================
+// ACTIVITY - Social feed events for Plenmo
+// ============================================================================
+model Activity {
+  id            String    @id @default(uuid())
+
+  // Activity details
+  type          String
+  actorAddress  String
+  actorName     String
+  targetAddress String
+  targetName    String
+  amount        Float
+  currency      String    @default("USDT0")
+  memo          String?
+  txHash        String?
+
+  // Visibility and engagement
+  visibility    String    @default("public")
+  likes         Int       @default(0)
+
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([visibility])
+  @@index([createdAt])
+  @@index([actorAddress])
+  @@index([targetAddress])
+}
+
