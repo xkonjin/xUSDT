@@ -20,6 +20,7 @@ import {
   X,
   ArrowDownLeft
 } from "lucide-react";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface FundWalletProps {
   walletAddress: string | undefined;
@@ -50,7 +51,7 @@ function getTransakUrl(walletAddress: string, amount?: number): string {
     themeColor: "00d4ff",
     hideMenu: "true",
     isFeeCalculationHidden: "true",
-    exchangeScreenTitle: "Buy USDT0 for Plasma Venmo",
+    exchangeScreenTitle: "Buy USDT0 for Plenmo",
   });
   
   if (amount) {
@@ -59,21 +60,6 @@ function getTransakUrl(walletAddress: string, amount?: number): string {
   }
   
   return `${baseUrl}?${params.toString()}`;
-}
-
-// Modal backdrop component
-function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-md animate-fade-in-scale">
-        {children}
-      </div>
-    </div>
-  );
 }
 
 export function FundWalletButton({ walletAddress }: { walletAddress: string | undefined }) {
@@ -86,6 +72,7 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
       <button
         onClick={() => setShowModal(true)}
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[rgb(0,212,255)]/20 to-purple-500/20 text-[rgb(0,212,255)] hover:from-[rgb(0,212,255)]/30 hover:to-purple-500/30 transition-all duration-200 text-sm font-medium"
+        data-avatar-tip="Add funds using card, external wallet, or copy your address."
       >
         <Plus className="w-4 h-4" />
         Add Funds
@@ -121,7 +108,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   // If method selected, show that view
   if (selectedMethod === "card") {
     return (
-      <ModalBackdrop onClose={onClose}>
+      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
         <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-6">
             <button 
@@ -182,13 +169,13 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             )}
           </div>
         </div>
-      </ModalBackdrop>
+      </ModalPortal>
     );
   }
 
   if (selectedMethod === "wallet") {
     return (
-      <ModalBackdrop onClose={onClose}>
+      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
         <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-6">
             <button 
@@ -211,12 +198,12 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Send from External Wallet</h3>
             <p className="text-white/50 text-sm mb-6">
-              Send USDT0 from MetaMask, Rabby, or any wallet to your Plasma Venmo address:
+              Send USDT0 from MetaMask, Rabby, or any wallet to your Plenmo address:
             </p>
 
             {/* Address display */}
             <div className="bg-white/5 rounded-2xl p-4 mb-4">
-              <p className="text-white/40 text-xs mb-2">Your Plasma Venmo Address</p>
+              <p className="text-white/40 text-xs mb-2">Your Plenmo Address</p>
               <div className="flex items-center justify-between gap-2">
                 <code className="text-white text-sm font-mono break-all">
                   {walletAddress}
@@ -240,13 +227,13 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             </div>
           </div>
         </div>
-      </ModalBackdrop>
+      </ModalPortal>
     );
   }
 
   // Main selection view
   return (
-    <ModalBackdrop onClose={onClose}>
+    <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
       <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Add Funds</h3>
@@ -318,7 +305,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           Zero gas fees on all Plasma transactions
         </p>
       </div>
-    </ModalBackdrop>
+    </ModalPortal>
   );
 }
 

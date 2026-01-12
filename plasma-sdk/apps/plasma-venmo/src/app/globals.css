@@ -314,6 +314,15 @@ body {
   }
 }
 
+@keyframes avatar-bob {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -350,4 +359,8 @@ body {
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-avatar-bob {
+  animation: avatar-bob 2.2s ease-in-out infinite;
 }

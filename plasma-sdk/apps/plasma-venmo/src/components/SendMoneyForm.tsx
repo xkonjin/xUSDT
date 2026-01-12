@@ -7,6 +7,7 @@ import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
+import { ModalPortal } from "./ui/ModalPortal";
 import type { Contact } from "./ContactList";
 
 interface SendMoneyFormProps {
@@ -38,12 +39,14 @@ function ConfirmationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={!loading ? onClose : undefined}
-      />
-      <div className="relative w-full max-w-sm bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 animate-fade-in-scale">
+    <ModalPortal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeOnBackdrop={!loading}
+      zIndex={110}
+      wrapperClassName="max-w-sm"
+    >
+      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
         <h3 className="text-xl font-bold text-white mb-6 text-center">Confirm Payment</h3>
         
         {/* Amount */}
@@ -96,7 +99,7 @@ function ConfirmationModal({
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 
@@ -121,25 +124,31 @@ function SuccessOverlay({
   const isClaimFlow = !!claimUrl;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-      
-      {/* Confetti */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 50 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-3 h-3 rounded-full animate-confetti"
-            style={{
-              left: `${Math.random() * 100}%`,
-              backgroundColor: ['#00d4ff', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)],
-              animationDelay: `${Math.random() * 0.5}s`,
-            }}
-          />
-        ))}
-      </div>
+    <ModalPortal
+      isOpen={isVisible}
+      onClose={onClose}
+      closeOnBackdrop={false}
+      zIndex={120}
+      backdropClassName="bg-black/80 backdrop-blur-md"
+      wrapperClassName="max-w-none w-full h-full p-0"
+    >
+      <div className="relative w-full h-full flex items-center justify-center">
+        {/* Confetti */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-3 h-3 rounded-full animate-confetti"
+              style={{
+                left: `${Math.random() * 100}%`,
+                backgroundColor: ['#00d4ff', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)],
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            />
+          ))}
+        </div>
 
-      <div className="relative text-center animate-success-bounce">
+        <div className="relative text-center animate-success-bounce">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
           <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -179,6 +188,7 @@ function SuccessOverlay({
         >
           Done
         </button>
+        </div>
       </div>
 
       <style jsx>{`
@@ -199,7 +209,7 @@ function SuccessOverlay({
           animation: success-bounce 0.5s ease-out forwards;
         }
       `}</style>
-    </div>
+    </ModalPortal>
   );
 }
 
@@ -365,6 +375,7 @@ export function SendMoneyForm({
               placeholder="Email, phone, or wallet address"
               className="clay-input w-full pl-12 py-4 text-white placeholder:text-white/30"
               disabled={loading}
+              data-avatar-tip="Enter an email, phone, or wallet address."
             />
             {recipient && isValidRecipient && (
               <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-400" />
@@ -402,6 +413,7 @@ export function SendMoneyForm({
               aria-label="Amount in USD"
               aria-invalid={insufficientBalance || amountTooSmall || amountTooLarge}
               aria-describedby={insufficientBalance || amountTooSmall || amountTooLarge ? "amount-error" : undefined}
+              data-avatar-tip="Enter the amount to send in USD."
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm" aria-hidden="true">
               USD
@@ -465,6 +477,7 @@ export function SendMoneyForm({
           type="submit"
           disabled={!canSubmit}
           className="w-full clay-button py-4 text-black font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+          data-avatar-tip="Review and send your payment."
         >
           <Send className="w-5 h-5" />
           {amount && parseFloat(amount) > 0 ? `Send $${parseFloat(amount).toFixed(2)} Now` : "Review Payment"}

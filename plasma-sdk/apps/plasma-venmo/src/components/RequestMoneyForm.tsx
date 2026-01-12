@@ -89,6 +89,7 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
           placeholder="friend@email.com, +1234567890, or 0x..."
           className="input-glass w-full"
           disabled={loading}
+          data-avatar-tip="Enter who you want to request from."
         />
       </div>
 
@@ -109,6 +110,7 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
             min="0"
             className="input-glass w-full pl-8"
             disabled={loading}
+            data-avatar-tip="Set the amount you want to request."
           />
         </div>
       </div>
@@ -124,6 +126,7 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
           placeholder="Dinner, rent, etc."
           className="input-glass w-full"
           disabled={loading}
+          data-avatar-tip="Add a note so they know why you are requesting."
         />
       </div>
 
@@ -143,6 +146,7 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
         type="submit"
         disabled={!canSubmit}
         className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+        data-avatar-tip="Send the request to your recipient."
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

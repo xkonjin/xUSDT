@@ -14,6 +14,7 @@ import { UserProfileButton } from "@/components/UserProfile";
 import { Send, HandCoins, Sparkles } from "lucide-react";
 import { LiveCounter, LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { SocialFeed } from "@/components/SocialFeed";
+import { AvatarAssistant } from "@/components/AvatarAssistant";
 
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } =
@@ -38,6 +39,7 @@ export default function HomePage() {
   if (!authenticated) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8 relative overflow-hidden">
+        <AvatarAssistant authenticated={false} />
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.15)_0%,transparent_70%)] blur-3xl" />
           <div className="absolute bottom-[-10%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.1)_0%,transparent_70%)] blur-3xl" />
@@ -45,8 +47,7 @@ export default function HomePage() {
 
         <div className="text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
-            <span className="gradient-text">Plasma</span>{" "}
-            <span className="text-white">Pay</span>
+            <span className="gradient-text">Plenmo</span>
           </h1>
           <p className="text-white/60 text-xl max-w-md mx-auto leading-relaxed mb-2">
             Pay anyone instantly. Zero fees.
@@ -72,7 +73,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <button onClick={login} className="btn-primary relative z-10 animate-pulse-glow text-lg px-8 py-4">
+        <button
+          onClick={login}
+          className="btn-primary relative z-10 animate-pulse-glow text-lg px-8 py-4"
+          data-avatar-tip="Sign in to start sending or requesting money."
+        >
           Get Started Free
         </button>
 
@@ -100,14 +105,18 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 relative">
+      <AvatarAssistant
+        authenticated={authenticated}
+        activeTab={activeTab}
+        balance={formatted || undefined}
+      />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-30%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.08)_0%,transparent_70%)] blur-3xl" />
       </div>
 
       <header className="flex items-center justify-between mb-8 relative z-10">
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="gradient-text">Plasma</span>{" "}
-          <span className="text-white">Venmo</span>
+          <span className="gradient-text">Plenmo</span>
         </h1>
         <div className="flex items-center gap-2">
           <QRCodeButton walletAddress={wallet?.address} username={userEmail} />
@@ -161,6 +170,7 @@ export default function HomePage() {
                 ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
                 : "text-white/50 hover:text-white"
             }`}
+            data-avatar-tip="Send money instantly to email, phone, or wallet."
           >
             <Send className="w-4 h-4" />
             Send
@@ -172,6 +182,7 @@ export default function HomePage() {
                 ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
                 : "text-white/50 hover:text-white"
             }`}
+            data-avatar-tip="Create a request and get paid by email or phone."
           >
             <HandCoins className="w-4 h-4" />
             Request
