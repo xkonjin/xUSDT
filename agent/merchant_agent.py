@@ -134,12 +134,16 @@ def compute_protocol_fee(amount_atomic: int, *, chain: str, mode: str) -> tuple[
     return floor_atomic, True
 
 
-def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
+def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> PaymentCompleted:
     """Basic verification and settlement orchestration.
 
     - Ensures the recipient matches our configured merchant address.
     - Submits the transaction via the appropriate facilitator path.
     - Returns a PaymentCompleted message with tx hash and status.
+    
+    Args:
+        submitted: The PaymentSubmitted payload from the client
+        user_ip: The client's IP address for rate limiting (extracted from X-Forwarded-For or client.host)
     """
     # Idempotency: return previously computed result if present
     existing = _INVOICE_RECORDS.get(submitted.invoiceId)
@@ -199,7 +203,7 @@ def verify_and_settle(submitted: PaymentSubmitted) -> PaymentCompleted:
             v=submitted.signature.v,
             r=submitted.signature.r,
             s=submitted.signature.s,
-            user_ip="unknown",  # TODO: Pass user IP from request for proper rate limiting
+            user_ip=user_ip,
         )
         token_id = None
         if res.success and getattr(settings, "NFT_MINT_ON_PAY", False):

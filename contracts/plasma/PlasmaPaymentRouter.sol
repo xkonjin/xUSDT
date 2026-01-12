@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title PlasmaPaymentRouter
@@ -16,7 +17,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * - Keeps logic minimal and auditable on-chain
  * - Leaves gasless/EIP-712 flows to higher-level routers or channel receipts
  */
-contract PlasmaPaymentRouter is Ownable {
+contract PlasmaPaymentRouter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @dev Collector of protocol fees (e.g., treasury/multisig)
@@ -61,7 +62,7 @@ contract PlasmaPaymentRouter is Ownable {
      * @param to    Merchant recipient
      * @param grossAmount Amount in token smallest units
      */
-    function settle(address token, address from, address to, uint256 grossAmount) external {
+    function settle(address token, address from, address to, uint256 grossAmount) external nonReentrant {
         require(token != address(0) && from != address(0) && to != address(0), "zero addr");
         require(grossAmount > 0, "amount=0");
 

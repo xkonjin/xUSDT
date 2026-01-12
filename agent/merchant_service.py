@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import os
 import time
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -25,12 +26,19 @@ from .polymarket import polymarket_router
 from .predictions import router as predictions_router
 
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
+
+# CORS configuration - restrict origins in production
+# Set CORS_ORIGINS env var to comma-separated list of allowed origins
+# Default allows localhost:3000 for development
+_cors_origins = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+_cors_origins = [origin.strip() for origin in _cors_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # =============================================================================
@@ -100,7 +108,13 @@ def get_premium(invoiceId: Optional[str] = None) -> Response:
 
 
 @app.post("/pay")
-def post_pay(submitted: PaymentSubmitted) -> dict:
+def post_pay(request: Request, submitted: PaymentSubmitted) -> dict:
+    # Extract user IP for rate limiting (check X-Forwarded-For for proxied requests)
+    user_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if not user_ip and request.client:
+        user_ip = request.client.host
+    user_ip = user_ip or "unknown"
+    
     # Normalize web3-native types (AttributeDict, HexBytes, bytes) so FastAPI can serialize
     from hexbytes import HexBytes
     from web3.datastructures import AttributeDict
@@ -118,7 +132,7 @@ def post_pay(submitted: PaymentSubmitted) -> dict:
             return {k: _jsonify(v) for k, v in obj.items()}
         return obj
 
-    completed = verify_and_settle(submitted)
+    completed = verify_and_settle(submitted, user_ip=user_ip)
     out = _jsonify(completed.model_dump())
     if not isinstance(out.get("receipt"), dict):  # final guard
         out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
@@ -234,12 +248,28 @@ def router_relay_total(body: RelayTotalIn) -> dict:
 
     Expects signature as a 65‑byte 0x hex string; splits into v/r/s and submits the tx.
     """
+    from fastapi import HTTPException
+    
     router_addr = Web3.to_checksum_address(settings.ROUTER_ADDRESS)
     token_addr = Web3.to_checksum_address(settings.USDT0_ADDRESS)
     merchant_addr = Web3.to_checksum_address(settings.MERCHANT_ADDRESS)
 
-    # Split signature into r, s, v
+    # Validate and split signature into r, s, v
     hex_sig = body.signature[2:] if body.signature.startswith("0x") else body.signature
+    
+    # Validate signature length (65 bytes = 130 hex chars)
+    if len(hex_sig) != 130:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid signature length: expected 130 hex chars (65 bytes), got {len(hex_sig)}"
+        )
+    
+    # Validate signature is valid hex
+    try:
+        bytes.fromhex(hex_sig)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid signature format: expected hex string")
+    
     r = Web3.to_hex(bytes.fromhex(hex_sig[0:64]))
     s = Web3.to_hex(bytes.fromhex(hex_sig[64:128]))
     v_raw = int(hex_sig[128:130], 16)

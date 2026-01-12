@@ -61,9 +61,21 @@ async def require_auth(
 def verify_privy_token(token: str) -> Optional[str]:
     """
     Verify a Privy JWT token and extract the user address.
+    
+    In development mode (DEV_MODE=true), tokens are decoded without verification.
+    In production, PRIVY_VERIFICATION_KEY is required.
     """
+    # Check if we're in development mode (explicit opt-in)
+    dev_mode = os.environ.get("DEV_MODE", "false").lower() == "true"
+    
     if not PRIVY_VERIFICATION_KEY:
-        # In development, decode without verification
+        if not dev_mode:
+            # Production requires verification key
+            raise RuntimeError(
+                "PRIVY_VERIFICATION_KEY is required in production. "
+                "Set DEV_MODE=true for development without JWT verification."
+            )
+        # Development mode: decode without verification (with warning)
         try:
             payload = jwt.decode(token, options={"verify_signature": False})
             return payload.get("sub", "").replace("did:privy:", "")
