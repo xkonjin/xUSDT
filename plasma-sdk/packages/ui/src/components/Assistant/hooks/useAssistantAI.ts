@@ -1,22 +1,117 @@
 import { useCallback, useRef, useState } from 'react';
 import type { UIContext, AssistantMemory, AssistantEmotion } from '../types';
-import { SYSTEM_PROMPT } from '../constants';
-import { formatContextForLLM } from '../utils/contextCollector';
+import {
+  PLENMO_KNOWLEDGE,
+  getContextualKnowledge,
+  getProactiveMessage,
+  answerFAQ,
+  getFeatureGuide,
+} from '../knowledge/plenmoKnowledge';
 
 interface AIResponse {
   text: string;
   emotion: AssistantEmotion;
 }
 
-// Fallback responses when API is not available
-const FALLBACK_RESPONSES: Record<string, AIResponse> = {
-  greeting: { text: "Hi there! I'm Plenny, your payment buddy! 👋", emotion: 'happy' },
-  help: { text: "I'm here to help! What do you need?", emotion: 'neutral' },
-  error: { text: "Oops! Something went wrong. Try again?", emotion: 'concerned' },
-  success: { text: 'Awesome! That worked perfectly! 🎉', emotion: 'excited' },
-  wallet: { text: 'Connect your wallet to get started!', emotion: 'thinking' },
-  idle: { text: 'Still there? Let me know if you need help!', emotion: 'thinking' },
-};
+// Enhanced system prompt with full Plenmo knowledge
+const SYSTEM_PROMPT = `You are Plenny, the AI assistant for Plenmo - a zero-fee P2P payment app.
+
+## YOUR KNOWLEDGE
+
+### What is Plenmo?
+${PLENMO_KNOWLEDGE.product.description}
+
+### Key Features:
+${PLENMO_KNOWLEDGE.product.valueProposition.map(v => `- ${v}`).join('\n')}
+
+### Currency:
+- USDT0 = USD Tether on Plasma Chain, always worth $1 USD
+- Minimum send: $0.01, Maximum: $10,000
+
+### How Payments Work:
+${PLENMO_KNOWLEDGE.technical.howItWorks.gaslessTransactions}
+
+### How Claims Work:
+${PLENMO_KNOWLEDGE.technical.howItWorks.claimFlow}
+
+### Common Questions You Can Answer:
+${Object.entries(PLENMO_KNOWLEDGE.faq).slice(0, 8).map(([q, a]) => `Q: ${q}\nA: ${a}`).join('\n\n')}
+
+## YOUR PERSONALITY
+- Name: Plenny
+- Friendly, helpful, celebratory on wins, empathetic on errors
+- Use simple language, no crypto jargon
+- Keep responses SHORT (1-2 sentences, under 100 chars preferred)
+- Max 1 emoji per message
+- Be specific and actionable
+
+## RULES
+1. NEVER make up features that don't exist
+2. NEVER share sensitive info or private keys
+3. Always be encouraging about security
+4. If unsure, say "I'm not sure, but I can help you find out!"
+5. Celebrate successes enthusiastically
+6. Be empathetic about errors - reassure funds are safe`;
+
+// Smart fallback responses using knowledge base
+function getSmartFallback(message: string, context: UIContext): AIResponse {
+  const lower = message.toLowerCase();
+  
+  // Try FAQ first
+  const faqAnswer = answerFAQ(message);
+  if (faqAnswer) {
+    return { text: faqAnswer.slice(0, 150), emotion: 'happy' };
+  }
+  
+  // Try feature guide
+  const featureGuide = getFeatureGuide(message);
+  if (featureGuide) {
+    return { text: featureGuide.slice(0, 150), emotion: 'thinking' };
+  }
+  
+  // Context-aware responses
+  if (!context.walletConnected) {
+    if (lower.includes('send') || lower.includes('pay')) {
+      return { 
+        text: "Connect your wallet first! Click the connect button to get started 🔐", 
+        emotion: 'thinking' 
+      };
+    }
+  }
+  
+  if (context.errors.length > 0) {
+    const errorKey = Object.keys(PLENMO_KNOWLEDGE.errorSolutions).find(
+      key => context.errors.some(e => e.toLowerCase().includes(key.toLowerCase()))
+    );
+    if (errorKey) {
+      const solution = PLENMO_KNOWLEDGE.errorSolutions[errorKey as keyof typeof PLENMO_KNOWLEDGE.errorSolutions];
+      return { text: solution.solution.slice(0, 150), emotion: solution.emotion as AssistantEmotion };
+    }
+  }
+  
+  // Keyword matching for common intents
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+    return { text: "Hey! I'm Plenny, your payment buddy! What can I help with? 👋", emotion: 'happy' };
+  }
+  if (lower.includes('thank')) {
+    return { text: "You're welcome! Happy to help! 😊", emotion: 'happy' };
+  }
+  if (lower.includes('bye') || lower.includes('goodbye')) {
+    return { text: "See you later! I'll be here if you need me! 👋", emotion: 'happy' };
+  }
+  if (lower.includes('help') || lower.includes('what can you')) {
+    return { 
+      text: "I can help you send money, explain features, troubleshoot errors, and answer questions about Plenmo!", 
+      emotion: 'happy' 
+    };
+  }
+  
+  // Default
+  return { 
+    text: "I'm here to help with payments! Try asking about sending money, fees, or how Plenmo works.", 
+    emotion: 'neutral' 
+  };
+}
 
 export function useAssistantAI(
   apiKey?: string,
@@ -43,22 +138,22 @@ export function useAssistantAI(
   // Determine emotion from response text
   const detectEmotion = (text: string): AssistantEmotion => {
     const lower = text.toLowerCase();
-    if (lower.includes('!') || lower.includes('🎉') || lower.includes('awesome') || lower.includes('great')) {
+    if (lower.includes('🎉') || lower.includes('awesome') || lower.includes('success') || lower.includes('done!')) {
       return 'excited';
     }
-    if (lower.includes('?') || lower.includes('let me') || lower.includes('thinking')) {
+    if (lower.includes('hmm') || lower.includes('let me') || lower.includes('try') || lower.includes('check')) {
       return 'thinking';
     }
-    if (lower.includes('sorry') || lower.includes('error') || lower.includes('oops')) {
+    if (lower.includes('sorry') || lower.includes('error') || lower.includes('oops') || lower.includes("can't")) {
       return 'concerned';
     }
-    if (lower.includes('👍') || lower.includes('nice') || lower.includes('good')) {
+    if (lower.includes('👍') || lower.includes('great') || lower.includes('perfect') || lower.includes('!')) {
       return 'happy';
     }
     return 'neutral';
   };
 
-  // Send message to LLM
+  // Send message to LLM with full knowledge
   const sendMessage = useCallback(
     async (
       message: string,
@@ -67,20 +162,9 @@ export function useAssistantAI(
     ): Promise<AIResponse> => {
       await initGenAI();
 
-      // If no API key or genAI failed, use fallback
+      // Use smart fallback if no API
       if (!genAIRef.current) {
-        // Simple keyword matching for fallback
-        const lower = message.toLowerCase();
-        if (lower.includes('hello') || lower.includes('hi')) {
-          return FALLBACK_RESPONSES.greeting;
-        }
-        if (lower.includes('help')) {
-          return FALLBACK_RESPONSES.help;
-        }
-        if (lower.includes('wallet') || lower.includes('connect')) {
-          return FALLBACK_RESPONSES.wallet;
-        }
-        return FALLBACK_RESPONSES.help;
+        return getSmartFallback(message, context);
       }
 
       setIsLoading(true);
@@ -90,26 +174,49 @@ export function useAssistantAI(
           model: 'gemini-1.5-flash',
         });
 
-        // Build context message
-        const contextStr = formatContextForLLM(context);
+        // Build rich context
+        const contextualKnowledge = getContextualKnowledge(
+          context.currentRoute,
+          context.walletConnected,
+          context.balance,
+          context.errors
+        );
+        
         const userInfo = memory.userName ? `User's name: ${memory.userName}` : '';
+        const recentHistory = chatHistoryRef.current.slice(-6).map(
+          h => `${h.role}: ${h.content}`
+        ).join('\n');
 
-        // Create prompt
+        // Create enriched prompt
         const prompt = `${SYSTEM_PROMPT}
 
-Current Context:
-${contextStr}
+## CURRENT SITUATION
+${contextualKnowledge}
 ${userInfo}
 
-User message: ${message}
+## RECENT CONVERSATION
+${recentHistory || '(New conversation)'}
 
-Respond briefly (under 100 characters if possible):`;
+## USER'S MESSAGE
+"${message}"
+
+## YOUR RESPONSE
+Respond helpfully in 1-2 SHORT sentences (under 100 characters preferred). Be specific to their situation:`;
 
         const result = await model.generateContent(prompt);
         const response = result.response.text();
 
         // Clean up response
-        const cleanResponse = response.trim().replace(/^["']|["']$/g, '');
+        let cleanResponse = response.trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/^\*+|\*+$/g, '')
+          .split('\n')[0]; // Take first line only
+        
+        // Ensure it's not too long
+        if (cleanResponse.length > 200) {
+          cleanResponse = cleanResponse.slice(0, 197) + '...';
+        }
+
         const emotion = detectEmotion(cleanResponse);
 
         // Update chat history
@@ -128,7 +235,7 @@ Respond briefly (under 100 characters if possible):`;
         return { text: cleanResponse, emotion };
       } catch (error) {
         console.error('LLM error:', error);
-        return FALLBACK_RESPONSES.error;
+        return getSmartFallback(message, context);
       } finally {
         setIsLoading(false);
       }
@@ -136,29 +243,31 @@ Respond briefly (under 100 characters if possible):`;
     [initGenAI, onEmotionChange]
   );
 
-  // Get proactive help suggestion
+  // Get proactive help using knowledge base
   const getProactiveHelp = useCallback(
     async (
       context: UIContext,
       memory: AssistantMemory,
       reason: string
     ): Promise<AIResponse | null> => {
-      await initGenAI();
+      // First try knowledge-base proactive messages
+      const proactiveMsg = getProactiveMessage(
+        context.currentRoute,
+        context.walletConnected,
+        context.balance,
+        context.mouseIdleTime,
+        context.errors.length > 0
+      );
+      
+      if (proactiveMsg) {
+        return { text: proactiveMsg.message, emotion: proactiveMsg.emotion };
+      }
 
-      // Fallback responses based on reason
+      // If we have API, try for smarter proactive help
+      await initGenAI();
+      
       if (!genAIRef.current) {
-        switch (reason) {
-          case 'error':
-            return { text: 'I see an error. Need help fixing it?', emotion: 'concerned' };
-          case 'wallet_required':
-            return FALLBACK_RESPONSES.wallet;
-          case 'idle_on_form':
-            return FALLBACK_RESPONSES.idle;
-          case 'first_visit':
-            return FALLBACK_RESPONSES.greeting;
-          default:
-            return null;
-        }
+        return null;
       }
 
       try {
@@ -166,17 +275,27 @@ Respond briefly (under 100 characters if possible):`;
           model: 'gemini-1.5-flash',
         });
 
-        const contextStr = formatContextForLLM(context);
+        const contextualKnowledge = getContextualKnowledge(
+          context.currentRoute,
+          context.walletConnected,
+          context.balance,
+          context.errors
+        );
 
         const prompt = `${SYSTEM_PROMPT}
 
-Current Context:
-${contextStr}
+## SITUATION
+${contextualKnowledge}
+Trigger: ${reason}
 
-Reason for checking: ${reason}
+## TASK
+Should you proactively offer help? Consider:
+- Is the user stuck or confused?
+- Is there something useful you can tell them?
+- Would a message be helpful or annoying?
 
-Should you proactively offer help? If yes, give a SHORT helpful message (under 50 characters).
-If the user seems fine, respond with just "NO_HELP".`;
+If YES: Give ONE short helpful message (under 50 chars)
+If NO: Respond with exactly "NO_HELP"`;
 
         const result = await model.generateContent(prompt);
         const response = result.response.text().trim();
@@ -185,8 +304,9 @@ If the user seems fine, respond with just "NO_HELP".`;
           return null;
         }
 
-        const emotion = detectEmotion(response);
-        return { text: response, emotion };
+        const cleanResponse = response.split('\n')[0].slice(0, 100);
+        const emotion = detectEmotion(cleanResponse);
+        return { text: cleanResponse, emotion };
       } catch (error) {
         console.error('Proactive help error:', error);
         return null;
@@ -195,32 +315,54 @@ If the user seems fine, respond with just "NO_HELP".`;
     [initGenAI]
   );
 
-  // Get quick suggestion based on context
+  // Get contextual quick suggestions
   const getQuickSuggestion = useCallback(
     (context: UIContext): string[] => {
       const suggestions: string[] = [];
 
+      // Wallet not connected
       if (!context.walletConnected) {
         suggestions.push('How do I connect my wallet?');
+        suggestions.push('Is Plenmo safe?');
+      }
+      
+      // Page-specific suggestions
+      if (context.currentPage === 'Home' || context.currentRoute === '/') {
+        if (context.walletConnected) {
+          suggestions.push('How do I send money?');
+          suggestions.push('Are there any fees?');
+        }
+      }
+      
+      if (context.currentPage === 'Send Money' || context.currentRoute === '/') {
+        suggestions.push('What if they don\'t have Plenmo?');
+      }
+      
+      if (context.currentRoute.includes('/claim')) {
+        suggestions.push('How do claims work?');
+        suggestions.push('Is my claim still valid?');
+      }
+      
+      if (context.currentRoute.includes('/pay')) {
+        suggestions.push('How do payment links work?');
       }
 
-      if (context.currentPage === 'Send Money') {
-        suggestions.push('How do I send money?');
-        suggestions.push('What are the fees?');
-      }
-
-      if (context.currentPage === 'Receive Money') {
-        suggestions.push('How do I share my link?');
-      }
-
+      // Error context
       if (context.errors.length > 0) {
         suggestions.push('Why am I seeing this error?');
+        suggestions.push('Is my money safe?');
+      }
+      
+      // Low balance
+      if (context.balance && parseFloat(context.balance) < 5) {
+        suggestions.push('How do I add funds?');
       }
 
       // Default suggestions
       if (suggestions.length === 0) {
-        suggestions.push('What can you help me with?');
-        suggestions.push('Show me around');
+        suggestions.push('What can you help with?');
+        suggestions.push('How does Plenmo work?');
+        suggestions.push('What is USDT0?');
       }
 
       return suggestions.slice(0, 3);
