@@ -35,7 +35,7 @@ interface WalletManagerProps {
 }
 
 export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showFundModal, setShowFundModal] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>("wallets");
   
@@ -47,8 +47,8 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
 
   const copyAddress = async (address: string) => {
     await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   const toggleSection = (section: string) => {
@@ -154,8 +154,9 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                       <button
                         onClick={() => copyAddress(embeddedWallet.address)}
                         className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                        aria-label="Copy wallet address"
                       >
-                        {copied ? (
+                        {copiedAddress === embeddedWallet.address ? (
                           <Check className="w-4 h-4 text-green-400" />
                         ) : (
                           <Copy className="w-4 h-4 text-white/40" />
@@ -238,8 +239,9 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                   <button
                     onClick={() => copyAddress(embeddedWallet.address)}
                     className="p-2 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                    aria-label="Copy deposit address"
                   >
-                    {copied ? (
+                    {copiedAddress === embeddedWallet.address ? (
                       <Check className="w-4 h-4 text-green-400" />
                     ) : (
                       <Copy className="w-4 h-4 text-white/50" />

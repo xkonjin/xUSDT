@@ -29,7 +29,7 @@ export function StreamCard({ stream, role, walletAddress, onWithdraw }: StreamCa
     }
 
     const elapsed = now > end ? end - start : now - start;
-    const duration = end - start;
+    const duration = end - start || 1n; // Prevent division by zero
     const streamed = (stream.depositAmount * elapsed) / duration;
     setWithdrawable(streamed - stream.withdrawnAmount);
 
@@ -91,9 +91,9 @@ export function StreamCard({ stream, role, walletAddress, onWithdraw }: StreamCa
     }
   };
 
-  const progress = Number(
-    (stream.withdrawnAmount * BigInt(100)) / stream.depositAmount
-  );
+  const progress = stream.depositAmount > 0n 
+    ? Number((stream.withdrawnAmount * BigInt(100)) / stream.depositAmount)
+    : 0;
 
   const totalAmount = Number(stream.depositAmount) / 1e6;
   const withdrawnAmount = Number(stream.withdrawnAmount) / 1e6;

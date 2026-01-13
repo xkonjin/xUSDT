@@ -132,7 +132,7 @@ export function AssistantBubble({
         <div className="px-3 pb-2 flex flex-wrap gap-2">
           {suggestions.map((suggestion, i) => (
             <motion.button
-              key={i}
+              key={suggestion}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}

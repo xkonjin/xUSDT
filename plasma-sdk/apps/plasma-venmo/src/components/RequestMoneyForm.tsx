@@ -28,7 +28,8 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
   // Validation
   const isValidRecipient = recipient.includes("@") || /^\+?\d{10,}$/.test(recipient) || 
     (recipient.startsWith("0x") && recipient.length === 42);
-  const isValidAmount = parseFloat(amount) > 0;
+  const parsedAmount = parseFloat(amount);
+  const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
   const canSubmit = walletAddress && isValidRecipient && isValidAmount && !loading;
 
   // Handle form submission

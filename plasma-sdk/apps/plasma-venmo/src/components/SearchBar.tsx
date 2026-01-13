@@ -62,6 +62,7 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const requestIdRef = useRef(0);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -86,7 +87,7 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
     }
   }, [recentSearches]);
 
-  // Search function
+  // Search function with race condition protection
   const performSearch = useCallback(async (searchQuery: string) => {
     if (searchQuery.length < MIN_QUERY_LENGTH) {
       setResults(null);
@@ -94,6 +95,9 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
       return;
     }
 
+    // Track this request to handle race conditions
+    const thisRequestId = ++requestIdRef.current;
+    
     setLoading(true);
     try {
       const url = new URL("/api/search", window.location.origin);
@@ -104,6 +108,10 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
       }
 
       const response = await fetch(url.toString());
+      
+      // Ignore stale responses from earlier requests
+      if (thisRequestId !== requestIdRef.current) return;
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -111,9 +119,15 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
         }
       }
     } catch (error) {
-      console.error("Search error:", error);
+      // Only log if this is still the current request
+      if (thisRequestId === requestIdRef.current) {
+        console.error("Search error:", error);
+      }
     } finally {
-      setLoading(false);
+      // Only update loading if this is still the current request
+      if (thisRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [address]);
 
