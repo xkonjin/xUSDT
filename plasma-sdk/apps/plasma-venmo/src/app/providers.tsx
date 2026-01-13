@@ -6,11 +6,30 @@
 
 "use client";
 
+import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { createPlasmaProviders } from "@plasma-pay/privy-auth";
-import { ErrorBoundary } from "@plasma-pay/ui";
+import { ErrorBoundary, AssistantProvider } from "@plasma-pay/ui";
 
-export const Providers = createPlasmaProviders({
+const BaseProviders = createPlasmaProviders({
   loginMethods: ["email", "sms", "google", "apple"],
   accentColor: "#00d4ff",
   ErrorBoundary,
 });
+
+// Wrapper that adds the AI Assistant
+export function Providers({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
+  return (
+    <BaseProviders>
+      <AssistantProvider
+        apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}
+        enabled={true}
+        onNavigate={(page) => router.push(page)}
+      >
+        {children}
+      </AssistantProvider>
+    </BaseProviders>
+  );
+}

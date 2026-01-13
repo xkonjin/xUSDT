@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
+import { useAssistantReaction } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
@@ -227,6 +228,9 @@ export function SendMoneyForm({
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // AI Assistant reactions
+  const { onSuccess: assistantSuccess, onError: assistantError, onLoading: assistantLoading } = useAssistantReaction();
 
   // Handle selecting a contact
   const handleSelectContact = (contact: Contact) => {
@@ -293,6 +297,7 @@ export function SendMoneyForm({
 
     setLoading(true);
     setError(null);
+    assistantLoading(); // Tell assistant we're processing
 
     try {
       const result = await sendMoney(wallet, {
@@ -310,6 +315,9 @@ export function SendMoneyForm({
         playSound('success');
         hapticFeedback('medium');
         
+        // Tell assistant about success
+        assistantSuccess(`Payment of $${amount} sent! 🎉`);
+        
         // Notify parent about payment success (for updating contact's lastPayment)
         if (onPaymentSuccess && /^0x[a-fA-F0-9]{40}$/.test(recipient)) {
           onPaymentSuccess(recipient);
@@ -317,10 +325,14 @@ export function SendMoneyForm({
       } else {
         playSound('error');
         hapticFeedback('light');
-        setError(result.error || "Oops! Something went wrong. Your money is safe - try again?");
+        const errorMsg = result.error || "Oops! Something went wrong. Your money is safe - try again?";
+        setError(errorMsg);
+        assistantError("Payment failed. Let me help you fix this!");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setError(errorMsg);
+      assistantError("Something went wrong. Don't worry, your funds are safe!");
     } finally {
       setLoading(false);
     }
