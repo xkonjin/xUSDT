@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import type { GoogleGenerativeAI } from '@google/generative-ai';
 import type { UIContext, AssistantMemory, AssistantEmotion } from '../types';
 import {
   PLENMO_KNOWLEDGE,
@@ -113,6 +114,10 @@ function getSmartFallback(message: string, context: UIContext): AIResponse {
   };
 }
 
+// Rate limiting and timeout constants
+const MIN_CALL_INTERVAL_MS = 1000;
+const API_TIMEOUT_MS = 10000;
+
 export function useAssistantAI(
   apiKey?: string,
   onNavigate?: (page: string) => void,
@@ -121,17 +126,22 @@ export function useAssistantAI(
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const chatHistoryRef = useRef<Array<{ role: string; content: string }>>([]);
-  const genAIRef = useRef<any>(null);
+  const genAIRef = useRef<GoogleGenerativeAI | null>(null);
+  const initializingRef = useRef(false);
+  const lastCallRef = useRef(0);
 
-  // Initialize Gemini (lazy load)
+  // Initialize Gemini (lazy load with lock to prevent race conditions)
   const initGenAI = useCallback(async () => {
-    if (!apiKey || genAIRef.current) return;
+    if (!apiKey || genAIRef.current || initializingRef.current) return;
+    initializingRef.current = true;
 
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       genAIRef.current = new GoogleGenerativeAI(apiKey);
     } catch (error) {
       console.warn('Failed to initialize Gemini:', error);
+    } finally {
+      initializingRef.current = false;
     }
   }, [apiKey]);
 
@@ -160,6 +170,13 @@ export function useAssistantAI(
       context: UIContext,
       memory: AssistantMemory
     ): Promise<AIResponse> => {
+      // Rate limiting
+      const now = Date.now();
+      if (now - lastCallRef.current < MIN_CALL_INTERVAL_MS) {
+        return { text: "Just a moment, I'm thinking... 🤔", emotion: 'thinking' };
+      }
+      lastCallRef.current = now;
+
       await initGenAI();
 
       // Use smart fallback if no API
@@ -203,7 +220,15 @@ ${recentHistory || '(New conversation)'}
 ## YOUR RESPONSE
 Respond helpfully in 1-2 SHORT sentences (under 100 characters preferred). Be specific to their situation:`;
 
-        const result = await model.generateContent(prompt);
+        // Add timeout to prevent hung requests
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), API_TIMEOUT_MS)
+        );
+
+        const result = await Promise.race([
+          model.generateContent(prompt),
+          timeoutPromise,
+        ]);
         const response = result.response.text();
 
         // Clean up response

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
 import { X, MessageCircle, Volume2, VolumeX } from 'lucide-react';
 import { AssistantAvatar } from './AssistantAvatar';
 import { AssistantBubble } from './AssistantBubble';
@@ -173,7 +173,7 @@ export function Assistant({ apiKey, onNavigate }: AssistantProps) {
 
   // Handle drag end
   const handleDragEnd = useCallback(
-    (event: any, info: any) => {
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       setIsDragging(false);
       const newX = Math.max(0, Math.min(position.x + info.offset.x, window.innerWidth - 150));
       const newY = Math.max(0, Math.min(position.y + info.offset.y, window.innerHeight - 150));
@@ -217,6 +217,8 @@ export function Assistant({ apiKey, onNavigate }: AssistantProps) {
             onClick={() => setMinimized(false)}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            aria-label="Open Plenny assistant"
+            aria-expanded="false"
             style={{
               background: 'linear-gradient(145deg, #00D4FF 0%, #A855F7 100%)',
               boxShadow: '6px 6px 16px rgba(0, 212, 255, 0.35), -4px -4px 12px rgba(255, 255, 255, 0.6)',
@@ -249,6 +251,7 @@ export function Assistant({ apiKey, onNavigate }: AssistantProps) {
                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white z-10 shadow-md"
                 onClick={() => setMinimized(true)}
                 whileHover={{ scale: 1.1 }}
+                aria-label="Minimize assistant"
               >
                 <X className="w-4 h-4" />
               </motion.button>
@@ -267,6 +270,7 @@ export function Assistant({ apiKey, onNavigate }: AssistantProps) {
                 className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-white shadow-md"
                 onClick={toggleVoice}
                 whileHover={{ scale: 1.1 }}
+                aria-label={config.voiceEnabled ? 'Disable voice' : 'Enable voice'}
               >
                 {config.voiceEnabled ? (
                   <Volume2 className="w-4 h-4" />

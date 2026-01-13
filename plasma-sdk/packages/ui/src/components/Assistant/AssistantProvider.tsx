@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useCallback, useEffect } from 'react';
 import { Assistant } from './Assistant';
+import { AssistantErrorBoundary } from './AssistantErrorBoundary';
 import { useAssistantStore } from './store/assistantStore';
 import type {
   AssistantProviderProps,
@@ -48,7 +49,7 @@ export function AssistantProvider({
         y: window.innerHeight - 200,
       });
     }
-  }, []);
+  }, [store.position.y, store.setPosition]);
 
   const showMessage = useCallback(
     (message: string, emotion?: AssistantEmotion) => {
@@ -64,7 +65,7 @@ export function AssistantProvider({
       store.setVisible(true);
       store.setMinimized(false);
     },
-    []
+    [store]
   );
 
   const contextValue: AssistantContextValue = {
@@ -82,7 +83,11 @@ export function AssistantProvider({
   return (
     <AssistantContext.Provider value={contextValue}>
       {children}
-      {enabled && <Assistant apiKey={apiKey} onNavigate={onNavigate} />}
+      {enabled && (
+        <AssistantErrorBoundary>
+          <Assistant apiKey={apiKey} onNavigate={onNavigate} />
+        </AssistantErrorBoundary>
+      )}
     </AssistantContext.Provider>
   );
 }

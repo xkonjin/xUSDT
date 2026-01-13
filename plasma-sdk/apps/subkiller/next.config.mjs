@@ -5,7 +5,14 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@plasma-pay/core', '@plasma-pay/gasless', '@plasma-pay/x402'],
+  transpilePackages: [
+    '@plasma-pay/core',
+    '@plasma-pay/gasless',
+    '@plasma-pay/x402',
+    '@plasma-pay/db',
+    '@plasma-pay/ui',
+    '@plasma-pay/privy-auth',
+  ],
 };
 
 export default nextConfig;

@@ -19,15 +19,21 @@ export function AssistantAvatar({ size = 120, className = '' }: AssistantAvatarP
   const { state, emotion, currentViseme, isMinimized } = useAssistantStore();
   const { normalized, idleTime } = useMousePosition(containerRef, !isMinimized);
   const [blinkState, setBlinkState] = useState(false);
+  const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-blink effect
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setBlinkState(true);
-      setTimeout(() => setBlinkState(false), 150);
+      blinkTimeoutRef.current = setTimeout(() => setBlinkState(false), 150);
     }, 3000 + Math.random() * 4000);
 
-    return () => clearInterval(blinkInterval);
+    return () => {
+      clearInterval(blinkInterval);
+      if (blinkTimeoutRef.current) {
+        clearTimeout(blinkTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Auto-sleep after idle

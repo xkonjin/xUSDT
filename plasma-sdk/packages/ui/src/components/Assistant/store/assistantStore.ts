@@ -80,7 +80,7 @@ export const useAssistantStore = create<AssistantStore>()(
       emotion: 'neutral',
       currentViseme: 'sil',
       isSpeaking: false,
-      position: { x: 20, y: typeof window !== 'undefined' ? window.innerHeight - 200 : 500 },
+      position: { x: 20, y: 500 }, // Will be updated client-side in AssistantProvider
       messages: [],
       config: DEFAULT_CONFIG,
       memory: DEFAULT_MEMORY,
@@ -156,7 +156,7 @@ export const useAssistantStore = create<AssistantStore>()(
       partialize: (state) => ({
         config: state.config,
         memory: state.memory,
-        position: state.position,
+        // Don't persist position - it's calculated client-side based on window size
         isMinimized: state.isMinimized,
       }),
     }
