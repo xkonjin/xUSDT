@@ -78,6 +78,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
 
   useEffect(() => {
     fetchRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet?.address, userEmail]);
 
   // Clear action error after timeout

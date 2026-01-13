@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ExternalLink, RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface PolymarketComparisonProps {
@@ -32,11 +33,14 @@ export function PolymarketComparison({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <img 
+          <Image 
             src="https://polymarket.com/favicon.ico" 
             alt="Polymarket" 
+            width={16}
+            height={16}
             className="w-4 h-4"
             onError={(e) => { e.currentTarget.style.display = 'none' }}
+            unoptimized
           />
           <span className="text-sm font-medium text-white">Polymarket Comparison</span>
         </div>

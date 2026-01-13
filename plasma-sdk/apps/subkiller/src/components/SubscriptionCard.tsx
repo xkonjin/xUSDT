@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Card, CardContent } from './ui/Card';
 import { Button } from './ui/Button';
 import { ExternalLink, XCircle, Mail, Calendar, DollarSign } from 'lucide-react';
@@ -70,10 +71,13 @@ export function SubscriptionCard({ subscription, onCancel, isSelected, onSelect 
           {/* Logo/Icon */}
           <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-2xl">
             {subscription.logoUrl ? (
-              <img 
+              <Image 
                 src={subscription.logoUrl} 
                 alt={subscription.name} 
+                width={32}
+                height={32}
                 className="w-8 h-8 rounded"
+                unoptimized
               />
             ) : (
               CATEGORY_ICONS[subscription.category] || '📦'

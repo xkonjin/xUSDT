@@ -27,6 +27,12 @@ interface SendMoneyResult {
   error?: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (!error || typeof error !== 'object') return fallback;
+  const data = error as { message?: string; error?: string };
+  return data.message || data.error || fallback;
+};
+
 export async function sendMoney(
   wallet: PlasmaEmbeddedWallet,
   options: SendMoneyOptions
@@ -41,8 +47,8 @@ export async function sendMoney(
   });
 
   if (!resolveResponse.ok) {
-    const error = await resolveResponse.json();
-    return { success: false, error: error.message || 'Failed to resolve recipient' };
+    const error = await resolveResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Failed to resolve recipient') };
   }
 
   const resolveData = await resolveResponse.json();
@@ -186,8 +192,8 @@ async function createClaimForUnregisteredRecipient(
   });
 
   if (!claimResponse.ok) {
-    const error = await claimResponse.json();
-    return { success: false, error: error.message || 'Failed to create claim' };
+    const error = await claimResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Failed to create claim') };
   }
 
   const claimResult = await claimResponse.json();
@@ -210,8 +216,8 @@ async function createClaimForUnregisteredRecipient(
   });
 
   if (!submitResponse.ok) {
-    const error = await submitResponse.json();
-    return { success: false, error: error.message || 'Transfer to escrow failed' };
+    const error = await submitResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Transfer to escrow failed') };
   }
 
   // Trigger notification email

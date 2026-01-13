@@ -77,6 +77,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
 
   useEffect(() => {
     fetchLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   // Clear action error after timeout

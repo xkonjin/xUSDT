@@ -20,6 +20,7 @@
 
 import { ReactNode, useState, useEffect, ComponentType } from "react";
 import { PlasmaPrivyProvider } from "./provider";
+import { MockPrivyProvider } from "./mock-provider";
 import type { PrivyLoginMethod } from "./types";
 
 export interface PlasmaProvidersConfig {
@@ -52,8 +53,44 @@ function DefaultLoadingSpinner() {
 
 /**
  * Default configuration message when Privy is not configured
+ * In dev mode, shows a mock login for testing UI without Privy
  */
-function ConfigurationRequired() {
+function ConfigurationRequired({ children }: { children: ReactNode }) {
+  const [mockLoggedIn, setMockLoggedIn] = useState(false);
+  const isDev = process.env.NODE_ENV === "development";
+  const forceMock = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
+
+  if (forceMock) {
+    return <MockPrivyProvider>{children}</MockPrivyProvider>;
+  }
+
+  if (isDev && mockLoggedIn) {
+    // Render children with mock context - they'll use the MockPrivyProvider
+    return <MockPrivyProvider>{children}</MockPrivyProvider>;
+  }
+
+  if (isDev) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white bg-black">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Dev Mode</h1>
+          <p className="text-gray-400 mb-6">
+            Privy not configured. Use mock login to preview UI.
+          </p>
+          <button
+            onClick={() => setMockLoggedIn(true)}
+            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-xl transition-colors"
+          >
+            Mock Login (Dev Only)
+          </button>
+          <p className="text-gray-500 text-sm mt-4">
+            Or set NEXT_PUBLIC_PRIVY_APP_ID for real auth
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center text-white bg-black">
       <div className="text-center">
@@ -85,6 +122,7 @@ export function createPlasmaProviders(
 
   function Providers({ children }: ProvidersProps) {
     const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+    const forceMock = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
@@ -96,9 +134,13 @@ export function createPlasmaProviders(
       return <LoadingComponent />;
     }
 
+    if (forceMock) {
+      return <MockPrivyProvider>{children}</MockPrivyProvider>;
+    }
+
     // Show configuration message if Privy not set up
     if (!privyAppId) {
-      return <ConfigurationRequired />;
+      return <ConfigurationRequired>{children}</ConfigurationRequired>;
     }
 
     // Render providers

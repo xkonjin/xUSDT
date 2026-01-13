@@ -10,6 +10,7 @@ import { usePredictionStore } from "@/lib/store";
 interface MarketCardProps {
   market: PredictionMarket;
   index?: number;
+  featured?: boolean;
 }
 
 function MarketCardComponent({ market, index = 0 }: MarketCardProps) {
@@ -77,6 +78,9 @@ function MarketCardComponent({ market, index = 0 }: MarketCardProps) {
 
 export const MarketCard = memo(MarketCardComponent);
 MarketCard.displayName = "MarketCard";
+
+export const MarketCardCompact = memo(MarketCardComponent);
+MarketCardCompact.displayName = "MarketCardCompact";
 
 export function MarketCardSkeleton() {
   return (

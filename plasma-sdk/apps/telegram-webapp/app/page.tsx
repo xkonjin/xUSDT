@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Send, Receipt, Clock, Gift } from "lucide-react";
 import {
   initTelegramWebApp,
@@ -10,11 +10,17 @@ import {
 import { useTelegramAuth } from "@/lib/use-telegram-auth";
 
 export default function TelegramHome() {
-  const { isLoading, isAuthenticated, user, startParam: referralCode, error } = useTelegramAuth();
+  const [isMounted, setIsMounted] = useState(false);
+  const { user, startParam: referralCode } = useTelegramAuth();
 
   useEffect(() => {
+    setIsMounted(true);
     initTelegramWebApp();
   }, []);
+
+  if (!isMounted) {
+    return <div className="min-h-screen bg-[#0a0a0f]" />;
+  }
 
   const handleAction = (action: string) => {
     hapticFeedback("medium");

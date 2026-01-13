@@ -40,6 +40,7 @@ export default function RequestPage() {
     } else {
       hideMainButton();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, loading, requestLink]);
 
   const handleCreate = async () => {

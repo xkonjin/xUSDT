@@ -1,4 +1,5 @@
 export { PlasmaPrivyProvider } from "./provider";
+export { MockPrivyProvider, MockWalletContext } from "./mock-provider";
 export {
   usePlasmaWallet,
   useGaslessTransfer,
@@ -18,3 +19,4 @@ export type {
   FundWalletOptions,
 } from "./types";
 export type { PlasmaProvidersConfig } from "./providers-factory";
+export type { MockWalletContextType } from "./mock-provider";

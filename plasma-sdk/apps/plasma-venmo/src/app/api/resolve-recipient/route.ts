@@ -5,6 +5,7 @@ import type { Address } from "viem";
 let privyClient: import("@privy-io/server-auth").PrivyClient | null = null;
 
 function getPrivyClient() {
+  if (isMockMode()) return null;
   if (!privyClient) {
     const privyAppId = process.env.PRIVY_APP_ID || "";
     const privyAppSecret = process.env.PRIVY_APP_SECRET || "";
@@ -19,6 +20,10 @@ function getPrivyClient() {
 }
 
 const userCache = new Map<string, Address>();
+const MOCK_RECIPIENT_ADDRESS = (process.env.NEXT_PUBLIC_MOCK_RECIPIENT_ADDRESS ||
+  "0xa7C542386ddA8A4edD9392AB487ede0507bDD281") as Address;
+
+const isMockMode = () => process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
 
 export async function POST(request: Request) {
   try {
@@ -49,8 +54,21 @@ export async function POST(request: Request) {
       );
     }
 
+    if (isMockMode()) {
+      return NextResponse.json({
+        address: MOCK_RECIPIENT_ADDRESS,
+        mock: true,
+      });
+    }
+
     const privy = getPrivyClient();
     if (!privy) {
+      if (isMockMode()) {
+        return NextResponse.json({
+          address: MOCK_RECIPIENT_ADDRESS,
+          mock: true,
+        });
+      }
       return NextResponse.json(
         { error: "Service not configured" },
         { status: 503 }

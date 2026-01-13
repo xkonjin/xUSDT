@@ -73,6 +73,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
 
   useEffect(() => {
     fetchHistory(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   const loadMore = () => {

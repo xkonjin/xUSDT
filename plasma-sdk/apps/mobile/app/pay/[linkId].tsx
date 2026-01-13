@@ -43,6 +43,7 @@ export default function PayScreen() {
       });
       setLoading(false);
     }, 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkId]);
 
   const handlePay = async () => {

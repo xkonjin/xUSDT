@@ -17,6 +17,7 @@
 import { useState } from 'react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader } from './ui/Card';
+import { ConfirmModal } from '@plasma-pay/ui';
 import { X, Wallet, Zap, Shield, AlertCircle } from 'lucide-react';
 import { 
   SUBKILLER_PRICE_DISPLAY, 
@@ -64,8 +65,30 @@ export function PaymentModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'ready' | 'signing' | 'submitting'>('ready');
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   if (!isOpen) return null;
+
+  /**
+   * Handle close attempt - show confirmation if payment is in progress
+   */
+  const handleCloseAttempt = () => {
+    if (isLoading) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
+  /**
+   * Handle confirmed close during active payment
+   */
+  const handleConfirmClose = () => {
+    setShowCloseConfirm(false);
+    setIsLoading(false);
+    setStep('ready');
+    onClose();
+  };
 
   /**
    * Handle the full payment flow:
@@ -137,7 +160,7 @@ export function PaymentModal({
       {/* Backdrop - click to close */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleCloseAttempt}
       />
 
       {/* Modal Card */}
@@ -148,9 +171,8 @@ export function PaymentModal({
             <p className="text-sm text-gray-400">One-time payment, unlimited scans</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseAttempt}
             className="text-gray-400 hover:text-white transition-colors"
-            disabled={isLoading}
           >
             <X className="w-5 h-5" />
           </button>
@@ -245,6 +267,18 @@ export function PaymentModal({
           </p>
         </CardContent>
       </Card>
+
+      {/* Confirm Close During Payment Modal */}
+      <ConfirmModal
+        isOpen={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        onConfirm={handleConfirmClose}
+        title="Cancel Payment?"
+        message="A payment is currently in progress. Are you sure you want to close this and cancel the payment?"
+        confirmText="Yes, Cancel"
+        cancelText="Continue Payment"
+        variant="danger"
+      />
     </div>
   );
 }

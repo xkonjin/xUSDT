@@ -5,6 +5,7 @@ import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 
 const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
+const isMockMode = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
 
 const TRANSFER_WITH_AUTH_ABI = [
   {
@@ -28,6 +29,15 @@ const TRANSFER_WITH_AUTH_ABI = [
 
 export async function POST(request: Request) {
   try {
+    // Handle mock mode first before any other checks
+    if (isMockMode) {
+      return NextResponse.json({
+        success: true,
+        txHash: `0xmock${Date.now().toString(16)}`,
+        mock: true,
+      });
+    }
+
     if (!RELAYER_KEY) {
       return NextResponse.json(
         { error: 'Relayer not configured' },
