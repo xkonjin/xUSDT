@@ -11,18 +11,14 @@ import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
-import { Send, HandCoins, Sparkles } from "lucide-react";
-import { LiveCounter, LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { Send, HandCoins, RefreshCw, Shield, Zap } from "lucide-react";
 import { SocialFeed } from "@/components/SocialFeed";
-import { AvatarAssistant } from "@/components/AvatarAssistant";
 
 export default function HomePage() {
-  const { user, authenticated, ready, wallet, login, logout } =
-    usePlasmaWallet();
+  const { user, authenticated, ready, wallet, login, logout } = usePlasmaWallet();
   const { balance, formatted, refresh } = useUSDT0Balance();
   const [activeTab, setActiveTab] = useState<"send" | "request">("send");
   
-  // Get user email from Privy user object
   const userEmail = user?.email?.address;
 
   if (!ready) {
@@ -38,14 +34,8 @@ export default function HomePage() {
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8 relative overflow-hidden">
-        <AvatarAssistant authenticated={false} />
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.15)_0%,transparent_70%)] blur-3xl" />
-          <div className="absolute bottom-[-10%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.1)_0%,transparent_70%)] blur-3xl" />
-        </div>
-
-        <div className="text-center relative z-10">
+      <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8">
+        <div className="text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
             <span className="gradient-text">Plenmo</span>
           </h1>
@@ -57,45 +47,26 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Trust signals */}
-        <div className="flex items-center gap-6 text-white/50 text-sm relative z-10">
+        <div className="flex items-center gap-6 text-white/50 text-sm">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+            <Shield className="w-4 h-4 text-green-400" />
             <span>Bank-grade security</span>
           </div>
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[rgb(0,212,255)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+            <Zap className="w-4 h-4 text-[rgb(0,212,255)]" />
             <span>Instant transfers</span>
           </div>
         </div>
 
-        <button
-          onClick={login}
-          className="btn-primary relative z-10 animate-pulse-glow text-lg px-8 py-4"
-          data-avatar-tip="Sign in to start sending or requesting money."
-        >
+        <button onClick={login} className="btn-primary text-lg px-8 py-4 animate-pulse-glow">
           Get Started Free
         </button>
 
-        <p className="text-white/30 text-sm relative z-10">
+        <p className="text-white/30 text-sm">
           No signup fees. No hidden charges. Ever.
         </p>
 
-        {/* Live counter */}
-        <div className="relative z-10 mt-8 clay-card p-6">
-          <LiveCounter />
-        </div>
-
-        {/* Live activity feed preview */}
-        <div className="relative z-10 mt-6 w-full max-w-md">
-          <LiveActivityFeed maxItems={3} />
-        </div>
-
-        <div className="text-white/40 text-sm mt-8 relative z-10 flex items-center gap-2">
+        <div className="text-white/40 text-sm mt-8 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           Powered by Plasma Chain
         </div>
@@ -104,17 +75,8 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8 relative">
-      <AvatarAssistant
-        authenticated={authenticated}
-        activeTab={activeTab}
-        balance={formatted || undefined}
-      />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-30%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.08)_0%,transparent_70%)] blur-3xl" />
-      </div>
-
-      <header className="flex items-center justify-between mb-8 relative z-10">
+    <main className="min-h-screen p-4 md:p-8">
+      <header className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="gradient-text">Plenmo</span>
         </h1>
@@ -125,71 +87,55 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto space-y-6 relative z-10">
-        <div className="liquid-glass-elevated rounded-3xl p-8">
+      <div className="max-w-lg mx-auto space-y-6">
+        {/* Balance Card */}
+        <div className="clay-card p-6 md:p-8">
           <div className="flex items-start justify-between mb-2">
-            <div className="text-white/50 text-sm">Your Balance</div>
+            <div className="text-white/50 text-sm font-medium">Your Balance</div>
             <FundWalletButton walletAddress={wallet?.address} />
           </div>
           <div className="text-5xl font-bold tracking-tight">
             <span className="gradient-text">${formatted || "0.00"}</span>
-            <span className="text-white/30 text-xl ml-3 font-medium">
-              USDT0
-            </span>
           </div>
           <button
             onClick={refresh}
-            className="text-[rgb(0,212,255)] text-sm mt-4 hover:underline transition-all duration-200 flex items-center gap-1"
+            className="text-[rgb(0,212,255)] text-sm mt-4 hover:text-[rgb(0,180,220)] transition-colors flex items-center gap-1.5 font-medium"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
         </div>
 
-        {/* Pending payment requests (if any) */}
+        {/* Payment Requests */}
         <PaymentRequests wallet={wallet} userEmail={userEmail} onRefresh={refresh} />
 
-        {/* Tab switcher for Send/Request */}
-        <div className="flex rounded-2xl p-1 liquid-glass-subtle">
+        {/* Tab Switcher */}
+        <div className="clay-card p-1.5 flex">
           <button
             onClick={() => setActiveTab("send")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all ${
               activeTab === "send"
-                ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
-                : "text-white/50 hover:text-white"
+                ? "bg-[rgb(0,212,255)] text-black"
+                : "text-white/50 hover:text-white hover:bg-white/5"
             }`}
-            data-avatar-tip="Send money instantly to email, phone, or wallet."
           >
             <Send className="w-4 h-4" />
             Send
           </button>
           <button
             onClick={() => setActiveTab("request")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all ${
               activeTab === "request"
-                ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]"
-                : "text-white/50 hover:text-white"
+                ? "bg-[rgb(0,212,255)] text-black"
+                : "text-white/50 hover:text-white hover:bg-white/5"
             }`}
-            data-avatar-tip="Create a request and get paid by email or phone."
           >
             <HandCoins className="w-4 h-4" />
             Request
           </button>
         </div>
 
-        {/* Active form */}
+        {/* Forms */}
         {activeTab === "send" ? (
           <SendMoneyForm 
             wallet={wallet} 
@@ -201,10 +147,7 @@ export default function HomePage() {
         )}
 
         <PaymentLinks address={wallet?.address} onRefresh={refresh} />
-
         <TransactionHistory address={wallet?.address} />
-
-        {/* Social Feed */}
         <SocialFeed address={wallet?.address} className="mt-6" />
       </div>
     </main>

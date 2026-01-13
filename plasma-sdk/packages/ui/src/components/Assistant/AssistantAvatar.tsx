@@ -37,9 +37,9 @@ export function AssistantAvatar({ size = 120, className = '' }: AssistantAvatarP
     }
   }, [idleTime, state]);
 
-  // Eye position based on mouse
-  const eyeOffsetX = normalized.x * 8;
-  const eyeOffsetY = normalized.y * 5;
+  // Eye position based on mouse (with fallback for undefined)
+  const eyeOffsetX = (normalized?.x ?? 0) * 8;
+  const eyeOffsetY = (normalized?.y ?? 0) * 5;
 
   // Get mouth shape based on viseme
   const getMouthPath = (): string => {

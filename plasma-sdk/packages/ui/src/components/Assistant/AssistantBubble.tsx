@@ -66,7 +66,7 @@ export function AssistantBubble({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-48">
         {messages.length === 0 && !isThinking && (
-          <div className="text-center text-gray-400 text-sm py-4">
+          <div className="text-center text-gray-600 text-sm py-4">
             Hi! How can I help you today? 👋
           </div>
         )}
@@ -136,7 +136,7 @@ export function AssistantBubble({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => onSuggestionClick?.(suggestion)}
-              className="px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-cyan-50 to-purple-50 text-gray-600 hover:from-cyan-100 hover:to-purple-100 transition-colors border border-gray-200/50"
+              className="px-3 py-1.5 text-xs rounded-full bg-cyan-50 text-gray-700 hover:bg-cyan-100 transition-colors border border-cyan-200"
             >
               {suggestion}
             </motion.button>
@@ -158,7 +158,7 @@ export function AssistantBubble({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="Ask me anything..."
-            className="flex-1 py-2 px-3 text-sm rounded-xl border border-gray-200 bg-white/80 focus:outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 transition-all"
+            className="flex-1 py-2 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 transition-all"
             style={{
               boxShadow: 'inset 2px 2px 4px rgba(166, 180, 200, 0.1)',
             }}

@@ -21,7 +21,6 @@ interface SendMoneyFormProps {
   onPaymentSuccess?: (recipientAddress: string) => void;
 }
 
-// Confirmation Modal Component
 function ConfirmationModal({
   isOpen,
   onClose,
@@ -47,35 +46,30 @@ function ConfirmationModal({
       zIndex={110}
       wrapperClassName="max-w-sm"
     >
-      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="clay-card p-6">
         <h3 className="text-xl font-bold text-white mb-6 text-center">Confirm Payment</h3>
         
-        {/* Amount */}
         <div className="text-center mb-6">
           <p className="text-white/50 text-sm mb-1">Sending</p>
           <p className="text-4xl font-bold gradient-text">${amount}</p>
           <p className="text-white/40 text-sm">USDT0</p>
         </div>
 
-        {/* Recipient */}
         <div className="bg-white/5 rounded-2xl p-4 mb-6">
           <p className="text-white/50 text-sm mb-1">To</p>
-          <p className="text-white font-medium">{recipient}</p>
+          <p className="text-white font-medium break-all">{recipient}</p>
         </div>
 
-        {/* Fee info */}
         <div className="flex justify-between text-sm mb-6 px-2">
           <span className="text-white/50">Network Fee</span>
           <span className="text-green-400 font-medium">$0.00 (Free!)</span>
         </div>
 
-        {/* Warning */}
-        <div className="flex items-start gap-2 text-amber-400/80 text-xs bg-amber-500/10 rounded-xl p-3 mb-6">
+        <div className="flex items-start gap-2 text-amber-400 text-xs bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-6">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>Payments are final and cannot be reversed.</span>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
@@ -87,7 +81,7 @@ function ConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-b from-[rgb(0,212,255)] to-[rgb(0,180,220)] text-black font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-4 rounded-2xl btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
@@ -104,7 +98,6 @@ function ConfirmationModal({
   );
 }
 
-// Success Animation Component
 function SuccessOverlay({
   isVisible,
   amount,
@@ -134,12 +127,11 @@ function SuccessOverlay({
       wrapperClassName="max-w-none w-full h-full p-0"
     >
       <div className="relative w-full h-full flex items-center justify-center">
-        {/* Confetti */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {Array.from({ length: 50 }).map((_, i) => (
             <div
               key={i}
-              className="absolute w-3 h-3 rounded-full animate-confetti"
+              className="absolute w-3 h-3 rounded-full animate-confetti-fall"
               style={{
                 left: `${Math.random() * 100}%`,
                 backgroundColor: ['#00d4ff', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)],
@@ -149,67 +141,43 @@ function SuccessOverlay({
           ))}
         </div>
 
-        <div className="relative text-center animate-success-bounce">
-        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-          <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-
-        <p className="text-4xl font-bold text-white mb-2">${amount}</p>
-        <p className="text-xl text-white mb-1">{isClaimFlow ? 'pending for' : 'sent to'}</p>
-        <p className="text-lg text-[rgb(0,212,255)] font-medium mb-6">{recipient}</p>
-
-        {isClaimFlow ? (
-          <div className="text-center mb-6">
-            <p className="text-white/70 text-sm mb-3">
-              They&apos;ll receive an email to claim the funds
-            </p>
-            <button
-              onClick={() => navigator.clipboard.writeText(claimUrl!)}
-              className="text-white/50 text-sm hover:text-white/70 underline"
-            >
-              Copy claim link
-            </button>
+        <div className="clay-card p-8 text-center animate-success-bounce max-w-sm mx-4">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-white" />
           </div>
-        ) : txHash && (
-          <a
-            href={`https://scan.plasma.to/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white/50 text-sm hover:text-white/70 underline mb-6 block"
-          >
-            View on Plasma Scan →
-          </a>
-        )}
 
-        <button
-          onClick={onClose}
-          className="mt-4 px-8 py-3 bg-white text-black font-semibold rounded-2xl hover:bg-white/90 transition-colors"
-        >
-          Done
-        </button>
+          <p className="text-4xl font-bold gradient-text mb-2">${amount}</p>
+          <p className="text-lg text-white/60 mb-1">{isClaimFlow ? 'pending for' : 'sent to'}</p>
+          <p className="text-[rgb(0,212,255)] font-medium mb-6 break-all">{recipient}</p>
+
+          {isClaimFlow ? (
+            <div className="text-center mb-6">
+              <p className="text-white/50 text-sm mb-3">
+                They&apos;ll receive an email to claim the funds
+              </p>
+              <button
+                onClick={() => navigator.clipboard.writeText(claimUrl!)}
+                className="text-[rgb(0,212,255)] text-sm hover:underline"
+              >
+                Copy claim link
+              </button>
+            </div>
+          ) : txHash && (
+            <a
+              href={`https://scan.plasma.to/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[rgb(0,212,255)] text-sm hover:underline mb-6 block"
+            >
+              View on Plasma Scan →
+            </a>
+          )}
+
+          <button onClick={onClose} className="btn-primary w-full py-3">
+            Done
+          </button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes confetti {
-          0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-        .animate-confetti {
-          animation: confetti 3s ease-out forwards;
-        }
-        @keyframes success-bounce {
-          0% { transform: scale(0.3); opacity: 0; }
-          50% { transform: scale(1.05); }
-          70% { transform: scale(0.95); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-success-bounce {
-          animation: success-bounce 0.5s ease-out forwards;
-        }
-      `}</style>
     </ModalPortal>
   );
 }
@@ -229,10 +197,8 @@ export function SendMoneyForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // AI Assistant reactions
   const { onSuccess: assistantSuccess, onError: assistantError, onLoading: assistantLoading } = useAssistantReaction();
 
-  // Handle selecting a contact
   const handleSelectContact = (contact: Contact) => {
     if (contact.contactAddress) {
       setRecipient(contact.contactAddress);
@@ -247,7 +213,6 @@ export function SendMoneyForm({
     playSound('tap');
   };
 
-  // Clear recipient name when manually editing
   const handleRecipientChange = (value: string) => {
     setRecipient(value);
     if (recipientName && value !== recipient) {
@@ -255,20 +220,17 @@ export function SendMoneyForm({
     }
   };
   
-  // Modal states
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
   const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
 
-  // Amount validation
   const numericBalance = parseFloat(balance || "0");
   const numericAmount = parseFloat(amount || "0");
   const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
   const amountTooSmall = numericAmount > 0 && numericAmount < MIN_AMOUNT;
   const amountTooLarge = numericAmount > MAX_AMOUNT;
 
-  // Get amount validation error message
   const getAmountError = (): string | null => {
     if (amountTooSmall) return AMOUNT_TOO_SMALL;
     if (amountTooLarge) return AMOUNT_TOO_LARGE;
@@ -280,24 +242,22 @@ export function SendMoneyForm({
     e.preventDefault();
     if (!wallet || !recipient || !amount) return;
     
-    // Check amount validation
     const amountError = getAmountError();
     if (amountError) {
       setError(amountError);
       return;
     }
     
-    // Show confirmation modal instead of sending immediately
     setError(null);
     setShowConfirm(true);
   };
 
   const handleConfirmSend = async () => {
-    if (!wallet || loading) return; // Prevent double-submit
+    if (!wallet || loading) return;
 
     setLoading(true);
     setError(null);
-    assistantLoading(); // Tell assistant we're processing
+    assistantLoading();
 
     try {
       const result = await sendMoney(wallet, {
@@ -311,28 +271,24 @@ export function SendMoneyForm({
         setSuccessClaimUrl(result.claimUrl);
         setShowSuccess(true);
         
-        // Sound and haptic feedback
         playSound('success');
         hapticFeedback('medium');
+        assistantSuccess(`Payment of $${amount} sent!`);
         
-        // Tell assistant about success
-        assistantSuccess(`Payment of $${amount} sent! 🎉`);
-        
-        // Notify parent about payment success (for updating contact's lastPayment)
         if (onPaymentSuccess && /^0x[a-fA-F0-9]{40}$/.test(recipient)) {
           onPaymentSuccess(recipient);
         }
       } else {
         playSound('error');
         hapticFeedback('light');
-        const errorMsg = result.error || "Oops! Something went wrong. Your money is safe - try again?";
+        const errorMsg = result.error || "Something went wrong. Your money is safe - try again?";
         setError(errorMsg);
         assistantError("Payment failed. Let me help you fix this!");
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";
       setError(errorMsg);
-      assistantError("Something went wrong. Don't worry, your funds are safe!");
+      assistantError("Something went wrong. Your funds are safe!");
     } finally {
       setLoading(false);
     }
@@ -355,16 +311,12 @@ export function SendMoneyForm({
 
   return (
     <>
-      <form
-        onSubmit={handleSubmit}
-        className="clay-card p-6 md:p-8 space-y-5"
-      >
-        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="clay-card p-6 space-y-5">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Zap className="w-5 h-5 text-[rgb(0,212,255)]" />
           Send Money
         </h2>
 
-        {/* Recent contacts */}
         {contacts.length > 0 && !recipient && (
           <RecentContacts
             contacts={contacts}
@@ -385,18 +337,15 @@ export function SendMoneyForm({
               value={recipientName || recipient}
               onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
-              className="clay-input w-full pl-12 py-4 text-white placeholder:text-white/30"
+              className="clay-input w-full pl-12"
               disabled={loading}
-              data-avatar-tip="Enter an email, phone, or wallet address."
             />
             {recipient && isValidRecipient && (
               <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-400" />
             )}
           </div>
           {recipientName && (
-            <p className="text-[rgb(0,212,255)] text-xs mt-2 flex items-center gap-1">
-              Sending to {recipientName}
-            </p>
+            <p className="text-[rgb(0,212,255)] text-xs mt-2">Sending to {recipientName}</p>
           )}
           {recipient && !isValidRecipient && !recipientName && (
             <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
@@ -407,65 +356,56 @@ export function SendMoneyForm({
         </div>
 
         <div>
-          <label htmlFor="send-amount" className="block text-white/60 text-sm mb-2 font-medium">
+          <label className="block text-white/60 text-sm mb-2 font-medium">
             How much?
           </label>
           <div className="relative">
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" aria-hidden="true" />
+            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" />
             <input
-              id="send-amount"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               step="0.01"
               min="0"
-              className="clay-input w-full pl-14 pr-20 py-5 text-3xl font-bold text-white placeholder:text-white/20"
+              className="clay-input w-full pl-14 pr-16 text-3xl font-bold"
               disabled={loading}
-              aria-label="Amount in USD"
-              aria-invalid={insufficientBalance || amountTooSmall || amountTooLarge}
-              aria-describedby={insufficientBalance || amountTooSmall || amountTooLarge ? "amount-error" : undefined}
-              data-avatar-tip="Enter the amount to send in USD."
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm" aria-hidden="true">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm">
               USD
             </span>
           </div>
           
-          {/* Quick amount buttons - colorful and fun */}
           <div className="grid grid-cols-5 gap-2 mt-3">
             {[
-              { amount: 5, color: "from-emerald-400 to-emerald-500", emoji: "☕" },
-              { amount: 10, color: "from-cyan-400 to-cyan-500", emoji: "🍕" },
-              { amount: 25, color: "from-violet-400 to-violet-500", emoji: "🎬" },
-              { amount: 50, color: "from-pink-400 to-pink-500", emoji: "🎁" },
-              { amount: 100, color: "from-amber-400 to-amber-500", emoji: "🎉" },
-            ].map(({ amount: quickAmount, color, emoji }) => (
+              { amt: 5, emoji: "☕" },
+              { amt: 10, emoji: "🍕" },
+              { amt: 25, emoji: "🎬" },
+              { amt: 50, emoji: "🎁" },
+              { amt: 100, emoji: "🎉" },
+            ].map(({ amt, emoji }) => (
               <button
-                key={quickAmount}
+                key={amt}
                 type="button"
                 onClick={() => {
-                  setAmount(quickAmount.toString());
+                  setAmount(amt.toString());
                   playSound('tap');
                 }}
-                className={`py-3 px-2 rounded-2xl text-sm font-bold transition-all transform hover:scale-105 active:scale-95 ${
-                  amount === quickAmount.toString()
-                    ? `bg-gradient-to-br ${color} text-white shadow-lg`
-                    : "clay-button-secondary hover:shadow-md"
+                className={`py-2.5 px-2 rounded-xl text-sm font-semibold transition-all ${
+                  amount === amt.toString()
+                    ? "bg-[rgb(0,212,255)] text-black"
+                    : "bg-white/10 text-white hover:bg-white/20"
                 }`}
               >
-                <span className="block text-lg mb-0.5">{emoji}</span>
-                <span className={amount === quickAmount.toString() ? "text-white" : "text-[rgb(var(--text-primary))]"}>
-                  ${quickAmount}
-                </span>
+                <span className="block text-base mb-0.5">{emoji}</span>
+                ${amt}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Amount validation warning */}
         {(insufficientBalance || amountTooSmall || amountTooLarge) && !error && (
-          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl px-4 py-3 text-sm">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>
@@ -488,7 +428,7 @@ export function SendMoneyForm({
         )}
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm flex items-center gap-2">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
@@ -497,14 +437,13 @@ export function SendMoneyForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full clay-button py-4 text-black font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-          data-avatar-tip="Review and send your payment."
+          className="w-full btn-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <Send className="w-5 h-5" />
-          {amount && parseFloat(amount) > 0 ? `Send $${parseFloat(amount).toFixed(2)} Now` : "Review Payment"}
+          {amount && parseFloat(amount) > 0 ? `Review $${parseFloat(amount).toFixed(2)} Payment` : "Review Payment"}
         </button>
 
-        <div className="flex items-center justify-center gap-4 pt-2">
+        <div className="flex items-center justify-center gap-4 pt-1">
           <p className="text-white/40 text-xs flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
             Zero fees
@@ -516,7 +455,6 @@ export function SendMoneyForm({
         </div>
       </form>
 
-      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={showConfirm}
         onClose={() => setShowConfirm(false)}
@@ -526,7 +464,6 @@ export function SendMoneyForm({
         amount={amount}
       />
 
-      {/* Success Animation */}
       <SuccessOverlay
         isVisible={showSuccess}
         amount={amount}
