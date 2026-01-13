@@ -420,9 +420,15 @@ export function SendMoneyForm({
             </span>
           </div>
           
-          {/* Quick amount buttons - responsive grid for mobile */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">
-            {[5, 10, 25, 50, 100].map((quickAmount) => (
+          {/* Quick amount buttons - colorful and fun */}
+          <div className="grid grid-cols-5 gap-2 mt-3">
+            {[
+              { amount: 5, color: "from-emerald-400 to-emerald-500", emoji: "☕" },
+              { amount: 10, color: "from-cyan-400 to-cyan-500", emoji: "🍕" },
+              { amount: 25, color: "from-violet-400 to-violet-500", emoji: "🎬" },
+              { amount: 50, color: "from-pink-400 to-pink-500", emoji: "🎁" },
+              { amount: 100, color: "from-amber-400 to-amber-500", emoji: "🎉" },
+            ].map(({ amount: quickAmount, color, emoji }) => (
               <button
                 key={quickAmount}
                 type="button"
@@ -430,13 +436,16 @@ export function SendMoneyForm({
                   setAmount(quickAmount.toString());
                   playSound('tap');
                 }}
-                className={`py-2 px-3 rounded-xl text-sm font-medium transition-all ${
+                className={`py-3 px-2 rounded-2xl text-sm font-bold transition-all transform hover:scale-105 active:scale-95 ${
                   amount === quickAmount.toString()
-                    ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] border border-[rgb(0,212,255)]/30"
-                    : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
+                    ? `bg-gradient-to-br ${color} text-white shadow-lg`
+                    : "clay-button-secondary hover:shadow-md"
                 }`}
               >
-                ${quickAmount}
+                <span className="block text-lg mb-0.5">{emoji}</span>
+                <span className={amount === quickAmount.toString() ? "text-white" : "text-[rgb(var(--text-primary))]"}>
+                  ${quickAmount}
+                </span>
               </button>
             ))}
           </div>

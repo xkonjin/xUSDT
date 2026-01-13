@@ -68,3 +68,6 @@ export type { SuccessShareProps, ShareAction } from "./components/SuccessShare";
 export { WalletManager } from "./components/WalletManager";
 export type { WalletManagerProps } from "./components/WalletManager";
 
+// Celebration animations
+export { Celebration, SuccessCheckmark, PaymentSuccess } from "./components/Celebration";
+export type { default as CelebrationComponent } from "./components/Celebration";
