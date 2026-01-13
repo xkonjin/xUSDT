@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps {
@@ -57,11 +58,16 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
           sizeClasses[size],
           className
         )}
+        role="img"
+        aria-label={`Avatar for ${name}`}
       >
-        <img
+        <Image
           src={src}
           alt={name}
+          width={64}
+          height={64}
           className="w-full h-full object-cover"
+          unoptimized
         />
       </div>
     );
@@ -75,6 +81,8 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
         className
       )}
       style={{ backgroundColor: bgColor }}
+      role="img"
+      aria-label={`Avatar for ${name}`}
     >
       {initials}
     </div>

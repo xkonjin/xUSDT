@@ -9,6 +9,8 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@plasma-pay/db';
+import { checkRateLimit, rateLimitResponse, validateAddress } from '@/lib/api-utils';
+import { RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter';
 
 // Validation helpers
 function isValidAddress(address: string): boolean {
@@ -34,24 +36,25 @@ function isValidPhone(phone: string): boolean {
  * - offset: Number of items to skip (default: 0)
  */
 export async function GET(request: Request) {
+  // Rate limiting
+  const { allowed, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.read);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     
     // Get and validate address parameter
     const address = searchParams.get('address');
-    if (!address) {
+    const addressValidation = validateAddress(address);
+    if (!addressValidation.valid) {
       return NextResponse.json(
-        { error: 'address parameter is required' },
+        { error: addressValidation.error || 'Invalid address' },
         { status: 400 }
       );
     }
-    
-    if (!isValidAddress(address)) {
-      return NextResponse.json(
-        { error: 'Invalid address format' },
-        { status: 400 }
-      );
-    }
+    const normalizedAddress = addressValidation.normalized!;
     
     // Parse optional parameters
     const search = searchParams.get('q') || undefined;
@@ -96,7 +99,7 @@ export async function GET(request: Request) {
       }>;
     }
     
-    const where: WhereClause = { ownerAddress: address };
+    const where: WhereClause = { ownerAddress: normalizedAddress };
     
     if (favoritesOnly) {
       where.isFavorite = true;
@@ -156,24 +159,25 @@ export async function GET(request: Request) {
  * - isFavorite: Whether to mark as favorite (optional, default: false)
  */
 export async function POST(request: Request) {
+  // Rate limiting
+  const { allowed, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.payment);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+
   try {
     const body = await request.json();
     const { ownerAddress, contactAddress, name, email, phone, isFavorite } = body;
     
-    // Validate required fields
-    if (!ownerAddress) {
+    // Validate owner address
+    const ownerValidation = validateAddress(ownerAddress);
+    if (!ownerValidation.valid) {
       return NextResponse.json(
-        { error: 'ownerAddress is required' },
+        { error: ownerValidation.error || 'Invalid owner address' },
         { status: 400 }
       );
     }
-    
-    if (!isValidAddress(ownerAddress)) {
-      return NextResponse.json(
-        { error: 'ownerAddress must be a valid Ethereum address' },
-        { status: 400 }
-      );
-    }
+    const normalizedOwnerAddress = ownerValidation.normalized!;
     
     if (!contactAddress && !email && !phone) {
       return NextResponse.json(
@@ -182,11 +186,17 @@ export async function POST(request: Request) {
       );
     }
     
-    if (contactAddress && !isValidAddress(contactAddress)) {
-      return NextResponse.json(
-        { error: 'contactAddress must be a valid Ethereum address' },
-        { status: 400 }
-      );
+    // Validate contact address if provided
+    let normalizedContactAddress: string | undefined;
+    if (contactAddress) {
+      const contactValidation = validateAddress(contactAddress);
+      if (!contactValidation.valid) {
+        return NextResponse.json(
+          { error: contactValidation.error || 'Invalid contact address' },
+          { status: 400 }
+        );
+      }
+      normalizedContactAddress = contactValidation.normalized;
     }
     
     if (!name || name.trim().length === 0) {
@@ -218,12 +228,12 @@ export async function POST(request: Request) {
     }
     
     // Check for existing contact with same address
-    if (contactAddress) {
+    if (normalizedContactAddress) {
       const existing = await prisma.contact.findUnique({
         where: {
           ownerAddress_contactAddress: {
-            ownerAddress,
-            contactAddress,
+            ownerAddress: normalizedOwnerAddress,
+            contactAddress: normalizedContactAddress,
           },
         },
       });
@@ -239,8 +249,8 @@ export async function POST(request: Request) {
     // Create contact
     const contact = await prisma.contact.create({
       data: {
-        ownerAddress,
-        contactAddress: contactAddress || null,
+        ownerAddress: normalizedOwnerAddress,
+        contactAddress: normalizedContactAddress || null,
         name: name.trim(),
         email: email || null,
         phone: phone || null,

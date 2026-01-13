@@ -337,6 +337,8 @@ export function SendMoneyForm({
               value={recipientName || recipient}
               onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
+              aria-label="Recipient email, phone, or wallet address"
+              aria-invalid={recipient && !isValidRecipient && !recipientName ? 'true' : 'false'}
               className="clay-input w-full pl-12"
               disabled={loading}
             />
@@ -368,6 +370,7 @@ export function SendMoneyForm({
               placeholder="0.00"
               step="0.01"
               min="0"
+              aria-label="Payment amount in USD"
               className="clay-input w-full pl-14 pr-16 text-3xl font-bold"
               disabled={loading}
             />
