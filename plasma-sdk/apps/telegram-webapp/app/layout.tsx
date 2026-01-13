@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Plasma Pay - Telegram",
@@ -27,7 +28,7 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="afterInteractive"
         />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

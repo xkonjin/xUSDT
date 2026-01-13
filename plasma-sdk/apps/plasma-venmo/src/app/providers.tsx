@@ -6,10 +6,11 @@
 
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPlasmaProviders } from "@plasma-pay/privy-auth";
 import { ErrorBoundary, AssistantProvider } from "@plasma-pay/ui";
+import { initPostHog } from "@/lib/posthog";
 
 const BaseProviders = createPlasmaProviders({
   loginMethods: ["email", "sms", "google", "apple"],
@@ -20,6 +21,10 @@ const BaseProviders = createPlasmaProviders({
 // Wrapper that adds the AI Assistant
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
+
+  useEffect(() => {
+    initPostHog();
+  }, []);
 
   return (
     <BaseProviders>

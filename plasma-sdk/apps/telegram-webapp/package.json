@@ -19,11 +19,12 @@
     "@plasma-pay/share": "*",
     "@plasma-pay/ui": "*",
     "@twa-dev/sdk": "^7.0.0",
+    "lucide-react": "^0.460.0",
     "next": "14.2.0",
+    "posthog-js": "^1.319.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "viem": "^2.21.0",
-    "lucide-react": "^0.460.0"
+    "viem": "^2.21.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.0",
