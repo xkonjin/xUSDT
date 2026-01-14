@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { prisma, notifications as notifyHelpers, type NotificationType } from '@plasma-pay/db';
+import { prisma, notifications as notifyHelpers, type NotificationType, type Notification } from '@plasma-pay/db';
 
 // Initialize Resend client (lazy - only when API key exists)
 let resendClient: Resend | null = null;
@@ -271,10 +271,21 @@ export async function POST(request: Request) {
     });
 
     if (emailError) {
-      console.error('Resend error:', emailError);
+      console.error('[notify] Resend API error:', {
+        notificationId: notification.id,
+        recipientEmail: notification.recipientEmail,
+        errorName: emailError.name,
+        errorMessage: emailError.message,
+        fullError: JSON.stringify(emailError),
+      });
       await notifyHelpers.markFailed(notification.id, JSON.stringify(emailError));
       return NextResponse.json(
-        { error: 'Failed to send email', details: emailError },
+        { 
+          error: 'Failed to send email', 
+          details: emailError,
+          canRetry: true,
+          message: 'We couldn\'t send the notification email. Would you like to try again?'
+        },
         { status: 500 }
       );
     }
@@ -348,7 +359,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      pending: pending.map(n => ({
+      pending: pending.map((n: Notification) => ({
         id: n.id,
         type: n.type,
         recipientEmail: n.recipientEmail,

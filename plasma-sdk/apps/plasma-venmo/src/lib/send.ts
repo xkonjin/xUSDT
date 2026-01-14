@@ -138,11 +138,15 @@ async function createClaimForUnregisteredRecipient(
 ): Promise<SendMoneyResult> {
   const amountInUnits = parseUnits(amount, 6);
   
-  // Get escrow/treasury address from env or use a default
+  // Get escrow/treasury address from env
   const escrowAddress = process.env.NEXT_PUBLIC_MERCHANT_ADDRESS as Address;
   
   if (!escrowAddress) {
-    return { success: false, error: 'Escrow address not configured' };
+    console.warn('[send] NEXT_PUBLIC_MERCHANT_ADDRESS not configured - claim links unavailable');
+    return { 
+      success: false, 
+      error: 'Claim links are currently unavailable. Please send to a registered user or wallet address.' 
+    };
   }
 
   // Create transfer to escrow

@@ -18,8 +18,10 @@ import {
   Check, 
   ExternalLink,
   X,
-  ArrowDownLeft
+  ArrowDownLeft,
+  QrCode
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { ModalPortal } from "./ui/ModalPortal";
 
 interface FundWalletProps {
@@ -90,7 +92,8 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
 
 export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   const [copied, setCopied] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"card" | "wallet" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"card" | "wallet" | "qr" | null>(null);
+  const [showQR, setShowQR] = useState(false);
 
   if (!walletAddress) return null;
 
@@ -148,23 +151,48 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
                 </p>
               </>
             ) : (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-center">
-                <p className="text-amber-400 text-sm mb-2">
-                  Transak is not configured yet
-                </p>
-                <p className="text-white/40 text-xs">
-                  Set NEXT_PUBLIC_TRANSAK_API_KEY in your environment variables.
-                  <br />
-                  Get an API key at{" "}
-                  <a 
-                    href="https://transak.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-[rgb(0,212,255)] hover:underline"
-                  >
-                    transak.com
-                  </a>
-                </p>
+              <div className="space-y-4">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-center">
+                  <p className="text-amber-400 text-sm mb-2">
+                    Card payments are not yet available
+                  </p>
+                  <p className="text-white/40 text-xs">
+                    You can fund your wallet by transferring USDT0 to your address instead.
+                  </p>
+                </div>
+                
+                {/* Fallback: Copy Address */}
+                <div className="bg-white/5 rounded-2xl p-4">
+                  <p className="text-white/40 text-xs mb-2">Your Plenmo Address</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <code className="text-white text-sm font-mono break-all">
+                      {walletAddress}
+                    </code>
+                    <button
+                      onClick={copyAddress}
+                      className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-white/50" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* QR Code */}
+                <div className="bg-white rounded-2xl p-4 flex flex-col items-center">
+                  <QRCodeSVG 
+                    value={walletAddress} 
+                    size={160} 
+                    level="M"
+                    includeMargin={false}
+                  />
+                  <p className="text-gray-600 text-xs mt-2">
+                    Scan to get address
+                  </p>
+                </div>
               </div>
             )}
           </div>

@@ -3,8 +3,8 @@ import { createPublicClient, createWalletClient, http, type Address, type Hex } 
 import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
+import { getValidatedRelayerKey } from '@/lib/validation';
 
-const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
 const isMockMode = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
 
 const TRANSFER_WITH_AUTH_ABI = [
@@ -38,9 +38,12 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!RELAYER_KEY) {
+    // Validate relayer key with proper error handling
+    const { key: RELAYER_KEY, error: relayerError } = getValidatedRelayerKey();
+    if (!RELAYER_KEY || relayerError) {
+      console.error('[submit-transfer] Relayer key validation failed');
       return NextResponse.json(
-        { error: 'Relayer not configured' },
+        { error: relayerError || 'Payment service configuration error. Please contact support.' },
         { status: 500 }
       );
     }

@@ -39,26 +39,27 @@ export function AssistantBubble({
       exit={{ opacity: 0, y: 20, scale: 0.9 }}
       className="w-72 max-h-96 overflow-hidden flex flex-col rounded-3xl"
       style={{
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
+        background: 'linear-gradient(145deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 22, 42, 0.98) 100%)',
         boxShadow: `
-          12px 12px 24px rgba(166, 180, 200, 0.25),
-          -12px -12px 24px rgba(255, 255, 255, 0.95),
-          inset 2px 2px 6px rgba(255, 255, 255, 0.8),
-          inset -2px -2px 6px rgba(166, 180, 200, 0.08)
+          12px 12px 24px rgba(0, 0, 0, 0.4),
+          -8px -8px 20px rgba(255, 255, 255, 0.05),
+          inset 2px 2px 6px rgba(255, 255, 255, 0.1),
+          inset -2px -2px 6px rgba(0, 0, 0, 0.2)
         `,
-        border: '1px solid rgba(255, 255, 255, 0.9)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        backdropFilter: 'blur(20px)',
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50">
-        <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-cyan-500" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <span className="text-sm font-semibold text-white/90 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
           Plenny
         </span>
         <button
           onClick={onClose}
           aria-label="Close chat"
-          className="w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
         >
           <X className="w-4 h-4" />
         </button>
@@ -67,7 +68,7 @@ export function AssistantBubble({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-48" aria-live="polite" aria-atomic="false">
         {messages.length === 0 && !isThinking && (
-          <div className="text-center text-gray-600 text-sm py-4">
+          <div className="text-center text-white/70 text-sm py-4">
             Hi! How can I help you today? 👋
           </div>
         )}
@@ -82,9 +83,14 @@ export function AssistantBubble({
             <div
               className={`max-w-[85%] px-3 py-2 text-sm ${
                 msg.type === 'user'
-                  ? 'bg-gradient-to-br from-cyan-400 to-cyan-500 text-white rounded-2xl rounded-br-md shadow-md'
-                  : 'bg-white text-gray-800 rounded-2xl rounded-bl-md shadow-sm border border-gray-100'
+                  ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl rounded-br-md shadow-md'
+                  : 'bg-white/10 text-white/90 rounded-2xl rounded-bl-md border border-white/15'
               }`}
+              style={{
+                minHeight: '36px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+              }}
             >
               {msg.content}
             </div>
@@ -98,23 +104,23 @@ export function AssistantBubble({
             animate={{ opacity: 1 }}
             className="flex justify-start"
           >
-            <div className="bg-white px-4 py-2 rounded-2xl rounded-bl-md shadow-sm border border-gray-100 flex items-center gap-1">
+            <div className="bg-white/10 px-4 py-2 rounded-2xl rounded-bl-md border border-white/15 flex items-center gap-1">
               <motion.span
-                className="text-cyan-500"
+                className="text-emerald-400"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1, repeat: Infinity }}
               >
                 •
               </motion.span>
               <motion.span
-                className="text-purple-500"
+                className="text-purple-400"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
               >
                 •
               </motion.span>
               <motion.span
-                className="text-cyan-500"
+                className="text-emerald-400"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
               >
@@ -137,7 +143,7 @@ export function AssistantBubble({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => onSuggestionClick?.(suggestion)}
-              className="px-3 py-1.5 text-xs rounded-full bg-cyan-50 text-gray-700 hover:bg-cyan-100 transition-colors border border-cyan-200"
+              className="px-3 py-1.5 text-xs rounded-full bg-emerald-500/10 text-white/70 hover:bg-emerald-500/20 hover:text-white transition-colors border border-emerald-500/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               {suggestion}
             </motion.button>
@@ -146,7 +152,7 @@ export function AssistantBubble({
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-gray-200/50">
+      <div className="p-3 border-t border-white/10">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -160,20 +166,22 @@ export function AssistantBubble({
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="Ask me anything..."
             aria-label="Message to Plenny"
-            className="flex-1 py-2 px-3 text-sm rounded-xl border border-gray-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 transition-all"
+            className="flex-1 py-2 px-3 text-sm rounded-xl border border-white/15 bg-black/30 text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
             style={{
-              boxShadow: 'inset 2px 2px 4px rgba(166, 180, 200, 0.1)',
+              boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.2)',
+              minHeight: '40px',
+              fontSize: '14px',
             }}
           />
           <motion.button
             type="submit"
             disabled={!inputValue.trim() || isThinking}
             aria-label="Send message"
-            className="p-2 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             style={{
-              boxShadow: '4px 4px 8px rgba(0, 212, 255, 0.2)',
+              boxShadow: '4px 4px 8px rgba(29, 185, 84, 0.2)',
             }}
           >
             {isThinking ? (
