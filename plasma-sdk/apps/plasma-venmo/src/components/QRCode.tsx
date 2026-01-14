@@ -22,6 +22,7 @@ export function QRCodeButton({ walletAddress, username }: QRCodeButtonProps) {
         onClick={() => setShowModal(true)}
         className="p-2 rounded-xl liquid-glass-subtle hover:bg-white/10 transition-colors"
         aria-label="Show QR Code"
+        data-qr-button
       >
         <QrCode className="w-5 h-5 text-white/70" />
       </button>

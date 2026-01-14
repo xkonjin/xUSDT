@@ -37,6 +37,7 @@ interface WalletManagerProps {
 export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showFundModal, setShowFundModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>("wallets");
   
   const { balance, formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
@@ -103,9 +104,8 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                 Add Funds
               </button>
               <button
+                onClick={() => setShowWithdrawModal(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 text-white/70 hover:bg-white/20 transition-colors text-sm font-medium"
-                disabled
-                title="Coming soon"
               >
                 <ArrowUpRight className="w-4 h-4" />
                 Withdraw
@@ -269,6 +269,15 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
           onClose={() => setShowFundModal(false)} 
         />
       )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && embeddedWallet && (
+        <WithdrawModal 
+          walletAddress={embeddedWallet.address}
+          balance={formatted || "0"}
+          onClose={() => setShowWithdrawModal(false)} 
+        />
+      )}
     </ModalPortal>
   );
 }
@@ -288,6 +297,192 @@ export function WalletManagerButton() {
 
       <WalletManager isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
+  );
+}
+
+// Withdraw Modal Component
+interface WithdrawModalProps {
+  walletAddress: string;
+  balance: string;
+  onClose: () => void;
+}
+
+function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) {
+  const [toAddress, setToAddress] = useState("");
+  const [amount, setAmount] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleWithdraw = async () => {
+    if (!toAddress || !amount) {
+      setError("Please enter address and amount");
+      return;
+    }
+
+    // Basic validation
+    if (!/^0x[a-fA-F0-9]{40}$/.test(toAddress)) {
+      setError("Invalid wallet address");
+      return;
+    }
+
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setError("Invalid amount");
+      return;
+    }
+
+    if (amountNum > parseFloat(balance)) {
+      setError("Insufficient balance");
+      return;
+    }
+
+    setWithdrawing(true);
+    setError(null);
+
+    try {
+      // Use the relay API to send the transfer
+      const response = await fetch("/api/submit-transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: walletAddress,
+          to: toAddress,
+          amount: amountNum.toString(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Withdrawal failed");
+      }
+
+      setSuccess(result.txHash);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Withdrawal failed");
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <ModalPortal isOpen={true} onClose={onClose} zIndex={120}>
+        <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 text-center">
+          <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Withdrawal Sent!</h3>
+          <p className="text-white/50 text-sm mb-4">
+            Your USDT0 is on its way.
+          </p>
+          <a
+            href={`https://scan.plasma.to/tx/${success}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[rgb(0,212,255)] hover:underline text-sm flex items-center justify-center gap-1 mb-4"
+          >
+            View on Plasma Scan
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <button onClick={onClose} className="w-full btn-primary">
+            Done
+          </button>
+        </div>
+      </ModalPortal>
+    );
+  }
+
+  return (
+    <ModalPortal isOpen={true} onClose={onClose} zIndex={120}>
+      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-white">Withdraw USDT0</h3>
+          <button 
+            onClick={onClose}
+            className="text-white/50 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <p className="text-white/50 text-sm mb-4">
+          Send USDT0 to an external wallet address.
+        </p>
+
+        {/* Balance display */}
+        <div className="bg-white/5 rounded-xl p-3 mb-4">
+          <p className="text-white/40 text-xs">Available Balance</p>
+          <p className="text-white font-bold">${balance} USDT0</p>
+        </div>
+
+        {/* To Address */}
+        <div className="mb-4">
+          <label className="block text-white/50 text-sm mb-2">To Address</label>
+          <input
+            type="text"
+            value={toAddress}
+            onChange={(e) => setToAddress(e.target.value)}
+            placeholder="0x..."
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[rgb(0,212,255)]"
+          />
+        </div>
+
+        {/* Amount */}
+        <div className="mb-4">
+          <label className="block text-white/50 text-sm mb-2">Amount</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">$</span>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              max={balance}
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-20 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[rgb(0,212,255)]"
+            />
+            <button
+              onClick={() => setAmount(balance)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[rgb(0,212,255)] text-sm hover:underline"
+            >
+              Max
+            </button>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Warning */}
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-400 text-xs mb-4">
+          <strong>Note:</strong> Ensure the address is correct. Transactions cannot be reversed.
+        </div>
+
+        {/* Submit */}
+        <button
+          onClick={handleWithdraw}
+          disabled={withdrawing || !toAddress || !amount}
+          className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {withdrawing ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <ArrowUpRight className="w-4 h-4" />
+              Withdraw
+            </>
+          )}
+        </button>
+      </div>
+    </ModalPortal>
   );
 }
 
