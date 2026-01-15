@@ -40,14 +40,15 @@ export class PlasmaAggregator {
   async getQuote(request: SwapRequest): Promise<SwapQuote | null> {
     await this.init();
 
+    // LI.FI API requires lowercase addresses
     const routesResult = await getRoutes({
       fromChainId: request.fromChainId,
-      fromTokenAddress: request.fromTokenAddress,
+      fromTokenAddress: request.fromTokenAddress.toLowerCase() as Address,
       fromAmount: request.fromAmount,
-      fromAddress: request.userAddress,
+      fromAddress: request.userAddress.toLowerCase() as Address,
       toChainId: PLASMA_MAINNET_CHAIN_ID,
-      toTokenAddress: USDT0_ADDRESS,
-      toAddress: request.recipientAddress,
+      toTokenAddress: USDT0_ADDRESS.toLowerCase() as Address,
+      toAddress: request.recipientAddress.toLowerCase() as Address,
       options: {
         slippage: request.slippage ?? DEFAULT_SLIPPAGE,
         order: 'RECOMMENDED',
@@ -86,14 +87,15 @@ export class PlasmaAggregator {
     await this.init();
 
     try {
+      // LI.FI API requires lowercase addresses
       const routesResult = await getRoutes({
         fromChainId: request.fromChainId,
-        fromTokenAddress: request.fromTokenAddress,
+        fromTokenAddress: request.fromTokenAddress.toLowerCase() as Address,
         fromAmount: request.fromAmount,
-        fromAddress: request.userAddress,
+        fromAddress: request.userAddress.toLowerCase() as Address,
         toChainId: PLASMA_MAINNET_CHAIN_ID,
-        toTokenAddress: USDT0_ADDRESS,
-        toAddress: request.recipientAddress,
+        toTokenAddress: USDT0_ADDRESS.toLowerCase() as Address,
+        toAddress: request.recipientAddress.toLowerCase() as Address,
         options: {
           slippage: request.slippage ?? DEFAULT_SLIPPAGE,
           order: 'RECOMMENDED',
