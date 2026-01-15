@@ -245,7 +245,7 @@ export function useAssistantAI(
 
       try {
         const model = genAIRef.current.getGenerativeModel({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash',
         });
 
         // Build rich context
@@ -354,7 +354,7 @@ Respond helpfully in 1-2 SHORT sentences (under 100 characters preferred). Be sp
 
       try {
         const model = genAIRef.current.getGenerativeModel({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash',
         });
 
         const contextualKnowledge = getContextualKnowledge(
