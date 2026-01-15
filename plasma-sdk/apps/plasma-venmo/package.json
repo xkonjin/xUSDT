@@ -16,6 +16,7 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@plasma-pay/aggregator": "*",
     "@plasma-pay/core": "*",
     "@plasma-pay/db": "*",
