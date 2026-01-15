@@ -567,4 +567,87 @@ When completing a session, add entry:
 
 ---
 
+## Vercel Deployment Rules
+
+This section documents critical Vercel deployment configuration to prevent common issues.
+
+### Pre-Deployment Checklist
+
+Before deploying to Vercel, ALWAYS run:
+
+```bash
+cd apps/plasma-venmo
+./scripts/verify-vercel.sh
+```
+
+Or manually verify:
+
+1. **Node.js Version**: Must be 18.x, 20.x, or 22.x (NOT 24.x)
+   ```bash
+   cat .vercel/project.json | grep nodeVersion
+   ```
+
+2. **Root Directory**: Must be empty or null when deploying from app directory
+   ```bash
+   cat .vercel/project.json | grep rootDirectory
+   # Should show: null or ""
+   # NOT: "apps/plasma-venmo"
+   ```
+
+3. **Vercel Link Status**: Verify project is correctly linked
+   ```bash
+   cat .vercel/project.json | grep projectName
+   # Should show: "plasma-venmo"
+   ```
+
+### Fixing Misconfigured Vercel Project
+
+If you see path errors like `apps/plasma-venmo/apps/plasma-venmo`:
+
+```bash
+# 1. Remove corrupted Vercel link
+rm -rf .vercel
+
+# 2. Re-link with correct settings
+npx vercel link --yes
+
+# 3. Update settings via Vercel dashboard:
+#    https://vercel.com/[team]/plasma-venmo/settings
+#    - Set Root Directory to: (empty - clear the field)
+#    - Set Node.js Version to: 20.x
+```
+
+### Common Deployment Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `path "X/apps/plasma-venmo" does not exist` | Doubled root directory | Clear rootDirectory in Vercel dashboard |
+| `invalid Node.js Version: "24.x"` | Invalid Node version | Set to 20.x in Vercel dashboard |
+| `Build failed - module not found` | Missing env vars | Check all required env vars are set |
+| `ENOWORKSPACES` | npm workspace issue | Ignore - not blocking |
+
+### Why These Issues Happen
+
+1. **Root Directory Doubling**: When you run `vercel link` from `apps/plasma-venmo/` but the Vercel dashboard has `rootDirectory: "apps/plasma-venmo"`, the paths double up.
+
+2. **Node Version**: Vercel dashboard settings override `.nvmrc`. If someone sets an invalid version (24.x), it breaks builds.
+
+3. **Monorepo Confusion**: This repo has multiple `vercel.json` files. Always deploy from the specific app directory, never from root.
+
+### Deployment Commands
+
+```bash
+# Correct way to deploy
+cd plasma-sdk/apps/plasma-venmo
+./scripts/verify-vercel.sh  # Check config first
+npx vercel --yes            # Preview deployment
+npx vercel --prod --yes     # Production deployment
+
+# Wrong - don't do this
+cd plasma-sdk
+vercel --cwd apps/plasma-venmo  # Can cause path issues
+```
+
+---
+
 *Last updated: January 2026*

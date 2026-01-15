@@ -59,3 +59,16 @@ See `apps/ENV_SETUP.md` for complete environment variable documentation.
 - **EIP-712 Domain**: Token name must be `"USDT0"` (not `"USD₮0"`) for signature validation
 - **Gasless Limits**: 10 transfers/day, 10k USDT0/day volume per address (resets UTC midnight)
 - **Claims**: Token is SHA-256 hashed before storage, only returned on creation
+
+## Vercel Deployment
+
+**CRITICAL**: This monorepo has multiple Vercel projects. When deploying:
+
+1. **Always cd into the specific app directory** before running `vercel`
+2. **Never deploy from the monorepo root** - use `cd apps/plasma-venmo`
+3. **Run verification script first**: `./scripts/verify-vercel.sh`
+4. **Check dashboard settings** match:
+   - Root Directory: empty (not `apps/plasma-venmo`)
+   - Node.js Version: 20.x (not 24.x)
+
+See `apps/plasma-venmo/AGENTS.md` → "Vercel Deployment Rules" for detailed troubleshooting.
