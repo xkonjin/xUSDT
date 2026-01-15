@@ -111,8 +111,9 @@ Respond helpfully in 1-2 SHORT sentences (under 100 characters preferred):`;
     });
   } catch (error) {
     console.error('Assistant API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Assistant temporarily unavailable' },
+      { error: 'Assistant temporarily unavailable', debug: errorMessage },
       { status: 500 }
     );
   }
