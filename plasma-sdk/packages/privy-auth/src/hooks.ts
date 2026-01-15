@@ -78,12 +78,9 @@ const ERC20_BALANCE_ABI = [
  * @returns PlasmaWalletState with authentication and wallet info
  */
 export function usePlasmaWallet(): PlasmaWalletState {
-  // Check if we're in mock mode (dev without Privy configured)
+  // IMPORTANT: Call ALL hooks first before any conditional returns
+  // React hooks must be called in the same order on every render
   const mockContext = useContext(MockWalletContext);
-  if (mockContext) {
-    return mockContext as unknown as PlasmaWalletState;
-  }
-
   const privyData = usePrivy();
   const walletsData = useWallets();
 
@@ -98,6 +95,11 @@ export function usePlasmaWallet(): PlasmaWalletState {
 
     return createPlasmaEmbeddedWallet(privyWallet);
   }, [walletsData?.wallets]);
+
+  // Now we can safely check mock context after all hooks are called
+  if (mockContext) {
+    return mockContext as unknown as PlasmaWalletState;
+  }
 
   return {
     user: privyData.user,

@@ -7,10 +7,36 @@ A monorepo of payment applications and shared packages built on Plasma Chain, en
 **Stack**: Next.js 14 (App Router), TypeScript, Prisma, Privy Auth, Tailwind CSS, Turborepo
 
 **Structure**: 
-- `apps/` - Applications (plasma-venmo, plasma-stream, bill-split, subkiller, mobile, telegram-webapp, splitzy-bot)
+- `apps/` - Applications (plasma-venmo/Plenmo, plasma-stream, bill-split, subkiller, mobile, telegram-webapp, splitzy-bot, plasma-predictions)
 - `packages/` - Shared packages (@plasma-pay/core, db, privy-auth, gasless, share, ui, analytics, aggregator, x402)
 
 For detailed architecture, see [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md).
+
+## Key Focus Areas
+
+### Plenmo Payment System (apps/plasma-venmo)
+- Main P2P payment app - "Venmo for crypto"
+- Core files: `src/components/SendMoneyForm.tsx`, `src/lib/send.ts`, `src/app/api/submit-transfer/`
+- Hooks: `usePlasmaWallet()`, `useGaslessTransfer()`, `useUSDT0Balance()`
+
+### External Wallet Integration
+- Allows MetaMask/Rabby payments via `ExternalWalletPay.tsx`
+- Uses `useConnectExternalWallet()` and `useAllWallets()` hooks
+- USDT0 address: `0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb`
+
+### Bridge Deposit Feature
+- Multi-aggregator: LI.FI, deBridge, Squid, Across
+- Files: `BridgeDeposit.tsx`, `FundWallet.tsx`, `/api/bridge/*`
+- Supports 7 source chains (ETH, ARB, OP, BASE, MATIC, BNB, AVAX)
+
+### Vercel Deployment
+- **Critical**: Deploy from `apps/plasma-venmo`, never set rootDirectory
+- Root vercel.json uses `turbo build --filter=@plasma-pay/venmo`
+- Node.js 20.x required (not 24.x)
+
+### PostHog Analytics
+- Config: `src/lib/posthog.ts`, env vars `NEXT_PUBLIC_POSTHOG_KEY`/`HOST`
+- Tracks bridge events: `bridge_initiated`, `bridge_success`, `bridge_error`
 
 ## Quick Start
 
