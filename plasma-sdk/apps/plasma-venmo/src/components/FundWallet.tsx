@@ -19,10 +19,11 @@ import {
   ExternalLink,
   X,
   ArrowDownLeft,
-  QrCode
+  ArrowRightLeft,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { ModalPortal } from "./ui/ModalPortal";
+import { BridgeDepositModal } from "./BridgeDeposit";
 
 interface FundWalletProps {
   walletAddress: string | undefined;
@@ -92,8 +93,7 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
 
 export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   const [copied, setCopied] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"card" | "wallet" | "qr" | null>(null);
-  const [showQR, setShowQR] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<"card" | "wallet" | "bridge" | null>(null);
 
   if (!walletAddress) return null;
 
@@ -268,6 +268,16 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
     );
   }
 
+  // Bridge method - shows BridgeDepositModal
+  if (selectedMethod === "bridge") {
+    return (
+      <BridgeDepositModal
+        recipientAddress={walletAddress}
+        onClose={() => setSelectedMethod(null)}
+      />
+    );
+  }
+
   // Main selection view
   return (
     <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
@@ -286,12 +296,32 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           Choose how you&apos;d like to add USDT0 to your wallet:
         </p>
 
-        {/* Option 1: Buy with Card */}
+        {/* Option 1: Bridge Any Token (Featured) */}
+        <button
+          onClick={() => setSelectedMethod("bridge")}
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-[rgb(0,212,255)]/10 to-purple-500/10 hover:from-[rgb(0,212,255)]/20 hover:to-purple-500/20 transition-all mb-3 text-left border border-[rgb(0,212,255)]/20"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center flex-shrink-0">
+            <ArrowRightLeft className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="text-white font-semibold">Bridge Any Token</h4>
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] rounded-full">
+                NEW
+              </span>
+            </div>
+            <p className="text-white/50 text-sm">Convert ETH, USDC from any chain</p>
+          </div>
+          <span className="text-white/30">→</span>
+        </button>
+
+        {/* Option 2: Buy with Card */}
         <button
           onClick={() => setSelectedMethod("card")}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-blue-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
             <CreditCard className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
@@ -301,7 +331,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <span className="text-white/30">→</span>
         </button>
 
-        {/* Option 2: Transfer from Wallet */}
+        {/* Option 3: Transfer from Wallet */}
         <button
           onClick={() => setSelectedMethod("wallet")}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left"
@@ -316,7 +346,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <span className="text-white/30">→</span>
         </button>
 
-        {/* Option 3: Receive from Friend */}
+        {/* Option 4: Receive from Friend */}
         <button
           onClick={copyAddress}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left"
