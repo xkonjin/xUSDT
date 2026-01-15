@@ -128,11 +128,8 @@ export function createPlasmaProviders(
     const [error, _setError] = useState<string | null>(null);
 
     useEffect(() => {
-      console.log("[PlasmaProviders] Mounting, PRIVY_APP_ID:", privyAppId ? privyAppId.substring(0, 8) + "..." : "NOT SET");
-      console.log("[PlasmaProviders] NODE_ENV:", process.env.NODE_ENV);
-      console.log("[PlasmaProviders] forceMock:", forceMock);
       setIsMounted(true);
-    }, [privyAppId, forceMock]);
+    }, []);
 
     // Show loading during hydration
     if (!isMounted) {
@@ -166,11 +163,6 @@ export function createPlasmaProviders(
       console.error("[PlasmaProviders] NEXT_PUBLIC_PRIVY_APP_ID is not set!");
       return <ConfigurationRequired>{children}</ConfigurationRequired>;
     }
-
-    console.log("[PlasmaProviders] Rendering PlasmaPrivyProvider with appId:", privyAppId);
-    console.log("[PlasmaProviders] loginMethods:", loginMethods);
-    console.log("[PlasmaProviders] theme:", theme);
-    console.log("[PlasmaProviders] accentColor:", accentColor);
 
     // Render providers
     const content = (

@@ -91,9 +91,8 @@ export class ErrorBoundary extends Component<
               An unexpected error occurred. Please try refreshing the page.
             </p>
 
-            {/* Always show error details for debugging */}
-            {this.state.error && (
-              <details className="mb-6 text-left" open>
+            {process.env.NODE_ENV === "development" && this.state.error && (
+              <details className="mb-6 text-left">
                 <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">
                   Error details
                 </summary>
