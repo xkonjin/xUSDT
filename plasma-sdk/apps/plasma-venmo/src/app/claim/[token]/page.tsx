@@ -10,8 +10,107 @@
 
 import { useState, useEffect } from "react";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
-import { Gift, Loader2, AlertCircle, CheckCircle, ArrowLeft, ExternalLink } from "lucide-react";
+import { Gift, Loader2, AlertCircle, CheckCircle, ArrowLeft, ExternalLink, Wallet } from "lucide-react";
 import Link from "next/link";
+import { isAddress } from "viem";
+
+// ClaimToExternalWallet component - allows claiming to any wallet address
+function ClaimToExternalWallet({ 
+  token, 
+  amount,
+  onSuccess, 
+  onError 
+}: { 
+  token: string;
+  amount: number;
+  onSuccess: (txHash: string) => void;
+  onError: (error: string) => void;
+}) {
+  const [showInput, setShowInput] = useState(false);
+  const [address, setAddress] = useState("");
+  const [claiming, setClaiming] = useState(false);
+
+  const isValidAddress = address && isAddress(address);
+
+  async function handleClaim() {
+    if (!isValidAddress) return;
+
+    setClaiming(true);
+    try {
+      const response = await fetch(`/api/claims/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          claimerAddress: address,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Claim failed");
+      }
+
+      onSuccess(result.txHash);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Claim failed");
+    } finally {
+      setClaiming(false);
+    }
+  }
+
+  if (!showInput) {
+    return (
+      <button
+        onClick={() => setShowInput(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-sm font-medium border border-white/10"
+      >
+        <Wallet className="w-4 h-4" />
+        Claim to External Wallet
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <input
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Enter wallet address (0x...)"
+          className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm font-mono focus:outline-none focus:border-plenmo-500"
+        />
+        {address && !isValidAddress && (
+          <p className="text-red-400 text-xs mt-1">Invalid wallet address</p>
+        )}
+      </div>
+      <button
+        onClick={handleClaim}
+        disabled={!isValidAddress || claiming}
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {claiming ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Claiming...
+          </>
+        ) : (
+          <>
+            <Gift className="w-4 h-4" />
+            Claim ${amount} to this wallet
+          </>
+        )}
+      </button>
+      <button
+        onClick={() => setShowInput(false)}
+        className="w-full text-white/40 hover:text-white/60 text-xs transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
 
 // Type for claim data
 interface ClaimData {
@@ -276,37 +375,57 @@ export default function ClaimPage({
             </div>
           )}
 
-          {/* Action button */}
-          {!authenticated ? (
-            <button
-              onClick={login}
-              className="w-full btn-primary text-lg py-4"
-            >
-              Sign up to Claim
-            </button>
-          ) : (
-            <button
-              onClick={handleClaim}
-              disabled={claiming}
-              className="w-full btn-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {claiming ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Claiming...
-                </>
-              ) : (
-                <>
-                  <Gift className="w-5 h-5" />
-                  Claim ${claim.amount}
-                </>
-              )}
-            </button>
-          )}
+          {/* Action buttons */}
+          <div className="space-y-3">
+            {!authenticated ? (
+              <button
+                onClick={login}
+                className="w-full btn-primary text-lg py-4"
+              >
+                Sign up to Claim
+              </button>
+            ) : (
+              <button
+                onClick={handleClaim}
+                disabled={claiming}
+                className="w-full btn-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {claiming ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Claiming...
+                  </>
+                ) : (
+                  <>
+                    <Gift className="w-5 h-5" />
+                    Claim ${claim.amount}
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-[#0a0a0a] text-white/40">or</span>
+              </div>
+            </div>
+
+            {/* External wallet claim option */}
+            <ClaimToExternalWallet 
+              token={token} 
+              amount={claim.amount}
+              onSuccess={(txHash) => setSuccess(txHash)}
+              onError={(err) => setError(err)}
+            />
+          </div>
 
           {/* Info */}
           <p className="text-white/30 text-xs text-center mt-4">
-            {authenticated ? "Claim to your account" : "Create an account to receive these funds"}
+            {authenticated ? "Claim to your Plenmo account or any wallet" : "Create an account or claim to an existing wallet"}
           </p>
         </div>
 

@@ -378,34 +378,10 @@ export default function PayPage({
             </div>
           )}
 
-          {/* Action button */}
-          {!authenticated ? (
-            <div className="space-y-3">
-              <button
-                onClick={login}
-                className="w-full btn-primary"
-              >
-                Login to Pay
-              </button>
-              
-              {/* Alternative: External wallet */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10"></div>
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-2 bg-[#0a0a0a] text-white/40">or</span>
-                </div>
-              </div>
-              
-              <ExternalWalletPayButton
-                recipientAddress={paymentLink.creatorAddress}
-                amount={paymentLink.amount?.toString() || amount}
-                memo={paymentLink.memo}
-              />
-            </div>
-          ) : (
-            <div className="space-y-3">
+          {/* Payment Options - Always show multiple ways to pay */}
+          <div className="space-y-3">
+            {/* Option 1: Pay with Plenmo (if logged in with balance) */}
+            {authenticated && wallet ? (
               <button
                 onClick={handlePay}
                 disabled={!canPay}
@@ -417,25 +393,42 @@ export default function PayPage({
                     Processing...
                   </>
                 ) : (
-                  <>Pay {amount ? `$${amount}` : ''}</>
+                  <>Pay with Plenmo {amount ? `($${amount})` : ''}</>
                 )}
               </button>
-              
-              {/* Show external wallet option if balance is insufficient */}
-              {balance && parseFloat(balance) < parseFloat(amount || '0') && (
-                <>
-                  <p className="text-amber-400/80 text-xs text-center">
-                    Insufficient balance. You can also pay with an external wallet:
-                  </p>
-                  <ExternalWalletPayButton
-                    recipientAddress={paymentLink.creatorAddress}
-                    amount={paymentLink.amount?.toString() || amount}
-                    memo={paymentLink.memo}
-                  />
-                </>
-              )}
+            ) : (
+              <button
+                onClick={login}
+                className="w-full btn-primary"
+              >
+                Pay with Plenmo
+              </button>
+            )}
+            
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-[#0a0a0a] text-white/40">or pay with</span>
+              </div>
             </div>
-          )}
+            
+            {/* Option 2: External Wallet (MetaMask, Coinbase, etc.) - Always visible */}
+            <ExternalWalletPayButton
+              recipientAddress={paymentLink.creatorAddress}
+              amount={paymentLink.amount?.toString() || amount}
+              memo={paymentLink.memo}
+            />
+            
+            {/* Balance warning if logged in with insufficient funds */}
+            {authenticated && balance && parseFloat(balance) < parseFloat(amount || '0') && (
+              <p className="text-amber-400/80 text-xs text-center">
+                Your Plenmo balance (${balance}) is less than ${amount}. Use an external wallet above.
+              </p>
+            )}
+          </div>
 
           {/* Zero gas fees badge */}
           <p className="text-white/30 text-xs text-center mt-4">
