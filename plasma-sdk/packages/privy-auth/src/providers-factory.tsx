@@ -128,9 +128,11 @@ export function createPlasmaProviders(
     const [error, _setError] = useState<string | null>(null);
 
     useEffect(() => {
-      console.log("[PlasmaProviders] Mounting, PRIVY_APP_ID:", privyAppId ? "SET" : "NOT SET");
+      console.log("[PlasmaProviders] Mounting, PRIVY_APP_ID:", privyAppId ? privyAppId.substring(0, 8) + "..." : "NOT SET");
+      console.log("[PlasmaProviders] NODE_ENV:", process.env.NODE_ENV);
+      console.log("[PlasmaProviders] forceMock:", forceMock);
       setIsMounted(true);
-    }, [privyAppId]);
+    }, [privyAppId, forceMock]);
 
     // Show loading during hydration
     if (!isMounted) {
@@ -166,34 +168,32 @@ export function createPlasmaProviders(
     }
 
     console.log("[PlasmaProviders] Rendering PlasmaPrivyProvider with appId:", privyAppId);
+    console.log("[PlasmaProviders] loginMethods:", loginMethods);
+    console.log("[PlasmaProviders] theme:", theme);
+    console.log("[PlasmaProviders] accentColor:", accentColor);
 
-    // Render providers - wrap in try/catch for better error reporting
-    try {
-      const content = (
-        <PlasmaPrivyProvider
-          config={{
-            appId: privyAppId,
-            loginMethods,
-            appearance: {
-              theme,
-              accentColor,
-            },
-          }}
-        >
-          {children}
-        </PlasmaPrivyProvider>
-      );
+    // Render providers
+    const content = (
+      <PlasmaPrivyProvider
+        config={{
+          appId: privyAppId,
+          loginMethods,
+          appearance: {
+            theme,
+            accentColor,
+          },
+        }}
+      >
+        {children}
+      </PlasmaPrivyProvider>
+    );
 
-      // Optionally wrap with ErrorBoundary
-      if (ErrorBoundary) {
-        return <ErrorBoundary>{content}</ErrorBoundary>;
-      }
-
-      return content;
-    } catch (err) {
-      console.error("[PlasmaProviders] Error rendering:", err);
-      throw err;
+    // Optionally wrap with ErrorBoundary
+    if (ErrorBoundary) {
+      return <ErrorBoundary>{content}</ErrorBoundary>;
     }
+
+    return content;
   }
 
   // Set display name for React DevTools
