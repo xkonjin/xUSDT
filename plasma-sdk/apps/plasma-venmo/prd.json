@@ -1,187 +1,232 @@
 {
-  "name": "Plasma Venmo Production Release",
-  "version": "1.0.0",
-  "description": "P2P payment app with gasless USDT0 transfers - Production ready release",
-  "currentPhase": 1,
-  "phases": [
+  "project": "Plenmo Deployment Bug Fixes",
+  "branchName": "ralph/plenmo-deployment-fixes",
+  "description": "Fix critical deployment issues discovered during user testing at plenmo.vercel.app - includes escrow config handling, email notifications, private key validation, Transak fallback, real contacts, and chat visibility improvements",
+  "userStories": [
     {
-      "id": 1,
-      "name": "Security & Testing Foundation",
-      "status": "not_started",
-      "tasks": [
-        {
-          "id": "VENMO-001",
-          "title": "Add E2E tests with Playwright",
-          "description": "Cover send/receive/claim flows end-to-end",
-          "status": "not_started",
-          "priority": "P0"
-        },
-        {
-          "id": "VENMO-002", 
-          "title": "Add API route tests",
-          "description": "All 14 API route directories need test coverage",
-          "status": "not_started",
-          "priority": "P0"
-        },
-        {
-          "id": "VENMO-003",
-          "title": "Implement rate limiting middleware",
-          "description": "Add rate limiting to all API routes to prevent abuse",
-          "status": "not_started",
-          "priority": "P0"
-        },
-        {
-          "id": "VENMO-004",
-          "title": "Add CSRF protection",
-          "description": "Protect state-changing API routes from CSRF attacks",
-          "status": "not_started",
-          "priority": "P0"
-        },
-        {
-          "id": "VENMO-005",
-          "title": "Audit environment variables",
-          "description": "Ensure no secrets leaked to client-side code",
-          "status": "not_started",
-          "priority": "P0"
-        }
-      ]
+      "id": "US-001",
+      "title": "Add private key validation utility",
+      "description": "As a developer, I want a validation utility for private keys so that I can catch configuration errors at startup",
+      "acceptanceCriteria": [
+        "Create src/lib/validation.ts with validatePrivateKey function",
+        "Function trims whitespace and newlines from input",
+        "Function validates key is 64 hex chars (or 66 with 0x prefix)",
+        "Function returns { valid: boolean, key: string, error?: string }",
+        "Export helper normalizePrivateKey that adds 0x prefix if missing",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Created src/lib/validation.ts with validatePrivateKey, normalizePrivateKey, getValidatedRelayerKey"
     },
     {
-      "id": 2,
-      "name": "Core Feature Completion",
-      "status": "not_started",
-      "tasks": [
-        {
-          "id": "VENMO-006",
-          "title": "Implement real social feed",
-          "description": "Replace mock data with actual transaction feed from database",
-          "status": "not_started",
-          "priority": "P1"
-        },
-        {
-          "id": "VENMO-007",
-          "title": "Add friend/contact system",
-          "description": "User connections, favorites, recent payees functionality",
-          "status": "not_started",
-          "priority": "P1"
-        },
-        {
-          "id": "VENMO-008",
-          "title": "Implement search",
-          "description": "Search users, transactions, and payment links",
-          "status": "not_started",
-          "priority": "P1"
-        },
-        {
-          "id": "VENMO-009",
-          "title": "Add input validation middleware",
-          "description": "Sanitize all API inputs for security",
-          "status": "not_started",
-          "priority": "P1"
-        },
-        {
-          "id": "VENMO-010",
-          "title": "Mobile responsive fixes",
-          "description": "Full mobile optimization pass for all screens",
-          "status": "not_started",
-          "priority": "P1"
-        }
-      ]
+      "id": "US-002",
+      "title": "Apply private key validation to submit-transfer route",
+      "description": "As a user, I want clear error messages when payment service is misconfigured so that I understand what went wrong",
+      "acceptanceCriteria": [
+        "Import validatePrivateKey from src/lib/validation.ts in src/app/api/submit-transfer/route.ts",
+        "Validate RELAYER_PRIVATE_KEY at the start of POST handler",
+        "Return user-friendly error 'Payment service configuration error. Please contact support.' if invalid",
+        "Log detailed validation error server-side for debugging",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
     },
     {
-      "id": 3,
-      "name": "Advanced Features",
-      "status": "not_started",
-      "tasks": [
-        {
-          "id": "VENMO-011",
-          "title": "Add split bills feature",
-          "description": "Multi-party payment splitting functionality",
-          "status": "not_started",
-          "priority": "P2"
-        },
-        {
-          "id": "VENMO-012",
-          "title": "Add recurring payments",
-          "description": "Scheduled/recurring transfer functionality",
-          "status": "not_started",
-          "priority": "P2"
-        },
-        {
-          "id": "VENMO-013",
-          "title": "Implement notification center",
-          "description": "In-app notifications beyond email",
-          "status": "not_started",
-          "priority": "P2"
-        },
-        {
-          "id": "VENMO-014",
-          "title": "Add transaction categories",
-          "description": "Tagging and filtering for transactions",
-          "status": "not_started",
-          "priority": "P2"
-        },
-        {
-          "id": "VENMO-015",
-          "title": "Implement user onboarding",
-          "description": "Tutorial flow for new users",
-          "status": "not_started",
-          "priority": "P2"
-        }
-      ]
+      "id": "US-003",
+      "title": "Apply private key validation to claims route",
+      "description": "As a user, I want payment claim links to show helpful errors instead of cryptographic failures",
+      "acceptanceCriteria": [
+        "Import validatePrivateKey in src/app/api/claims/[token]/route.ts",
+        "Validate RELAYER_PRIVATE_KEY before processing claim",
+        "Return user-friendly error message if validation fails",
+        "Log detailed error server-side",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
     },
     {
-      "id": 4,
-      "name": "Polish & Launch",
-      "status": "not_started",
-      "tasks": [
-        {
-          "id": "VENMO-016",
-          "title": "Accessibility audit",
-          "description": "ARIA labels, keyboard navigation, screen reader support",
-          "status": "not_started",
-          "priority": "P3"
-        },
-        {
-          "id": "VENMO-017",
-          "title": "Add light theme",
-          "description": "Complete theme toggle functionality",
-          "status": "not_started",
-          "priority": "P3"
-        },
-        {
-          "id": "VENMO-018",
-          "title": "Implement help center",
-          "description": "In-app FAQ and support system",
-          "status": "not_started",
-          "priority": "P3"
-        },
-        {
-          "id": "VENMO-019",
-          "title": "Performance optimization",
-          "description": "Bundle analysis, lazy loading, caching",
-          "status": "not_started",
-          "priority": "P3"
-        },
-        {
-          "id": "VENMO-020",
-          "title": "Add analytics integration",
-          "description": "Mixpanel/PostHog for user behavior tracking",
-          "status": "not_started",
-          "priority": "P3"
-        }
-      ]
+      "id": "US-004",
+      "title": "Apply private key validation to requests route",
+      "description": "As a user, I want payment requests to handle configuration errors gracefully",
+      "acceptanceCriteria": [
+        "Import validatePrivateKey in src/app/api/requests/[id]/route.ts",
+        "Validate RELAYER_PRIVATE_KEY before processing request",
+        "Return user-friendly error message if validation fails",
+        "Log detailed error server-side",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Apply private key validation to payment-links route",
+      "description": "As a user, I want payment links to show helpful errors for configuration issues",
+      "acceptanceCriteria": [
+        "Import validatePrivateKey in src/app/api/payment-links/[id]/route.ts",
+        "Validate RELAYER_PRIVATE_KEY before processing payment link",
+        "Return user-friendly error message if validation fails",
+        "Log detailed error server-side",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Apply private key validation to referrals pay route",
+      "description": "As a user, I want referral payments to handle configuration errors gracefully",
+      "acceptanceCriteria": [
+        "Import validatePrivateKey in src/app/api/referrals/pay/route.ts",
+        "Validate RELAYER_PRIVATE_KEY before processing referral payment",
+        "Return user-friendly error message if validation fails",
+        "Log detailed error server-side",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Fix escrow configuration error in send.ts",
+      "description": "As a user, I want a clear message when claim links are unavailable so that I know to send to registered users instead",
+      "acceptanceCriteria": [
+        "Update src/lib/send.ts to check for NEXT_PUBLIC_MERCHANT_ADDRESS",
+        "Show user-friendly error: 'Claim links are currently unavailable. Please send to a registered user or wallet address.'",
+        "Log warning at app startup if NEXT_PUBLIC_MERCHANT_ADDRESS is missing",
+        "Update .env.example with documentation for NEXT_PUBLIC_MERCHANT_ADDRESS",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add detailed logging to email notification API",
+      "description": "As a developer, I want detailed Resend API error logging so that I can debug email delivery issues",
+      "acceptanceCriteria": [
+        "Update src/app/api/notify/route.ts with detailed error logging",
+        "Log Resend error code and message when delivery fails",
+        "Verify RESEND_API_KEY and RESEND_FROM_EMAIL are checked",
+        "Return structured error response with retry suggestion",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add resend button to PaymentRequests component",
+      "description": "As a user, I want to retry sending email notifications so that recipients are notified of my requests",
+      "acceptanceCriteria": [
+        "Add 'Resend Notification' button to src/components/PaymentRequests.tsx",
+        "Button calls /api/notify endpoint to resend email",
+        "Show toast notification confirming email was sent or retry option",
+        "Handle loading state while resending",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add copy address fallback to FundWallet",
+      "description": "As a user, I want to copy my wallet address when Transak is unavailable so that I can fund my wallet via direct transfer",
+      "acceptanceCriteria": [
+        "Update src/components/FundWallet.tsx to add 'Copy Address' button as primary fallback",
+        "Show instructions: 'Send USDT0 on Plasma Chain to your address'",
+        "Add QR code display of wallet address",
+        "Keep existing graceful degradation for Transak not configured",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Document Transak setup in DEPLOYMENT.md",
+      "description": "As a developer, I want documentation on obtaining Transak API key so that I can configure fiat on-ramp",
+      "acceptanceCriteria": [
+        "Add section to DEPLOYMENT.md explaining Transak API key setup",
+        "Include steps to obtain API key from Transak dashboard",
+        "Document environment variable NEXT_PUBLIC_TRANSAK_API_KEY",
+        "Note that app works without Transak using copy address fallback"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Replace mock contacts with real API data",
+      "description": "As a user, I want to see my actual contacts in Quick Send so that I can quickly send money to people I know",
+      "acceptanceCriteria": [
+        "Update src/app/page.tsx to remove MOCK_CONTACTS array",
+        "Use useContacts hook to fetch contacts from /api/contacts",
+        "Add loading skeleton while contacts load",
+        "Limit Quick Send to 6 most frequent contacts",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add empty state for contacts",
+      "description": "As a user, I want to see helpful messaging when I have no contacts so that I know how to add my first one",
+      "acceptanceCriteria": [
+        "Update src/app/page.tsx Quick Send section with empty state",
+        "Display 'No contacts yet' title with description",
+        "Show 'Add Contact' button CTA",
+        "Handle error state gracefully if contacts API fails",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Improve Plenny chat bubble styling",
+      "description": "As a user, I want to easily read the AI assistant's responses so that I can get help using the app",
+      "acceptanceCriteria": [
+        "Update chat styles in src/app/globals.css",
+        "Add semi-transparent background to chat bubbles: rgba(255, 255, 255, 0.1)",
+        "Add subtle border: 1px solid rgba(255, 255, 255, 0.2)",
+        "Ensure text color meets WCAG AA contrast (4.5:1)",
+        "Set minimum font size to 14px",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add focus states to chat for accessibility",
+      "description": "As a user with accessibility needs, I want proper focus states on the chat so that I can navigate with keyboard",
+      "acceptanceCriteria": [
+        "Add focus-visible styles to chat input and buttons",
+        "Ensure focus ring is visible in both light and dark mode",
+        "Test keyboard navigation through chat interface",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
     }
-  ],
-  "metrics": {
-    "featureCompleteness": 55,
-    "productionReadiness": 40,
-    "testCoverage": 40,
-    "targetTestCoverage": 80
-  },
-  "designReferences": [
-    "Venmo - Social feed, emoji reactions, profile photos",
-    "Cash App - Clean send flow, quick amounts, dark theme",
-    "PayPal - Transaction history, categorization"
   ]
 }

@@ -13,6 +13,7 @@ import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
 import { Send, HandCoins, RefreshCw, Shield, Zap, QrCode, ArrowDownLeft, UserPlus } from "lucide-react";
 import { SocialFeed } from "@/components/SocialFeed";
+import { SentRequests } from "@/components/SentRequests";
 import { useContacts } from "@/hooks/useContacts";
 
 export default function HomePage() {
@@ -181,8 +182,11 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Payment Requests */}
+        {/* Payment Requests - Incoming */}
         <PaymentRequests wallet={wallet} userEmail={userEmail} onRefresh={refresh} />
+        
+        {/* Sent Requests - Outgoing with Resend button */}
+        <SentRequests walletAddress={wallet?.address} onRefresh={refresh} />
 
         {/* Tab Switcher */}
         <div className="clay-tabs">
