@@ -107,6 +107,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
         <div className="flex gap-3">
           <button
             onClick={copyLink}
+            aria-label="Copy payment request link"
             className="flex-1 btn-secondary flex items-center justify-center gap-2"
           >
             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
@@ -114,6 +115,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
           </button>
           <button
             onClick={shareLink}
+            aria-label="Share payment request"
             className="flex-1 btn-primary flex items-center justify-center gap-2"
           >
             <Share2 className="w-5 h-5" />
@@ -139,20 +141,22 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
       <h2 className="text-xl font-semibold text-white">Request Money</h2>
 
       <div>
-        <label className="block text-white/50 text-sm mb-2 font-medium">
+        <label htmlFor="request-amount" className="block text-white/50 text-sm mb-2 font-medium">
           Amount
         </label>
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true">
             $
           </span>
           <input
+            id="request-amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
             step="0.01"
             min="0"
+            aria-label="Payment request amount in USD"
             className="input-glass w-full pl-8"
             disabled={loading}
           />
@@ -160,21 +164,23 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
       </div>
 
       <div>
-        <label className="block text-white/50 text-sm mb-2 font-medium">
+        <label htmlFor="request-memo" className="block text-white/50 text-sm mb-2 font-medium">
           What for? (optional)
         </label>
         <input
+          id="request-memo"
           type="text"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           placeholder="Dinner, rent, etc."
+          aria-label="Payment memo or description"
           className="input-glass w-full"
           disabled={loading}
         />
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
           {error}
         </div>
       )}

@@ -118,6 +118,9 @@ function getSmartFallback(message: string, context: UIContext): AIResponse {
 const MIN_CALL_INTERVAL_MS = 1000;
 const API_TIMEOUT_MS = 10000;
 
+// Server-side API route for secure Gemini calls
+const ASSISTANT_API_ROUTE = '/api/assistant/chat';
+
 export function useAssistantAI(
   apiKey?: string,
   onNavigate?: (page: string) => void,
@@ -129,6 +132,7 @@ export function useAssistantAI(
   const genAIRef = useRef<GoogleGenerativeAI | null>(null);
   const initializingRef = useRef(false);
   const lastCallRef = useRef(0);
+  const useServerAPIRef = useRef(!apiKey); // Use server API if no client key
 
   // Initialize Gemini (lazy load with lock to prevent race conditions)
   const initGenAI = useCallback(async () => {
@@ -139,11 +143,47 @@ export function useAssistantAI(
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       genAIRef.current = new GoogleGenerativeAI(apiKey);
     } catch (error) {
-      console.warn('Failed to initialize Gemini:', error);
+      console.warn('Failed to initialize Gemini, falling back to server API:', error);
+      useServerAPIRef.current = true;
     } finally {
       initializingRef.current = false;
     }
   }, [apiKey]);
+
+  // Call server-side API route
+  const callServerAPI = useCallback(async (
+    message: string,
+    context: UIContext,
+    history: Array<{ role: string; content: string }>
+  ): Promise<AIResponse> => {
+    try {
+      const response = await fetch(ASSISTANT_API_ROUTE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          context: {
+            currentPage: context.currentPage,
+            currentRoute: context.currentRoute,
+            walletConnected: context.walletConnected,
+            balance: context.balance,
+            errors: context.errors,
+          },
+          history: history.slice(-6),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Server API error');
+      }
+
+      const data = await response.json();
+      return { text: data.text, emotion: data.emotion || 'neutral' };
+    } catch (error) {
+      console.warn('Server API call failed:', error);
+      throw error;
+    }
+  }, []);
 
   // Determine emotion from response text
   const detectEmotion = (text: string): AssistantEmotion => {
@@ -179,9 +219,26 @@ export function useAssistantAI(
 
       await initGenAI();
 
-      // Use smart fallback if no API
-      if (!genAIRef.current) {
-        return getSmartFallback(message, context);
+      // Try server API if no client key or client initialization failed
+      if (useServerAPIRef.current || !genAIRef.current) {
+        setIsLoading(true);
+        try {
+          const result = await callServerAPI(message, context, chatHistoryRef.current);
+          chatHistoryRef.current.push(
+            { role: 'user', content: message },
+            { role: 'assistant', content: result.text }
+          );
+          if (chatHistoryRef.current.length > 20) {
+            chatHistoryRef.current = chatHistoryRef.current.slice(-20);
+          }
+          onEmotionChange?.(result.emotion);
+          return result;
+        } catch {
+          // Fall back to smart fallback if server API fails
+          return getSmartFallback(message, context);
+        } finally {
+          setIsLoading(false);
+        }
       }
 
       setIsLoading(true);
@@ -265,7 +322,7 @@ Respond helpfully in 1-2 SHORT sentences (under 100 characters preferred). Be sp
         setIsLoading(false);
       }
     },
-    [initGenAI, onEmotionChange]
+    [initGenAI, onEmotionChange, callServerAPI]
   );
 
   // Get proactive help using knowledge base

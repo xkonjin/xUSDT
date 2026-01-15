@@ -189,9 +189,12 @@ export default function HomePage() {
         <SentRequests walletAddress={wallet?.address} onRefresh={refresh} />
 
         {/* Tab Switcher */}
-        <div className="clay-tabs">
+        <div className="clay-tabs" role="tablist" aria-label="Payment type">
           <button
             onClick={() => setActiveTab("send")}
+            role="tab"
+            aria-selected={activeTab === "send"}
+            aria-controls="send-panel"
             className={`clay-tab ${activeTab === "send" ? "active" : ""}`}
           >
             <Send className="w-4 h-4" />
@@ -199,6 +202,9 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => setActiveTab("request")}
+            role="tab"
+            aria-selected={activeTab === "request"}
+            aria-controls="request-panel"
             className={`clay-tab ${activeTab === "request" ? "active" : ""}`}
           >
             <HandCoins className="w-4 h-4" />
@@ -223,39 +229,42 @@ export default function HomePage() {
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 clay-action-bar safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 clay-action-bar safe-area-inset-bottom" aria-label="Quick actions">
         <button 
           className="clay-action-button"
+          aria-label="Request money"
           onClick={() => {
             setActiveTab("request");
             window.scrollTo({ top: 500, behavior: 'smooth' });
           }}
         >
-          <ArrowDownLeft className="w-5 h-5" />
+          <ArrowDownLeft className="w-5 h-5" aria-hidden="true" />
           <span>Request</span>
         </button>
         <button 
           className="clay-action-button primary"
+          aria-label="Send money"
           onClick={() => {
             setActiveTab("send");
             window.scrollTo({ top: 500, behavior: 'smooth' });
           }}
         >
-          <Send className="w-5 h-5" />
+          <Send className="w-5 h-5" aria-hidden="true" />
           <span>Send</span>
         </button>
         <button 
           className="clay-action-button"
+          aria-label="Scan QR code"
           onClick={() => {
             // Open QR scanner or show QR code modal
             const qrButton = document.querySelector('[data-qr-button]') as HTMLButtonElement;
             if (qrButton) qrButton.click();
           }}
         >
-          <QrCode className="w-5 h-5" />
+          <QrCode className="w-5 h-5" aria-hidden="true" />
           <span>Scan</span>
         </button>
-      </div>
+      </nav>
     </main>
   );
 }

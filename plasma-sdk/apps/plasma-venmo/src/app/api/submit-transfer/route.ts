@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, http, type Address, type Hex, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 import { getValidatedRelayerKey } from '@/lib/validation';
+
+// Server-side amount limits (in USDT0 with 6 decimals)
+const MIN_AMOUNT = parseUnits('0.01', 6); // $0.01 minimum
+const MAX_AMOUNT = parseUnits('10000', 6); // $10,000 maximum
 
 const isMockMode = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
 
@@ -54,6 +58,21 @@ export async function POST(request: Request) {
     if (!from || !to || !value || !nonce || v === undefined || !r || !s) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
+
+    // Server-side amount validation
+    const amount = BigInt(value);
+    if (amount < MIN_AMOUNT) {
+      return NextResponse.json(
+        { error: 'Amount is below the minimum of $0.01' },
+        { status: 400 }
+      );
+    }
+    if (amount > MAX_AMOUNT) {
+      return NextResponse.json(
+        { error: 'Amount exceeds the maximum of $10,000' },
         { status: 400 }
       );
     }

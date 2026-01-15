@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { useAssistantReaction } from "@plasma-pay/ui";
@@ -199,6 +199,9 @@ export function SendMoneyForm({
   const [error, setError] = useState<string | null>(null);
   
   const { onSuccess: assistantSuccess, onError: assistantError, onLoading: assistantLoading } = useAssistantReaction();
+  
+  // Ref to prevent double-submit race condition
+  const isSubmittingRef = useRef(false);
 
   const handleSelectContact = (contact: Contact) => {
     if (contact.contactAddress) {
@@ -254,7 +257,9 @@ export function SendMoneyForm({
   };
 
   const handleConfirmSend = async () => {
-    if (!wallet || loading) return;
+    // Use ref to prevent double-submit (race condition protection)
+    if (!wallet || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     setLoading(true);
     setError(null);
@@ -294,6 +299,7 @@ export function SendMoneyForm({
       assistantError("Something went wrong. Your funds are safe!");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
