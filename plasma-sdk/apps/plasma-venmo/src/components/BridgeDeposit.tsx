@@ -194,10 +194,20 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
     return () => clearInterval(interval);
   }, [quote.lastUpdated, quote.best]);
   
+  // Get stable reference to external wallet address
+  const externalWalletAddress = externalWallets[0]?.address;
+  
   // Fetch source token balance when external wallet connected
   useEffect(() => {
     async function fetchBalance() {
-      if (!hasExternalWallet || !selectedToken || !externalWallets[0]) {
+      if (!hasExternalWallet || !selectedToken || !externalWalletAddress) {
+        setSourceBalance({ loading: false, balance: null, error: null });
+        return;
+      }
+      
+      // Get fresh wallet reference inside the effect
+      const wallet = externalWallets.find(w => w.address === externalWalletAddress);
+      if (!wallet) {
         setSourceBalance({ loading: false, balance: null, error: null });
         return;
       }
@@ -205,8 +215,7 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
       setSourceBalance({ loading: true, balance: null, error: null });
       
       try {
-        const provider = await externalWallets[0].getEthereumProvider();
-        const walletAddress = externalWallets[0].address;
+        const provider = await wallet.getEthereumProvider();
         
         // Check if it's native token (ETH, MATIC, etc.)
         const isNative = selectedToken.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
@@ -215,7 +224,7 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
         if (isNative) {
           const balanceHex = await provider.request({
             method: 'eth_getBalance',
-            params: [walletAddress, 'latest'],
+            params: [externalWalletAddress, 'latest'],
           }) as string;
           balance = (parseInt(balanceHex, 16) / Math.pow(10, selectedToken.decimals)).toFixed(4);
         } else {
@@ -224,7 +233,7 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
             method: 'eth_call',
             params: [{
               to: selectedToken.address,
-              data: `0x70a08231000000000000000000000000${walletAddress.slice(2)}`,
+              data: `0x70a08231000000000000000000000000${externalWalletAddress.slice(2)}`,
             }, 'latest'],
           }) as string;
           balance = (parseInt(balanceData, 16) / Math.pow(10, selectedToken.decimals)).toFixed(4);
@@ -238,7 +247,7 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
     }
     
     fetchBalance();
-  }, [hasExternalWallet, externalWallets, selectedToken, selectedChain.chainId]);
+  }, [hasExternalWallet, externalWalletAddress, selectedToken?.address, selectedChain.chainId]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Fetch quote when amount changes
   const fetchQuote = useCallback(async () => {
