@@ -3,11 +3,11 @@
 /**
  * RequestMoneyForm Component
  * 
- * Allows users to request money from others by email, phone, or wallet address.
+ * Creates a shareable payment request link that users can send via DM/text/etc.
  */
 
 import { useState } from "react";
-import { HandCoins, Loader2 } from "lucide-react";
+import { Link2, Loader2, Copy, Check, Share2 } from "lucide-react";
 import type { Address } from "viem";
 
 interface RequestMoneyFormProps {
@@ -16,54 +16,46 @@ interface RequestMoneyFormProps {
   onSuccess?: () => void;
 }
 
-export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: RequestMoneyFormProps) {
-  // Form state
-  const [recipient, setRecipient] = useState("");
+export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormProps) {
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [requestLink, setRequestLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Validation
-  const isValidRecipient = recipient.includes("@") || /^\+?\d{10,}$/.test(recipient) || 
-    (recipient.startsWith("0x") && recipient.length === 42);
   const parsedAmount = parseFloat(amount);
   const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
-  const canSubmit = walletAddress && isValidRecipient && isValidAmount && !loading;
+  const canSubmit = walletAddress && isValidAmount && !loading;
 
-  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
+    setRequestLink(null);
 
     try {
-      const response = await fetch("/api/requests", {
+      const response = await fetch("/api/payment-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fromAddress: walletAddress,
-          fromEmail: userEmail,
-          toIdentifier: recipient,
+          creatorAddress: walletAddress,
           amount,
           memo: memo || undefined,
+          type: "request",
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create request");
+        throw new Error(data.error || "Failed to create request link");
       }
 
-      setSuccess(`Request sent for $${amount} USDT0`);
-      setRecipient("");
-      setAmount("");
-      setMemo("");
+      const link = data.paymentLink?.url || `${window.location.origin}/pay/${data.paymentLink?.id}`;
+      setRequestLink(link);
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create request");
@@ -72,27 +64,79 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
     }
   }
 
+  async function copyLink() {
+    if (!requestLink) return;
+    await navigator.clipboard.writeText(requestLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function shareLink() {
+    if (!requestLink) return;
+    if (navigator.share) {
+      await navigator.share({
+        title: `Pay me $${amount} USDT0`,
+        text: memo ? `${memo} - $${amount} USDT0` : `Payment request for $${amount} USDT0`,
+        url: requestLink,
+      });
+    } else {
+      copyLink();
+    }
+  }
+
+  function resetForm() {
+    setAmount("");
+    setMemo("");
+    setRequestLink(null);
+    setError(null);
+  }
+
+  if (requestLink) {
+    return (
+      <div className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5">
+        <h2 className="text-xl font-semibold text-white">Share Your Request</h2>
+        
+        <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+          Request link created for ${amount} USDT0
+        </div>
+
+        <div className="bg-white/5 rounded-xl p-4 break-all text-white/70 text-sm font-mono">
+          {requestLink}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={copyLink}
+            className="flex-1 btn-secondary flex items-center justify-center gap-2"
+          >
+            {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+            {copied ? "Copied!" : "Copy Link"}
+          </button>
+          <button
+            onClick={shareLink}
+            className="flex-1 btn-primary flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-5 h-5" />
+            Share
+          </button>
+        </div>
+
+        <button
+          onClick={resetForm}
+          className="w-full text-white/50 hover:text-white/70 text-sm py-2 transition-colors"
+        >
+          Create another request
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
       className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5"
     >
       <h2 className="text-xl font-semibold text-white">Request Money</h2>
-
-      <div>
-        <label className="block text-white/50 text-sm mb-2 font-medium">
-          From (email, phone, or address)
-        </label>
-        <input
-          type="text"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-          placeholder="friend@email.com, +1234567890, or 0x..."
-          className="input-glass w-full"
-          disabled={loading}
-          data-avatar-tip="Enter who you want to request from."
-        />
-      </div>
 
       <div>
         <label className="block text-white/50 text-sm mb-2 font-medium">
@@ -111,7 +155,6 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
             min="0"
             className="input-glass w-full pl-8"
             disabled={loading}
-            data-avatar-tip="Set the amount you want to request."
           />
         </div>
       </div>
@@ -127,7 +170,6 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
           placeholder="Dinner, rent, etc."
           className="input-glass w-full"
           disabled={loading}
-          data-avatar-tip="Add a note so they know why you are requesting."
         />
       </div>
 
@@ -137,30 +179,23 @@ export function RequestMoneyForm({ walletAddress, userEmail, onSuccess }: Reques
         </div>
       )}
 
-      {success && (
-        <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
-          {success}
-        </div>
-      )}
-
       <button
         type="submit"
         disabled={!canSubmit}
         className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
-        data-avatar-tip="Send the request to your recipient."
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <>
-            <HandCoins className="w-5 h-5" />
-            Request {amount ? `$${amount}` : "Money"}
+            <Link2 className="w-5 h-5" />
+            Create Request Link
           </>
         )}
       </button>
 
       <p className="text-white/30 text-xs text-center">
-        They&apos;ll receive a notification to pay
+        Share the link via text, DM, or any messaging app
       </p>
     </form>
   );
