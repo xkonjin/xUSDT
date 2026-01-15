@@ -3,6 +3,9 @@
  * 
  * POST /api/bridge/quote
  * Gets quotes from multiple bridge providers for converting tokens to USDT0 on Plasma.
+ * 
+ * GET /api/bridge/quote
+ * Returns supported chains and tokens (cached for 5 minutes).
  */
 
 import { NextResponse } from 'next/server';
@@ -11,6 +14,8 @@ import {
   POPULAR_SOURCE_CHAINS,
   POPULAR_TOKENS,
 } from '@plasma-pay/aggregator';
+import { checkRateLimit, rateLimitResponse } from '@/lib/api-utils';
+import { RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,6 +29,12 @@ interface QuoteRequest {
 }
 
 export async function POST(request: Request) {
+  // Rate limiting
+  const { allowed, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.bridge);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+  
   try {
     const body = await request.json() as QuoteRequest;
     
@@ -89,10 +100,16 @@ export async function POST(request: Request) {
   }
 }
 
-// GET endpoint for fetching supported chains and tokens
+// GET endpoint for fetching supported chains and tokens - cached for 5 minutes
 export async function GET() {
-  return NextResponse.json({
+  const response = NextResponse.json({
     chains: POPULAR_SOURCE_CHAINS,
     tokens: POPULAR_TOKENS,
   });
+  
+  // Add cache headers - data is static so cache aggressively
+  response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=60');
+  response.headers.set('CDN-Cache-Control', 'public, max-age=300');
+  
+  return response;
 }

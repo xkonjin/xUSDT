@@ -10,6 +10,8 @@ import {
   getBridgeStatus,
   type BridgeProvider,
 } from '@plasma-pay/aggregator';
+import { checkRateLimit, rateLimitResponse } from '@/lib/api-utils';
+import { RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +19,12 @@ export const dynamic = 'force-dynamic';
 const VALID_PROVIDERS: BridgeProvider[] = ['lifi', 'debridge', 'squid', 'across'];
 
 export async function GET(request: Request) {
+  // Rate limiting
+  const { allowed, headers, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.read);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+  
   try {
     const { searchParams } = new URL(request.url);
     

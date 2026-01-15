@@ -11,6 +11,8 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mock aggregator to avoid ESM transformation issues
+    '^@plasma-pay/aggregator$': '<rootDir>/src/__mocks__/aggregator.ts',
     '^@plasma-pay/(.*)$': '<rootDir>/../../packages/$1/src',
   },
   testMatch: [

@@ -138,6 +138,11 @@ export const RATE_LIMIT_CONFIGS = {
     maxRequests: 100,
     windowMs: 60 * 1000, // 1 minute
   },
+  // Bridge routes: 30 requests per minute (quotes are expensive)
+  bridge: {
+    maxRequests: 30,
+    windowMs: 60 * 1000, // 1 minute
+  },
 } as const;
 
 // Singleton instance for use across the application

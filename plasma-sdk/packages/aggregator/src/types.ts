@@ -184,7 +184,7 @@ export const POPULAR_TOKENS: Record<number, TokenInfo[]> = {
     { chainId: 1, address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as Address, symbol: 'ETH', name: 'Ether', decimals: 18 },
     { chainId: 1, address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' as Address, symbol: 'USDT', name: 'Tether USD', decimals: 6 },
     { chainId: 1, address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' as Address, symbol: 'USDC', name: 'USD Coin', decimals: 6 },
-    { chainId: 1, address: '0x6B175474E89094C44Da98b954EesDeCAD3F9d23A' as Address, symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18 },
+    { chainId: 1, address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' as Address, symbol: 'DAI', name: 'Dai Stablecoin', decimals: 18 },
   ],
   // Arbitrum
   42161: [

@@ -10,6 +10,8 @@ import {
   getBridgeTransaction,
   type BridgeProvider,
 } from '@plasma-pay/aggregator';
+import { checkRateLimit, rateLimitResponse } from '@/lib/api-utils';
+import { RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +28,12 @@ interface TransactionRequest {
 const VALID_PROVIDERS: BridgeProvider[] = ['lifi', 'debridge', 'squid', 'across'];
 
 export async function POST(request: Request) {
+  // Rate limiting - transaction requests are more sensitive
+  const { allowed, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.payment);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+  
   try {
     const body = await request.json() as TransactionRequest;
     
@@ -51,6 +59,13 @@ export async function POST(request: Request) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
       return NextResponse.json(
         { error: 'Invalid recipient address format' },
+        { status: 400 }
+      );
+    }
+    
+    if (userAddress && !/^0x[a-fA-F0-9]{40}$/.test(userAddress)) {
+      return NextResponse.json(
+        { error: 'Invalid user address format' },
         { status: 400 }
       );
     }
