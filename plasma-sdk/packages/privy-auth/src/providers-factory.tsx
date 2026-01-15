@@ -165,30 +165,35 @@ export function createPlasmaProviders(
       return <ConfigurationRequired>{children}</ConfigurationRequired>;
     }
 
-    console.log("[PlasmaProviders] Rendering PlasmaPrivyProvider with appId");
+    console.log("[PlasmaProviders] Rendering PlasmaPrivyProvider with appId:", privyAppId);
 
-    // Render providers
-    const content = (
-      <PlasmaPrivyProvider
-        config={{
-          appId: privyAppId,
-          loginMethods,
-          appearance: {
-            theme,
-            accentColor,
-          },
-        }}
-      >
-        {children}
-      </PlasmaPrivyProvider>
-    );
+    // Render providers - wrap in try/catch for better error reporting
+    try {
+      const content = (
+        <PlasmaPrivyProvider
+          config={{
+            appId: privyAppId,
+            loginMethods,
+            appearance: {
+              theme,
+              accentColor,
+            },
+          }}
+        >
+          {children}
+        </PlasmaPrivyProvider>
+      );
 
-    // Optionally wrap with ErrorBoundary
-    if (ErrorBoundary) {
-      return <ErrorBoundary>{content}</ErrorBoundary>;
+      // Optionally wrap with ErrorBoundary
+      if (ErrorBoundary) {
+        return <ErrorBoundary>{content}</ErrorBoundary>;
+      }
+
+      return content;
+    } catch (err) {
+      console.error("[PlasmaProviders] Error rendering:", err);
+      throw err;
     }
-
-    return content;
   }
 
   // Set display name for React DevTools
