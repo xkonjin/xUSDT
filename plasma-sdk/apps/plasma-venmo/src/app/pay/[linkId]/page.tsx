@@ -240,7 +240,7 @@ export default function PayPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-plenmo-500 hover:underline mb-6"
               >
-                View on Plasma Scan
+                View transaction
                 <ExternalLink className="w-4 h-4" />
               </a>
             )}

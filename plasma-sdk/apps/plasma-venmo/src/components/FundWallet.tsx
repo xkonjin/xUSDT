@@ -54,7 +54,7 @@ function getTransakUrl(walletAddress: string, amount?: number): string {
     themeColor: "00d4ff",
     hideMenu: "true",
     isFeeCalculationHidden: "true",
-    exchangeScreenTitle: "Buy USDT0 for Plenmo",
+    exchangeScreenTitle: "Add Funds to Plenmo",
   });
   
   if (amount) {
@@ -74,7 +74,7 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[rgb(0,212,255)]/20 to-purple-500/20 text-[rgb(0,212,255)] hover:from-[rgb(0,212,255)]/30 hover:to-purple-500/30 transition-all duration-200 text-sm font-medium"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-plenmo-500/20 to-plenmo-600/20 text-plenmo-500 hover:from-plenmo-500/30 hover:to-plenmo-600/30 transition-all duration-200 text-sm font-medium"
         data-avatar-tip="Add funds using card, external wallet, or copy your address."
       >
         <Plus className="w-4 h-4" />
@@ -129,12 +129,12 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           </div>
 
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center">
               <CreditCard className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Buy with Card</h3>
             <p className="text-white/50 text-sm mb-6">
-              Purchase USDT using your debit card, credit card, Apple Pay, or Google Pay.
+              Add funds using your debit card, credit card, Apple Pay, or Google Pay.
             </p>
 
             {isTransakConfigured ? (
@@ -168,7 +168,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
                 
                 {/* Alternative: Copy Address */}
                 <p className="text-white/50 text-xs text-center">
-                  For now, fund your wallet by transferring USDT0:
+                  For now, receive a transfer from a friend:
                 </p>
                 
                 <div className="bg-white/5 rounded-2xl p-4">
@@ -230,12 +230,12 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           </div>
 
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center">
               <Wallet className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Send from External Wallet</h3>
             <p className="text-white/50 text-sm mb-6">
-              Send USDT0 from MetaMask, Rabby, or any wallet to your Plenmo address:
+              Send funds from MetaMask, Rabby, or any wallet to your Plenmo address:
             </p>
 
             {/* Address display */}
@@ -259,8 +259,8 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-400 text-xs text-left">
-              <strong>Important:</strong> Only send USDT0 on Plasma Chain (Chain ID: 9745). 
-              Sending other tokens or on wrong networks will result in lost funds.
+              <strong>Important:</strong> Make sure to send on the correct network. 
+              Sending from the wrong network may result in lost funds.
             </div>
           </div>
         </div>
@@ -293,21 +293,21 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         </div>
 
         <p className="text-white/50 text-sm mb-6">
-          Choose how you&apos;d like to add USDT0 to your wallet:
+          Choose how you&apos;d like to add funds:
         </p>
 
         {/* Option 1: Bridge Any Token (Featured) */}
         <button
           onClick={() => setSelectedMethod("bridge")}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-[rgb(0,212,255)]/10 to-purple-500/10 hover:from-[rgb(0,212,255)]/20 hover:to-purple-500/20 transition-all mb-3 text-left border border-[rgb(0,212,255)]/20"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-plenmo-500/10 to-plenmo-600/10 hover:from-plenmo-500/20 hover:to-plenmo-600/20 transition-all mb-3 text-left border border-plenmo-500/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0">
             <ArrowRightLeft className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h4 className="text-white font-semibold">Bridge Any Token</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-plenmo-500/20 text-plenmo-500 rounded-full">
                 NEW
               </span>
             </div>
@@ -369,7 +369,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
 
         {/* Footer */}
         <p className="text-white/30 text-xs text-center mt-6">
-          Zero gas fees on all Plasma transactions
+          Zero fees on all transactions
         </p>
       </div>
     </ModalPortal>

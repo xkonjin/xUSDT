@@ -118,7 +118,7 @@ export default function ClaimPage({
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
+          <Loader2 className="w-12 h-12 text-plenmo-500 animate-spin" />
           <span className="text-white/50">Loading your gift...</span>
         </div>
       </main>
@@ -135,7 +135,7 @@ export default function ClaimPage({
           <p className="text-white/50 mb-6">{error}</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -155,7 +155,7 @@ export default function ClaimPage({
           <p className="text-white/50 mb-6">This claim link is invalid or has been removed.</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -177,7 +177,7 @@ export default function ClaimPage({
               ${claim.amount}
             </p>
             <p className="text-white/50 mb-6">
-              USDT0 has been added to your wallet
+              Funds have been added to your account
             </p>
             
             {(success || claim.txHash) && (
@@ -185,9 +185,9 @@ export default function ClaimPage({
                 href={`https://scan.plasma.to/tx/${success || claim.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline mb-6"
+                className="inline-flex items-center gap-2 text-plenmo-500 hover:underline mb-6"
               >
-                View on Plasma Scan
+                View transaction
                 <ExternalLink className="w-4 h-4" />
               </a>
             )}
@@ -218,7 +218,7 @@ export default function ClaimPage({
           </p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -241,7 +241,7 @@ export default function ClaimPage({
         {/* Gift Card */}
         <div className="liquid-glass-elevated rounded-3xl p-8 text-center">
           {/* Gift icon */}
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center">
             <Gift className="w-10 h-10 text-white" />
           </div>
 
@@ -259,7 +259,7 @@ export default function ClaimPage({
             <p className="text-6xl font-bold gradient-text">
               ${claim.amount}
             </p>
-            <p className="text-white/40 text-lg mt-2">USDT0</p>
+            <p className="text-white/40 text-lg mt-2">USD</p>
           </div>
 
           {/* Memo if present */}
@@ -298,7 +298,7 @@ export default function ClaimPage({
               ) : (
                 <>
                   <Gift className="w-5 h-5" />
-                  Claim ${claim.amount} USDT0
+                  Claim ${claim.amount}
                 </>
               )}
             </button>
@@ -306,7 +306,7 @@ export default function ClaimPage({
 
           {/* Info */}
           <p className="text-white/30 text-xs text-center mt-4">
-            {authenticated ? "Claim to your wallet" : "Create a wallet to receive these funds"}
+            {authenticated ? "Claim to your account" : "Create an account to receive these funds"}
           </p>
         </div>
 
@@ -315,11 +315,11 @@ export default function ClaimPage({
           Expires: {new Date(claim.expiresAt).toLocaleDateString()}
         </p>
 
-        {/* Zero gas fees badge */}
+        {/* Zero fees badge */}
         <div className="text-center mt-6">
           <span className="inline-flex items-center gap-2 text-white/40 text-sm px-4 py-2 rounded-full liquid-glass-subtle">
-            <span className="w-2 h-2 rounded-full bg-[rgb(0,212,255)]" />
-            Zero gas fees on Plasma Chain
+            <span className="w-2 h-2 rounded-full bg-plenmo-500" />
+            Zero fees. Instant transfer.
           </span>
         </div>
       </div>

@@ -124,14 +124,35 @@ export function createPlasmaProviders(
     const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
     const forceMock = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
     const [isMounted, setIsMounted] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [error, _setError] = useState<string | null>(null);
 
     useEffect(() => {
+      console.log("[PlasmaProviders] Mounting, PRIVY_APP_ID:", privyAppId ? "SET" : "NOT SET");
       setIsMounted(true);
-    }, []);
+    }, [privyAppId]);
 
     // Show loading during hydration
     if (!isMounted) {
       return <LoadingComponent />;
+    }
+
+    // Show error if something went wrong
+    if (error) {
+      return (
+        <div className="min-h-screen flex items-center justify-center text-white bg-black">
+          <div className="text-center max-w-md p-6">
+            <h1 className="text-2xl font-bold mb-4 text-red-400">Provider Error</h1>
+            <p className="text-gray-400 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-xl transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
     }
 
     if (forceMock) {
@@ -140,8 +161,11 @@ export function createPlasmaProviders(
 
     // Show configuration message if Privy not set up
     if (!privyAppId) {
+      console.error("[PlasmaProviders] NEXT_PUBLIC_PRIVY_APP_ID is not set!");
       return <ConfigurationRequired>{children}</ConfigurationRequired>;
     }
+
+    console.log("[PlasmaProviders] Rendering PlasmaPrivyProvider with appId");
 
     // Render providers
     const content = (

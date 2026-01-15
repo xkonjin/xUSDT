@@ -170,7 +170,7 @@ function SuccessOverlay({
               rel="noopener noreferrer"
               className="text-plenmo-500 text-sm hover:underline mb-6 block"
             >
-              View on Plasma Scan →
+              View transaction →
             </a>
           )}
 

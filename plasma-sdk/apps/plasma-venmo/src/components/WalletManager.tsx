@@ -379,9 +379,9 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
             href={`https://scan.plasma.to/tx/${success}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[rgb(0,212,255)] hover:underline text-sm flex items-center justify-center gap-1 mb-4"
+            className="text-plenmo-500 hover:underline text-sm flex items-center justify-center gap-1 mb-4"
           >
-            View on Plasma Scan
+            View transaction
             <ExternalLink className="w-3 h-3" />
           </a>
           <button onClick={onClose} className="w-full btn-primary">
