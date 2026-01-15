@@ -1,4 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && npm install && npx turbo build --filter=@plasma-pay/venmo",
+  "installCommand": "cd ../.. && npm install"
 }
