@@ -75,8 +75,8 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
     if (!requestLink) return;
     if (navigator.share) {
       await navigator.share({
-        title: `Pay me $${amount} USDT0`,
-        text: memo ? `${memo} - $${amount} USDT0` : `Payment request for $${amount} USDT0`,
+        title: `Pay me $${amount}`,
+        text: memo ? `${memo} - $${amount}` : `Payment request for $${amount}`,
         url: requestLink,
       });
     } else {
@@ -97,7 +97,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
         <h2 className="text-xl font-semibold text-white">Share Your Request</h2>
         
         <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
-          Request link created for ${amount} USDT0
+          Request link created for ${amount}
         </div>
 
         <div className="bg-white/5 rounded-xl p-4 break-all text-white/70 text-sm font-mono">
@@ -140,7 +140,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
 
       <div>
         <label className="block text-white/50 text-sm mb-2 font-medium">
-          Amount (USDT0)
+          Amount
         </label>
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">

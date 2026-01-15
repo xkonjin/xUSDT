@@ -171,7 +171,7 @@ export default function PayPage({
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
+          <Loader2 className="w-12 h-12 text-plenmo-500 animate-spin" />
           <span className="text-white/50">Loading payment link...</span>
         </div>
       </main>
@@ -188,7 +188,7 @@ export default function PayPage({
           <p className="text-white/50 mb-6">{error}</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -208,7 +208,7 @@ export default function PayPage({
           <p className="text-white/50 mb-6">This payment link doesn&apos;t exist or has been removed.</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -228,7 +228,7 @@ export default function PayPage({
             <h1 className="text-3xl font-bold text-white mb-2">Payment Complete!</h1>
             <p className="text-white/50 mb-6">
               {paymentLink.amount !== null 
-                ? `$${paymentLink.amount} USDT0 sent successfully`
+                ? `$${paymentLink.amount} sent successfully`
                 : `Payment sent successfully`
               }
             </p>
@@ -238,7 +238,7 @@ export default function PayPage({
                 href={`https://scan.plasma.to/tx/${success || paymentLink.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline mb-6"
+                className="inline-flex items-center gap-2 text-plenmo-500 hover:underline mb-6"
               >
                 View on Plasma Scan
                 <ExternalLink className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function PayPage({
           <p className="text-white/50 mb-6">This payment link has expired and can no longer be used.</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -328,13 +328,13 @@ export default function PayPage({
           {/* Amount section */}
           <div className="mb-6">
             <label className="block text-white/50 text-sm mb-2 font-medium">
-              Amount (USDT0)
+              Amount
             </label>
             {paymentLink.amount !== null ? (
               // Fixed amount display
               <div className="text-5xl font-bold tracking-tight">
                 <span className="gradient-text">${paymentLink.amount}</span>
-                <span className="text-white/30 text-xl ml-2">USDT0</span>
+                <span className="text-white/30 text-xl ml-2">USD</span>
               </div>
             ) : (
               // Editable amount input
@@ -374,7 +374,7 @@ export default function PayPage({
           {/* Balance info (if authenticated) */}
           {authenticated && balance && (
             <div className="text-white/40 text-sm mb-4">
-              Your balance: ${balance} USDT0
+              Your balance: ${balance}
             </div>
           )}
 
@@ -417,7 +417,7 @@ export default function PayPage({
                     Processing...
                   </>
                 ) : (
-                  <>Pay {amount ? `$${amount}` : ''} USDT0</>
+                  <>Pay {amount ? `$${amount}` : ''}</>
                 )}
               </button>
               
@@ -439,7 +439,7 @@ export default function PayPage({
 
           {/* Zero gas fees badge */}
           <p className="text-white/30 text-xs text-center mt-4">
-            Zero gas fees on Plasma Chain
+            Zero fees. Instant transfer.
           </p>
         </div>
 

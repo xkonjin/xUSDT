@@ -158,7 +158,7 @@ export function SentRequests({ walletAddress, onRefresh }: SentRequestsProps) {
                     <span className="font-bold text-xl text-white font-heading">
                       ${request.amount}
                     </span>
-                    <span className="text-white/40 text-sm font-body">USDT0</span>
+                    <span className="text-white/40 text-sm font-body">USD</span>
                   </div>
                   
                   <p className="text-white/60 text-sm truncate font-body">

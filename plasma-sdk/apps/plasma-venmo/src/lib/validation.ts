@@ -123,9 +123,9 @@ export function parseUserFriendlyError(error: string, context?: { amount?: strin
   // Insufficient balance
   if (lowerError.includes('exceeds balance') || lowerError.includes('insufficient')) {
     if (context?.amount && context?.balance) {
-      return `You don't have enough USDT0. You need $${context.amount} but only have $${context.balance}.`;
+      return `You don't have enough funds. You need $${context.amount} but only have $${context.balance}.`;
     }
-    return "You don't have enough USDT0 to complete this payment.";
+    return "You don't have enough funds to complete this payment.";
   }
   
   // User rejected/cancelled
@@ -146,7 +146,7 @@ export function parseUserFriendlyError(error: string, context?: { amount?: strin
   // Contract revert (generic)
   if (lowerError.includes('revert') || lowerError.includes('contract function')) {
     if (lowerError.includes('erc20')) {
-      return "You don't have enough USDT0 to complete this payment.";
+      return "You don't have enough funds to complete this payment.";
     }
     return 'Transaction failed. Please try again.';
   }

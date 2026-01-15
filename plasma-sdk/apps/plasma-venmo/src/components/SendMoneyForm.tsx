@@ -53,7 +53,7 @@ function ConfirmationModal({
         <div className="text-center mb-6">
           <p className="text-white/50 text-sm mb-1">Sending</p>
           <p className="text-4xl font-bold gradient-text">${amount}</p>
-          <p className="text-white/40 text-sm">USDT0</p>
+          <p className="text-white/40 text-sm">USD</p>
         </div>
 
         <div className="bg-white/5 rounded-2xl p-4 mb-6">
@@ -235,7 +235,7 @@ export function SendMoneyForm({
   const getAmountError = (): string | null => {
     if (amountTooSmall) return AMOUNT_TOO_SMALL;
     if (amountTooLarge) return AMOUNT_TOO_LARGE;
-    if (insufficientBalance) return `Insufficient balance. You have $${numericBalance.toFixed(2)} USDT0.`;
+    if (insufficientBalance) return `Insufficient balance. You have $${numericBalance.toFixed(2)}.`;
     return null;
   };
 

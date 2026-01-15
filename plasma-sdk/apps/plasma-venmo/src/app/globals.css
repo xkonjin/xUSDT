@@ -212,7 +212,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .clay-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   /* Clay Avatar - Circular with green gradient */
@@ -333,7 +333,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .input-glass::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .btn-primary {
@@ -372,9 +372,46 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateY(2px) scale(0.98);
   }
 
+  .btn-primary:focus-visible {
+    outline: 2px solid rgba(29, 185, 84, 0.8);
+    outline-offset: 2px;
+  }
+
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-primary:disabled:hover {
+    transform: none;
+  }
+
+  /* Secondary button for link-style actions */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-family: var(--font-space-grotesk);
+    font-weight: 600;
+    border-radius: 16px;
+    padding: 14px 28px;
+    min-height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .btn-secondary:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
   }
 
   /* Gradient text - Green version */

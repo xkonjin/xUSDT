@@ -182,7 +182,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <HandCoins className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <HandCoins className="w-5 h-5 text-plenmo-500" />
           Pending Requests
         </h2>
         <div className="space-y-3">
@@ -198,7 +198,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <HandCoins className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <HandCoins className="w-5 h-5 text-plenmo-500" />
           Pending Requests
         </h2>
         <div className="flex flex-col items-center gap-3 py-4">
@@ -224,9 +224,9 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
   return (
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <HandCoins className="w-5 h-5 text-[rgb(0,212,255)]" />
+        <HandCoins className="w-5 h-5 text-plenmo-500" />
         Pending Requests
-        <span className="text-sm bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] px-2 py-0.5 rounded-full">
+        <span className="text-sm bg-[rgb(0,212,255)]/20 text-plenmo-500 px-2 py-0.5 rounded-full">
           {requests.length}
         </span>
       </h2>

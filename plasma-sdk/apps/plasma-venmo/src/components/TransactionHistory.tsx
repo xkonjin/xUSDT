@@ -86,7 +86,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <TransactionListSkeleton count={3} />
@@ -99,7 +99,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <div className="flex flex-col items-center gap-3 py-4">
@@ -121,7 +121,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <EmptyState
@@ -136,7 +136,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   return (
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+        <History className="w-5 h-5 text-plenmo-500" />
         Recent Activity
       </h2>
       <div className="space-y-3">

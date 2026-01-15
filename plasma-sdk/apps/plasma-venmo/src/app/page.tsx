@@ -83,7 +83,7 @@ export default function HomePage() {
 
         <div className="text-white/40 text-sm mt-8 flex items-center gap-2 font-body">
           <span className="w-2 h-2 rounded-full bg-plenmo-500 animate-pulse" />
-          Powered by Plasma Chain
+          Instant & secure payments
         </div>
       </main>
     );
