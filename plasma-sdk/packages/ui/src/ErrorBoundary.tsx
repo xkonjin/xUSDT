@@ -56,7 +56,9 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught:", error, errorInfo);
+    console.error("ErrorBoundary caught:", error);
+    console.error("ErrorBoundary stack:", error.stack);
+    console.error("ErrorBoundary componentStack:", errorInfo.componentStack);
     this.setState({ errorInfo });
 
     // Call optional onError callback
@@ -91,7 +93,7 @@ export class ErrorBoundary extends Component<
               An unexpected error occurred. Please try refreshing the page.
             </p>
 
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">
                   Error details
