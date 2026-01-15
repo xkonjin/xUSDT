@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from typing import List, Optional, Dict
@@ -8,22 +9,55 @@ import os
 from .config import settings
 from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted, FeeBreakdown
 from .facilitator import PaymentFacilitator
+from .persistence import get_invoice_store
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Only for type hints; runtime import is lazy and optional.
     from .minter import PlasmaMinter  # pragma: no cover
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> int:
     return int(time.time())
 
 
-# In-memory invoice records to provide idempotency and status lookups.
+# In-memory fallback cache for invoice records (used if persistence fails)
 _INVOICE_RECORDS: Dict[str, PaymentCompleted] = {}
 
 
+def _store_invoice(invoice_id: str, record: PaymentCompleted) -> None:
+    """Store invoice record with persistence fallback."""
+    # Always keep in memory for fast access
+    _INVOICE_RECORDS[invoice_id] = record
+    
+    # Persist to disk (serializable dict format)
+    try:
+        store = get_invoice_store()
+        store.set(invoice_id, record.model_dump())
+    except Exception as e:
+        logger.warning(f"Failed to persist invoice {invoice_id}: {e}")
+
+
 def get_invoice_record(invoice_id: str) -> Optional[PaymentCompleted]:
-    return _INVOICE_RECORDS.get(invoice_id)
+    """Get invoice record from memory cache or persistent store."""
+    # Check in-memory cache first
+    if invoice_id in _INVOICE_RECORDS:
+        return _INVOICE_RECORDS[invoice_id]
+    
+    # Fall back to persistent store
+    try:
+        store = get_invoice_store()
+        data = store.get(invoice_id)
+        if data is not None:
+            record = PaymentCompleted(**data)
+            # Cache in memory for future lookups
+            _INVOICE_RECORDS[invoice_id] = record
+            return record
+    except Exception as e:
+        logger.warning(f"Failed to load invoice {invoice_id} from persistence: {e}")
+    
+    return None
 
 
 def build_payment_required(
@@ -146,7 +180,7 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
         user_ip: The client's IP address for rate limiting (extracted from X-Forwarded-For or client.host)
     """
     # Idempotency: return previously computed result if present
-    existing = _INVOICE_RECORDS.get(submitted.invoiceId)
+    existing = get_invoice_record(submitted.invoiceId)
     if existing is not None:
         return existing
 
@@ -160,7 +194,7 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             status="failed",
             receipt={"error": "recipient_mismatch"},
         )
-        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        _store_invoice(submitted.invoiceId, pc)
         return pc
 
     facilitator = PaymentFacilitator()
@@ -182,7 +216,7 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             status="confirmed" if res.success else "failed",
             receipt=(res.receipt if res.receipt else {"error": res.error}),
         )
-        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        _store_invoice(submitted.invoiceId, pc)
         return pc
 
     if submitted.scheme == "eip3009-transfer-with-auth":
@@ -239,7 +273,7 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             receipt=(res.receipt if res.receipt else {"error": res.error}),
             tokenId=(int(token_id) if token_id is not None else None),
         )
-        _INVOICE_RECORDS[submitted.invoiceId] = pc
+        _store_invoice(submitted.invoiceId, pc)
         return pc
 
     pc = PaymentCompleted(
@@ -249,7 +283,7 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
         status="failed",
         receipt={"error": "unsupported_scheme"},
     )
-    _INVOICE_RECORDS[submitted.invoiceId] = pc
+    _store_invoice(submitted.invoiceId, pc)
     return pc
 
 

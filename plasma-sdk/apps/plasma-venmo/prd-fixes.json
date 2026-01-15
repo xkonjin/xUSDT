@@ -1,0 +1,326 @@
+{
+  "name": "Plenmo Deployment Bug Fixes",
+  "version": "1.0.0",
+  "description": "PRD for fixing critical deployment issues discovered during user testing at plenmo.vercel.app",
+  "created": "2026-01-14",
+  "status": "ready_for_implementation",
+
+  "introduction": {
+    "summary": "Plenmo is deployed to production at plenmo.vercel.app but has several bugs reported from user testing that prevent core functionality from working properly. This PRD documents the required fixes to achieve a stable production deployment.",
+    "problem_statement": "Users are encountering 'Service not configured' errors, missing email notifications, private key validation failures, and incomplete UI features that significantly degrade the user experience and prevent key payment flows from completing."
+  },
+
+  "goals": [
+    "Fix all 6 critical deployment issues blocking user flows",
+    "Improve error handling with user-friendly messages",
+    "Add proper validation for environment variables at startup",
+    "Implement fallback behaviors when optional services are unavailable",
+    "Replace mock data with real user data for contacts",
+    "Improve UI contrast and accessibility for the AI assistant"
+  ],
+
+  "user_stories": [
+    {
+      "id": "US-001",
+      "title": "Send Money - Handle Missing Escrow Configuration",
+      "description": "As a user, I want to send money to an unregistered recipient so that they can claim the funds via email link.",
+      "acceptance_criteria": [
+        "When NEXT_PUBLIC_MERCHANT_ADDRESS is not set, show a user-friendly error: 'Claim links are currently unavailable. Please send to a registered user or wallet address.'",
+        "Add validation at app startup that logs a warning if NEXT_PUBLIC_MERCHANT_ADDRESS is missing",
+        "Update .env.example with clear documentation for NEXT_PUBLIC_MERCHANT_ADDRESS",
+        "Consider implementing a fallback that allows direct transfers only when escrow is not configured",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P0",
+      "files": [
+        "src/lib/send.ts",
+        ".env.example"
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Request Money - Fix Email Delivery",
+      "description": "As a user, I want to receive email notifications when someone requests money from me so that I can respond promptly.",
+      "acceptance_criteria": [
+        "Verify RESEND_API_KEY and RESEND_FROM_EMAIL environment variables are properly set in production",
+        "Add detailed logging when Resend fails including error code and message",
+        "Implement fallback in-app notification when email delivery fails",
+        "Add a 'Resend' button on the payment request page for users to retry notification",
+        "Show a toast notification confirming email was sent or providing retry option",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P0",
+      "files": [
+        "src/app/api/notify/route.ts",
+        "src/components/PaymentRequests.tsx",
+        "src/app/api/requests/route.ts"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Payment Links - Fix Private Key Validation",
+      "description": "As a user, I want to use payment links without encountering cryptographic errors so that I can receive payments seamlessly.",
+      "acceptance_criteria": [
+        "Add validation function that checks RELAYER_PRIVATE_KEY format at startup",
+        "Trim whitespace and newlines from RELAYER_PRIVATE_KEY before use",
+        "Validate key is 32 bytes (64 hex chars) or has proper 0x prefix (66 chars)",
+        "Show clear error message: 'Payment service configuration error. Please contact support.' instead of raw crypto errors",
+        "Log detailed validation errors server-side for debugging",
+        "Add startup check that validates all required private keys",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P0",
+      "files": [
+        "src/app/api/submit-transfer/route.ts",
+        "src/app/api/claims/[token]/route.ts",
+        "src/app/api/requests/[id]/route.ts",
+        "src/app/api/payment-links/[id]/route.ts",
+        "src/app/api/referrals/pay/route.ts",
+        "src/lib/validation.ts (new)"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Fund Wallet - Add Alternative to Transak",
+      "description": "As a user, I want to fund my wallet even when Transak is not available so that I can start using Plenmo.",
+      "acceptance_criteria": [
+        "Keep current graceful degradation showing 'Transak not configured' message",
+        "Add 'Copy Address' button as primary fallback when Transak unavailable",
+        "Show clear instructions: 'Send USDT0 on Plasma Chain to your address'",
+        "Add QR code display of wallet address for easy mobile transfer",
+        "Document how to obtain Transak API key in DEPLOYMENT.md",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P1",
+      "files": [
+        "src/components/FundWallet.tsx",
+        "DEPLOYMENT.md"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Quick Send - Replace Mock Contacts with Real Data",
+      "description": "As a user, I want to see my actual contacts in Quick Send so that I can quickly send money to people I know.",
+      "acceptance_criteria": [
+        "Replace MOCK_CONTACTS array with data from /api/contacts endpoint",
+        "Fetch user's recent/favorite contacts on page load",
+        "Show 'Add Contact' button when contacts list is empty",
+        "Display 'No contacts yet' empty state with CTA to add first contact",
+        "Limit Quick Send to 4-6 most frequent/favorite contacts",
+        "Add loading skeleton while contacts load",
+        "Handle error state gracefully if contacts API fails",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P1",
+      "files": [
+        "src/app/page.tsx",
+        "src/hooks/useContacts.ts"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Plenny AI Assistant - Improve Chat Visibility",
+      "description": "As a user, I want to easily read the AI assistant's responses so that I can get help using the app.",
+      "acceptance_criteria": [
+        "Increase contrast ratio to meet WCAG AA standards (4.5:1 for normal text)",
+        "Add semi-transparent background to chat bubbles",
+        "Add subtle border to distinguish chat from background",
+        "Test in both light and dark mode for readability",
+        "Ensure chat text is at least 14px font size",
+        "Add proper focus states for accessibility",
+        "Typecheck and lint pass"
+      ],
+      "priority": "P2",
+      "files": [
+        "src/app/globals.css",
+        "src/components/ui/* (chat-related styles)"
+      ]
+    }
+  ],
+
+  "functional_requirements": [
+    {
+      "id": "FR-1",
+      "description": "The system must display a user-friendly error message when escrow address (NEXT_PUBLIC_MERCHANT_ADDRESS) is not configured instead of 'Service not configured'",
+      "related_story": "US-001"
+    },
+    {
+      "id": "FR-2",
+      "description": "The system must log a warning at startup if optional but important environment variables are missing",
+      "related_story": "US-001"
+    },
+    {
+      "id": "FR-3",
+      "description": "The system must log detailed Resend API errors server-side when email delivery fails",
+      "related_story": "US-002"
+    },
+    {
+      "id": "FR-4",
+      "description": "The system must provide a retry mechanism for failed email notifications",
+      "related_story": "US-002"
+    },
+    {
+      "id": "FR-5",
+      "description": "The system must validate RELAYER_PRIVATE_KEY format before attempting to use it for transactions",
+      "related_story": "US-003"
+    },
+    {
+      "id": "FR-6",
+      "description": "The system must trim whitespace and newline characters from private key environment variables",
+      "related_story": "US-003"
+    },
+    {
+      "id": "FR-7",
+      "description": "The system must display user-friendly error messages for cryptographic failures instead of raw error strings",
+      "related_story": "US-003"
+    },
+    {
+      "id": "FR-8",
+      "description": "The system must show wallet address copy functionality as primary option when Transak is not configured",
+      "related_story": "US-004"
+    },
+    {
+      "id": "FR-9",
+      "description": "The system must fetch and display user's actual contacts in the Quick Send section",
+      "related_story": "US-005"
+    },
+    {
+      "id": "FR-10",
+      "description": "The system must show an empty state with 'Add Contact' CTA when user has no contacts",
+      "related_story": "US-005"
+    },
+    {
+      "id": "FR-11",
+      "description": "The chat UI must have a contrast ratio of at least 4.5:1 for text against background",
+      "related_story": "US-006"
+    }
+  ],
+
+  "non_goals": [
+    "Complete rewrite of the payment flow architecture",
+    "Adding new payment methods beyond fixing existing ones",
+    "Implementing real-time websocket notifications (future enhancement)",
+    "Adding multi-currency support",
+    "Implementing full contact management CRUD in this iteration",
+    "Building a complete AI chat interface (only fixing visibility)"
+  ],
+
+  "technical_considerations": {
+    "environment_variables": {
+      "required": [
+        "DATABASE_URL - Prisma database connection",
+        "RELAYER_PRIVATE_KEY - Private key for gas sponsorship (64 hex chars + 0x prefix)",
+        "NEXT_PUBLIC_PRIVY_APP_ID - Privy application ID",
+        "PRIVY_APP_SECRET - Privy server secret"
+      ],
+      "recommended": [
+        "NEXT_PUBLIC_MERCHANT_ADDRESS - Escrow address for claim flows",
+        "RESEND_API_KEY - Email delivery via Resend",
+        "RESEND_FROM_EMAIL - Sender email address",
+        "NEXT_PUBLIC_TRANSAK_API_KEY - Fiat on-ramp"
+      ]
+    },
+    "validation_patterns": {
+      "private_key": "Must be 64 hex characters optionally prefixed with 0x",
+      "address": "Must be 40 hex characters prefixed with 0x",
+      "api_key": "Non-empty string, specific format varies by service"
+    },
+    "error_handling_guidelines": [
+      "Never expose internal error messages to users",
+      "Log detailed errors server-side with request context",
+      "Provide actionable user-facing error messages",
+      "Include retry mechanisms where appropriate"
+    ],
+    "existing_patterns": {
+      "contacts_api": "GET /api/contacts returns user's contacts array",
+      "notification_api": "POST /api/notify handles email dispatch",
+      "hooks": "useContacts hook exists for contact data fetching"
+    }
+  },
+
+  "design_considerations": {
+    "error_messages": {
+      "escrow_not_configured": "Claim links are currently unavailable. Please send to a registered user or wallet address.",
+      "email_failed": "We couldn't send the notification email. Would you like to try again?",
+      "private_key_invalid": "Payment service temporarily unavailable. Please try again later.",
+      "transak_not_configured": "Card payments are not yet available. You can fund your wallet by transferring USDT0 to your address."
+    },
+    "empty_states": {
+      "no_contacts": {
+        "title": "No contacts yet",
+        "description": "Add your first contact to start sending money quickly",
+        "cta": "Add Contact"
+      }
+    },
+    "chat_styling": {
+      "bubble_background": "rgba(255, 255, 255, 0.1)",
+      "bubble_border": "1px solid rgba(255, 255, 255, 0.2)",
+      "text_color": "rgba(255, 255, 255, 0.9)",
+      "min_font_size": "14px"
+    }
+  },
+
+  "success_metrics": [
+    "Zero 'Service not configured' errors in production logs",
+    "Email delivery success rate > 95%",
+    "Zero 'invalid private key' errors after fix deployment",
+    "Users can fund wallet via address copy when Transak unavailable",
+    "Quick Send shows real contacts instead of mock data",
+    "Chat UI passes WCAG AA contrast requirements"
+  ],
+
+  "open_questions": [
+    "Should we implement a database-backed notification queue for reliability?",
+    "What should be the maximum number of contacts shown in Quick Send?",
+    "Should the AI assistant have its own dedicated component vs inline styling?",
+    "Do we need to support SMS notifications as email fallback?"
+  ],
+
+  "implementation_order": [
+    {
+      "phase": 1,
+      "title": "Critical Fixes",
+      "stories": ["US-003", "US-001", "US-002"],
+      "rationale": "Fix breaking errors first - private key validation, then escrow config, then email delivery"
+    },
+    {
+      "phase": 2,
+      "title": "UX Improvements",
+      "stories": ["US-004", "US-005"],
+      "rationale": "Improve usability with Transak fallback and real contacts"
+    },
+    {
+      "phase": 3,
+      "title": "Polish",
+      "stories": ["US-006"],
+      "rationale": "Visual improvements after core functionality is working"
+    }
+  ],
+
+  "testing_requirements": [
+    {
+      "type": "unit",
+      "coverage": [
+        "Private key validation function",
+        "Error message formatting",
+        "Contact data fetching hook"
+      ]
+    },
+    {
+      "type": "integration",
+      "coverage": [
+        "API routes return proper error responses",
+        "Email notification fallback behavior",
+        "Contact API integration with page"
+      ]
+    },
+    {
+      "type": "e2e",
+      "coverage": [
+        "Send money flow with missing escrow config",
+        "Payment link flow with valid/invalid configs",
+        "Quick Send with empty contacts"
+      ]
+    }
+  ]
+}

@@ -13,6 +13,68 @@ import { prisma } from '@plasma-pay/db';
 import crypto from 'crypto';
 
 // ============================================================================
+// TELEGRAM NOTIFICATION HELPER
+// ============================================================================
+
+/**
+ * Send a notification to a Telegram user via the bot API
+ * Used to notify bill creators when payments are received
+ */
+async function sendTelegramNotification(
+  telegramUserId: string,
+  message: string
+): Promise<boolean> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  
+  if (!botToken) {
+    console.warn('TELEGRAM_BOT_TOKEN not configured - skipping notification');
+    return false;
+  }
+  
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: telegramUserId,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
+      }
+    );
+    
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Telegram API error:', error);
+      return false;
+    }
+    
+    console.log(`Notification sent to Telegram user ${telegramUserId}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send Telegram notification:', error);
+    return false;
+  }
+}
+
+/**
+ * Look up the Telegram user ID for a wallet address
+ */
+async function getTelegramUserIdForWallet(walletAddress: string): Promise<string | null> {
+  try {
+    const telegramWallet = await prisma.telegramWallet.findFirst({
+      where: { walletAddress },
+    });
+    return telegramWallet?.telegramUserId || null;
+  } catch (error) {
+    console.error('Failed to look up Telegram wallet:', error);
+    return null;
+  }
+}
+
+// ============================================================================
 // WEBHOOK VALIDATION
 // ============================================================================
 
@@ -212,8 +274,42 @@ export async function POST(request: Request) {
       }
     }
     
-    // TODO: Send notification to bill creator via Telegram bot
-    // This would require calling the bot's API or using a message queue
+    // Send notification to bill creator via Telegram bot
+    if (updatedIntent.bill) {
+      const creatorAddress = updatedIntent.bill.creatorAddress;
+      const telegramUserId = await getTelegramUserIdForWallet(creatorAddress);
+      
+      if (telegramUserId) {
+        const participant = updatedIntent.bill.participants[updatedIntent.participantIndex];
+        const participantName = participant?.name || 'Someone';
+        const amount = updatedIntent.amountUsd.toFixed(2);
+        const billTitle = updatedIntent.bill.title;
+        
+        // Check if bill is fully paid
+        const allPaid = await prisma.paymentIntent.findMany({
+          where: { billId: updatedIntent.billId },
+        }).then(intents => intents.every(i => i.status === 'completed'));
+        
+        let message: string;
+        if (allPaid) {
+          message = 
+            `🎉 *Bill Fully Paid!*\n\n` +
+            `${participantName} just paid $${amount} for "${billTitle}"\n\n` +
+            `✅ All participants have paid!`;
+        } else {
+          const paidCount = await prisma.paymentIntent.count({
+            where: { billId: updatedIntent.billId, status: 'completed' },
+          });
+          const totalCount = updatedIntent.bill.participants.length;
+          message = 
+            `💰 *Payment Received!*\n\n` +
+            `${participantName} just paid $${amount} for "${billTitle}"\n\n` +
+            `Progress: ${paidCount}/${totalCount} paid`;
+        }
+        
+        await sendTelegramNotification(telegramUserId, message);
+      }
+    }
     
     return NextResponse.json({
       received: true,

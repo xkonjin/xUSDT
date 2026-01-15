@@ -1,8 +1,13 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import type { PredictionMarket, MarketFilters, MarketCategory } from "@/lib/types";
+import { 
+  parseOutcomes, 
+  detectCategory, 
+  type PolymarketMarket 
+} from "@/lib/polymarket";
 
 // Use local API proxy to avoid CORS issues
-const API_BASE = typeof window !== "undefined" ? "/api/markets" : "https://gamma-api.polymarket.com/markets";
+const API_BASE = "/api/markets";
 
 // Fallback mock markets in case API fails
 const MOCK_MARKETS: PredictionMarket[] = [
@@ -107,36 +112,18 @@ const MOCK_MARKETS: PredictionMarket[] = [
   },
 ];
 
-function parsePolymarketData(data: any[]): PredictionMarket[] {
+/**
+ * Transform raw Polymarket API data to our internal PredictionMarket type
+ */
+function parsePolymarketData(data: PolymarketMarket[]): PredictionMarket[] {
   return data.map((m) => {
-    // Parse prices from outcomePrices JSON string
-    let yesPrice = 0.5;
-    let noPrice = 0.5;
-    try {
-      const prices = typeof m.outcomePrices === 'string' 
-        ? JSON.parse(m.outcomePrices) 
-        : m.outcomePrices;
-      if (prices && prices.length >= 2) {
-        yesPrice = parseFloat(prices[0]);
-        noPrice = parseFloat(prices[1]);
-      }
-    } catch (e) {}
+    // Use the polymarket client to parse outcomes
+    const outcomes = parseOutcomes(m);
+    const yesPrice = outcomes[0]?.price ?? 0.5;
+    const noPrice = outcomes[1]?.price ?? 0.5;
 
-    // Detect category from events
-    let category: MarketCategory = "all";
-    const events = m.events || [];
-    if (events.length > 0) {
-      const title = (events[0].title || "").toLowerCase();
-      if (title.includes("trump") || title.includes("president") || title.includes("election")) {
-        category = "politics";
-      } else if (title.includes("bitcoin") || title.includes("crypto") || title.includes("eth")) {
-        category = "crypto";
-      } else if (title.includes("super bowl") || title.includes("nfl") || title.includes("nba")) {
-        category = "sports";
-      } else if (title.includes("ai") || title.includes("openai") || title.includes("tech")) {
-        category = "tech";
-      }
-    }
+    // Use enhanced category detection
+    const category = detectCategory(m) as MarketCategory;
 
     return {
       id: m.slug || m.id,
@@ -147,13 +134,13 @@ function parsePolymarketData(data: any[]): PredictionMarket[] {
       category,
       endDate: m.endDate,
       resolved: m.closed || false,
-      outcome: m.winner,
+      outcome: undefined, // Polymarket doesn't provide winner in the same format
       yesPrice,
       noPrice,
-      volume24h: parseFloat(m.volume24hr || 0),
-      totalVolume: parseFloat(m.volumeNum || m.volume || 0),
-      liquidity: parseFloat(m.liquidityNum || m.liquidity || 0),
-      imageUrl: m.image,
+      volume24h: m.volume24hr || 0,
+      totalVolume: m.volumeNum || parseFloat(m.volume || '0'),
+      liquidity: m.liquidityNum || parseFloat(m.liquidity || '0'),
+      imageUrl: m.image || m.icon,
       polymarketUrl: m.slug ? `https://polymarket.com/event/${m.slug}` : undefined,
       createdAt: m.createdAt || new Date().toISOString(),
     } as PredictionMarket;

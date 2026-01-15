@@ -44,12 +44,12 @@ export default function ReferralPage() {
   };
 
   const handleShare = async () => {
-    const text = `Join me on Plasma Predictions! Make predictions on real-world events and earn rewards. Use my referral link:`;
+    const text = `Join me on Pledictions! Make predictions on real-world events and earn rewards. Use my referral link:`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Plasma Predictions",
+          title: "Pledictions",
           text,
           url: referralLink,
         });
@@ -79,7 +79,7 @@ export default function ReferralPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white mb-2">Referral Program</h1>
           <p className="text-white/60">
-            Earn 1% of your referrals' trading fees forever
+            Earn 1% of your referrals&apos; trading fees forever
           </p>
         </div>
 

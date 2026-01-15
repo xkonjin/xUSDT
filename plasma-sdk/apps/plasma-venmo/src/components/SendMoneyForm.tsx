@@ -134,7 +134,7 @@ function SuccessOverlay({
               className="absolute w-3 h-3 rounded-full animate-confetti-fall"
               style={{
                 left: `${Math.random() * 100}%`,
-                backgroundColor: ['#00d4ff', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 5)],
+                backgroundColor: ['#1DB954', '#3dd88a', '#22c55e', '#f59e0b', '#8b5cf6'][Math.floor(Math.random() * 5)],
                 animationDelay: `${Math.random() * 0.5}s`,
               }}
             />
@@ -148,7 +148,7 @@ function SuccessOverlay({
 
           <p className="text-4xl font-bold gradient-text mb-2">${amount}</p>
           <p className="text-lg text-white/60 mb-1">{isClaimFlow ? 'pending for' : 'sent to'}</p>
-          <p className="text-[rgb(0,212,255)] font-medium mb-6 break-all">{recipient}</p>
+          <p className="text-plenmo-500 font-medium mb-6 break-all">{recipient}</p>
 
           {isClaimFlow ? (
             <div className="text-center mb-6">
@@ -157,7 +157,7 @@ function SuccessOverlay({
               </p>
               <button
                 onClick={() => navigator.clipboard.writeText(claimUrl!)}
-                className="text-[rgb(0,212,255)] text-sm hover:underline"
+                className="text-plenmo-500 text-sm hover:underline"
               >
                 Copy claim link
               </button>
@@ -167,7 +167,7 @@ function SuccessOverlay({
               href={`https://scan.plasma.to/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[rgb(0,212,255)] text-sm hover:underline mb-6 block"
+              className="text-plenmo-500 text-sm hover:underline mb-6 block"
             >
               View on Plasma Scan →
             </a>
@@ -312,8 +312,8 @@ export function SendMoneyForm({
   return (
     <>
       <form onSubmit={handleSubmit} className="clay-card p-6 space-y-5">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Zap className="w-5 h-5 text-[rgb(0,212,255)]" />
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
+          <Zap className="w-5 h-5 text-plenmo-500" />
           Send Money
         </h2>
 
@@ -347,7 +347,7 @@ export function SendMoneyForm({
             )}
           </div>
           {recipientName && (
-            <p className="text-[rgb(0,212,255)] text-xs mt-2">Sending to {recipientName}</p>
+            <p className="text-plenmo-500 text-xs mt-2">Sending to {recipientName}</p>
           )}
           {recipient && !isValidRecipient && !recipientName && (
             <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
@@ -396,7 +396,7 @@ export function SendMoneyForm({
                 }}
                 className={`py-2.5 px-2 rounded-xl text-sm font-semibold transition-all ${
                   amount === amt.toString()
-                    ? "bg-[rgb(0,212,255)] text-black"
+                    ? "bg-plenmo-500 text-black"
                     : "bg-white/10 text-white hover:bg-white/20"
                 }`}
               >
@@ -447,12 +447,12 @@ export function SendMoneyForm({
         </button>
 
         <div className="flex items-center justify-center gap-4 pt-1">
-          <p className="text-white/40 text-xs flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          <p className="text-white/40 text-xs flex items-center gap-1.5 font-body">
+            <span className="w-1.5 h-1.5 rounded-full bg-plenmo-500" />
             Zero fees
           </p>
-          <p className="text-white/40 text-xs flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-[rgb(0,212,255)]" />
+          <p className="text-white/40 text-xs flex items-center gap-1.5 font-body">
+            <Zap className="w-3 h-3 text-plenmo-400" />
             Instant delivery
           </p>
         </div>

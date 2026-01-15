@@ -1,246 +1,239 @@
 "use client";
 
 /**
- * Bill Split Home Page
+ * Splitzy Home Page
  * 
- * Landing page and dashboard for the Bill Split app.
- * Shows user's bills and allows creating new ones.
+ * Landing page with claymorphism design.
+ * Shows existing bills and create new bill CTA.
+ * Uses localStorage for demo - no backend required.
  */
 
 import { useState, useEffect } from "react";
-import { usePlasmaWallet } from "@plasma-pay/privy-auth";
 import Link from "next/link";
-import { Plus, Receipt, Users, DollarSign, CheckCircle, Clock, Loader2, Wallet, ChevronRight } from "lucide-react";
-import { BalanceDashboard } from "@/components/BalanceDashboard";
+import { Plus, Receipt, Users, DollarSign, CheckCircle, Clock, Trash2 } from "lucide-react";
+import { ParticipantAvatar, PARTICIPANT_COLORS } from "@/components/ParticipantChip";
 
-interface BillSummary {
+interface StoredBill {
   id: string;
   title: string;
   total: number;
-  status: string;
-  participantCount: number;
-  paidCount: number;
+  participants: Array<{
+    id: string;
+    name: string;
+    color: typeof PARTICIPANT_COLORS[number];
+    share: number;
+    paid: boolean;
+  }>;
   createdAt: string;
+  status: string;
 }
 
 export default function HomePage() {
-  const { authenticated, ready, wallet, login, logout } = usePlasmaWallet();
-  const [bills, setBills] = useState<BillSummary[]>([]);
+  const [bills, setBills] = useState<StoredBill[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user's bills
+  // Load bills from localStorage
   useEffect(() => {
-    if (!authenticated || !wallet?.address) {
-      setBills([]);
-      setLoading(false);
-      return;
-    }
-
-    async function fetchBills() {
-      if (!wallet?.address) return;
-      
+    const stored = localStorage.getItem('splitzy_bills');
+    if (stored) {
       try {
-        const response = await fetch(`/api/bills?address=${wallet.address}`);
-        if (response.ok) {
-          const data = await response.json();
-          setBills(data.bills || []);
-        }
+        setBills(JSON.parse(stored));
       } catch {
-        // Silent fail - empty list will be shown
-      } finally {
-        setLoading(false);
+        setBills([]);
       }
     }
+    setLoading(false);
+  }, []);
 
-    fetchBills();
-  }, [authenticated, wallet?.address]);
-
-  if (!ready) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
-          <span className="text-white/50">Loading...</span>
-        </div>
-      </main>
-    );
+  // Delete bill
+  function deleteBill(id: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const updated = bills.filter(b => b.id !== id);
+    setBills(updated);
+    localStorage.setItem('splitzy_bills', JSON.stringify(updated));
   }
 
-  if (!authenticated) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center gap-8 p-8 relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.15)_0%,transparent_70%)] blur-3xl" />
-          <div className="absolute bottom-[-10%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.1)_0%,transparent_70%)] blur-3xl" />
-        </div>
-
-        <div className="text-center relative z-10">
-          <div className="text-6xl mb-6">🧾</div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
-            <span className="gradient-text">Splitzy</span>
-          </h1>
-          <p className="text-white/50 text-lg max-w-md mx-auto leading-relaxed">
-            Split bills instantly with friends. Scan receipts with AI. Pay with zero gas fees.
-          </p>
-        </div>
-
-        <button onClick={login} className="btn-primary relative z-10">
-          Get Started
-        </button>
-
-        <div className="grid grid-cols-3 gap-8 mt-12 relative z-10">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/5 flex items-center justify-center">
-              <Receipt className="w-8 h-8 text-[rgb(0,212,255)]" />
-            </div>
-            <p className="text-white/50 text-sm">Scan Receipts</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/5 flex items-center justify-center">
-              <Users className="w-8 h-8 text-purple-400" />
-            </div>
-            <p className="text-white/50 text-sm">Assign Items</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/5 flex items-center justify-center">
-              <DollarSign className="w-8 h-8 text-green-400" />
-            </div>
-            <p className="text-white/50 text-sm">Get Paid</p>
-          </div>
-        </div>
-
-        <div className="text-white/40 text-sm mt-8 relative z-10 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[rgb(0,212,255)]" />
-          Powered by Plasma Chain - Zero gas fees
-        </div>
-      </main>
-    );
+  // Calculate bill stats
+  function getBillStats(bill: StoredBill) {
+    const totalParticipants = bill.participants.length;
+    const paidCount = bill.participants.filter(p => p.paid).length;
+    const isComplete = paidCount === totalParticipants;
+    return { totalParticipants, paidCount, isComplete };
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8 relative">
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-30%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.08)_0%,transparent_70%)] blur-3xl" />
-      </div>
-
-      <header className="flex items-center justify-between mb-8 relative z-10">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <span className="text-3xl">🧾</span>
-          <span className="gradient-text">Splitzy</span>
-        </h1>
-        <div className="flex items-center gap-4">
-          <span className="text-white/40 text-sm hidden sm:block px-3 py-1.5 rounded-full bg-white/5">
-            {wallet?.address?.slice(0, 6)}...{wallet?.address?.slice(-4)}
-          </span>
-          <button
-            onClick={logout}
-            className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-white/10"
-          >
-            Logout
-          </button>
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 pb-8">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-lg mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal">
+                <Receipt className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold gradient-text font-heading">Splitzy</h1>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto space-y-6 relative z-10">
-        {/* Balance Summary Card */}
-        <Link
-          href="/balances"
-          className="block p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-[rgb(0,212,255)]/20 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-green-400" />
-              </div>
-              <h2 className="text-lg font-semibold text-white">Balances</h2>
-            </div>
-            <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Hero Section */}
+        <div className="text-center py-6">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-splitzy-400 to-splitzy-600 flex items-center justify-center shadow-clay-lg animate-clay-bounce">
+            <Receipt className="w-10 h-10 text-white" />
           </div>
-          {wallet?.address && (
-            <BalanceDashboard address={wallet.address} compact />
-          )}
-        </Link>
+          <h2 className="text-3xl font-bold text-slate-800 font-heading mb-2">
+            Split Bills Easily
+          </h2>
+          <p className="text-slate-500 max-w-xs mx-auto">
+            Scan receipts, divide costs, and share payment links in seconds
+          </p>
+        </div>
 
-        {/* Create new bill button */}
+        {/* Feature Pills */}
+        <div className="flex justify-center gap-3 flex-wrap">
+          <div className="clay-badge flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-splitzy-100 flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5 text-splitzy-600" />
+            </span>
+            <span className="text-slate-600">AI Receipt Scan</span>
+          </div>
+          <div className="clay-badge flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
+              <Users className="w-3.5 h-3.5 text-violet-600" />
+            </span>
+            <span className="text-slate-600">Smart Splitting</span>
+          </div>
+          <div className="clay-badge flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
+            <span className="text-slate-600">Easy Sharing</span>
+          </div>
+        </div>
+
+        {/* Create New Bill CTA */}
         <Link 
-          href="/new" 
-          className="block p-6 rounded-3xl bg-gradient-to-br from-[rgb(0,212,255)]/20 to-purple-500/20 border border-white/10 hover:border-white/20 transition-all group"
+          href="/new"
+          className="block clay-card clay-card-teal p-6 group hover:scale-[1.02] transition-transform"
         >
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal group-hover:scale-110 transition-transform">
               <Plus className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">New Bill</h2>
-              <p className="text-white/50 text-sm">Scan a receipt or add items manually</p>
+              <h3 className="text-xl font-bold text-slate-800 font-heading">New Bill</h3>
+              <p className="text-slate-500 text-sm">Scan a receipt or add items manually</p>
             </div>
           </div>
         </Link>
 
-        {/* Bills list */}
+        {/* Bills List */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white/70">Your Bills</h2>
+          <h3 className="text-lg font-semibold text-slate-700 font-heading">Your Bills</h3>
 
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-24 rounded-2xl bg-white/5 animate-pulse"
-                />
+                <div key={i} className="h-24 rounded-clay bg-slate-200/50 animate-pulse" />
               ))}
             </div>
           ) : bills.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                <Receipt className="w-10 h-10 text-white/20" />
+            <div className="clay-card p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                <Receipt className="w-8 h-8 text-slate-300" />
               </div>
-              <p className="text-white/40">No bills yet</p>
-              <p className="text-white/20 text-sm mt-1">
+              <p className="text-slate-500 font-medium">No bills yet</p>
+              <p className="text-slate-400 text-sm mt-1">
                 Create your first bill to get started
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {bills.map((bill) => (
-                <Link
-                  key={bill.id}
-                  href={`/bill/${bill.id}`}
-                  className="block p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-white">{bill.title}</h3>
-                      <p className="text-white/40 text-sm">
-                        {bill.participantCount} people • {new Date(bill.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold gradient-text">${bill.total.toFixed(2)}</p>
-                      <div className="flex items-center gap-1 justify-end">
-                        {bill.status === 'completed' ? (
-                          <span className="flex items-center gap-1 text-green-400 text-xs">
-                            <CheckCircle className="w-3 h-3" />
-                            Settled
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-yellow-400 text-xs">
-                            <Clock className="w-3 h-3" />
-                            {bill.paidCount}/{bill.participantCount} paid
-                          </span>
-                        )}
+            <div className="space-y-4">
+              {bills.map((bill) => {
+                const { totalParticipants, paidCount, isComplete } = getBillStats(bill);
+                
+                return (
+                  <Link
+                    key={bill.id}
+                    href={`/bill/${bill.id}`}
+                    className="block clay-card p-4 hover:scale-[1.01] transition-transform relative group"
+                  >
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => deleteBill(bill.id, e)}
+                      className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-100 text-slate-400 hover:text-red-500 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-slate-800 font-heading truncate pr-8">
+                          {bill.title}
+                        </h4>
+                        <p className="text-sm text-slate-500 mt-1">
+                          {new Date(bill.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </p>
+
+                        {/* Participant avatars */}
+                        <div className="flex items-center mt-3 -space-x-2">
+                          {bill.participants.slice(0, 4).map((p, i) => (
+                            <ParticipantAvatar
+                              key={p.id}
+                              name={p.name}
+                              color={p.color}
+                              size="sm"
+                              className="border-2 border-white"
+                            />
+                          ))}
+                          {bill.participants.length > 4 && (
+                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-semibold text-slate-600 border-2 border-white">
+                              +{bill.participants.length - 4}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="text-2xl font-bold gradient-text font-heading">
+                          ${bill.total.toFixed(2)}
+                        </p>
+                        <div className="mt-2">
+                          {isComplete ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+                              <CheckCircle className="w-3 h-3" />
+                              Settled
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
+                              <Clock className="w-3 h-3" />
+                              {paidCount}/{totalParticipants} paid
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center pt-8 pb-4">
+          <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
+            <span className="w-2 h-2 rounded-full bg-splitzy-500" />
+            <span>Splitzy - Bill Splitting Made Simple</span>
+          </div>
         </div>
       </div>
     </main>
   );
 }
-

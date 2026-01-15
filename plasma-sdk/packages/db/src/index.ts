@@ -25,6 +25,11 @@ export type {
   BillItem,
   BillParticipant,
   BillItemAssignment,
+  Activity,
+  Contact,
+  UserSettings,
+  Stream,
+  GasSponsorshipLog,
 } from '@prisma/client';
 
 // Re-export Prisma namespace for advanced queries

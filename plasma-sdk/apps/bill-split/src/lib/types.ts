@@ -73,13 +73,14 @@ export const SUPPORTED_TOKENS = [
   { symbol: 'USDC', name: 'USDC (Base)', chainId: 8453, address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', native: false },
 ] as const;
 
+// Splitzy participant colors - teal brand palette
 export const PARTICIPANT_COLORS = [
-  '#00d4ff',
-  '#ff6b6b',
-  '#4ecdc4',
-  '#ffe66d',
-  '#a855f7',
-  '#22c55e',
-  '#f97316',
-  '#ec4899',
+  '#14b8a6', // teal (brand primary)
+  '#fb7185', // coral
+  '#fbbf24', // amber
+  '#a78bfa', // violet
+  '#34d399', // emerald
+  '#fb923c', // orange
+  '#f472b6', // pink
+  '#38bdf8', // sky
 ] as const;

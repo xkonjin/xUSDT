@@ -13,6 +13,68 @@ import type { PaymentIntent, ActiveBill, BillParticipant } from '../types.js';
 import { PAYMENT_INTENT_EXPIRY_MS } from '../types.js';
 
 // ============================================================================
+// TELEGRAM NOTIFICATION HELPER
+// ============================================================================
+
+/**
+ * Send a notification to a Telegram user via the bot API
+ * Used to notify bill creators when all payments are complete
+ */
+async function sendTelegramNotification(
+  telegramUserId: string,
+  message: string
+): Promise<boolean> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  
+  if (!botToken) {
+    console.warn('TELEGRAM_BOT_TOKEN not configured - skipping notification');
+    return false;
+  }
+  
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: telegramUserId,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
+      }
+    );
+    
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Telegram API error:', error);
+      return false;
+    }
+    
+    console.log(`Notification sent to Telegram user ${telegramUserId}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send Telegram notification:', error);
+    return false;
+  }
+}
+
+/**
+ * Look up the Telegram user ID for a wallet address
+ */
+async function getTelegramUserIdForWallet(walletAddress: string): Promise<string | null> {
+  try {
+    const telegramWallet = await prisma.telegramWallet.findFirst({
+      where: { walletAddress },
+    });
+    return telegramWallet?.telegramUserId || null;
+  } catch (error) {
+    console.error('Failed to look up Telegram wallet:', error);
+    return null;
+  }
+}
+
+// ============================================================================
 // DATABASE INITIALIZATION
 // ============================================================================
 
@@ -392,16 +454,29 @@ async function checkBillCompletion(billId: string): Promise<void> {
   const allPaid = intents.every(intent => intent.status === 'completed');
   
   if (allPaid) {
-    // Update bill status to completed
-    await prisma.bill.update({
+    // Update bill status to completed and fetch bill details
+    const bill = await prisma.bill.update({
       where: { id: billId },
       data: { status: 'completed' },
+      include: { participants: true },
     });
     
     console.log(`Bill ${billId} fully paid!`);
     
-    // TODO: Send notification to bill creator
-    // This would be done via the Telegram bot API
+    // Send notification to bill creator via Telegram
+    const telegramUserId = await getTelegramUserIdForWallet(bill.creatorAddress);
+    if (telegramUserId) {
+      const participantCount = bill.participants.length;
+      const totalAmount = bill.total.toFixed(2);
+      const message = 
+        `🎉 *Bill Fully Paid!*\n\n` +
+        `"${bill.title}" is complete!\n\n` +
+        `💰 Total: $${totalAmount}\n` +
+        `👥 Participants: ${participantCount}\n\n` +
+        `✅ All payments have been received!`;
+      
+      await sendTelegramNotification(telegramUserId, message);
+    }
   }
 }
 

@@ -1,6 +1,33 @@
 import { buildAssistantPrompt } from "@/lib/avatar/prompts";
 import { generateGeminiText } from "@/lib/avatar/gemini";
 
+type AvatarContext = {
+  route?: string;
+  activeTab?: "send" | "request";
+  authenticated?: boolean;
+  hoverLabel?: string;
+  hoverTip?: string;
+  focusedLabel?: string;
+  balance?: string;
+};
+
+const buildLocalAssistantResponse = (context: AvatarContext, message?: string) => {
+  const focus = context.hoverTip || context.focusedLabel || context.hoverLabel;
+  if (message) {
+    return "Try sending to an email, phone, or wallet address. I can also help you request money or check your balance.";
+  }
+  if (focus) {
+    return context.hoverTip || `This controls ${focus}.`;
+  }
+  if (context.authenticated === false) {
+    return "Connect your wallet to send or request money.";
+  }
+  if (context.activeTab === "request") {
+    return "Enter a recipient and amount, then send a request.";
+  }
+  return "Enter a recipient and amount to send USDT0.";
+};
+
 export async function POST(request: Request) {
   const body = await request.json();
   const context = body?.context || {};
@@ -21,7 +48,9 @@ export async function POST(request: Request) {
       (async () => {
         try {
           const prompt = buildAssistantPrompt(context, message);
-          const text = await generateGeminiText(prompt);
+          const text = process.env.GEMINI_API_KEY
+            ? await generateGeminiText(prompt)
+            : buildLocalAssistantResponse(context, message);
 
           for (const chunk of text.split(/(\s+)/)) {
             if (!chunk) continue;

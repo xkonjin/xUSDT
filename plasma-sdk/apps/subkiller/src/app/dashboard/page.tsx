@@ -29,7 +29,7 @@ import type { Subscription, ScanResult } from '@/types';
 import { calculateTotals } from '@/lib/subscription-detector';
 
 // Conditionally import Privy hook - may not be available if not configured
-let usePlasmaWallet: any = null;
+let usePlasmaWallet: (() => any) | null = null;
 try {
   const privyAuth = require('@plasma-pay/privy-auth');
   usePlasmaWallet = privyAuth.usePlasmaWallet;
@@ -37,13 +37,19 @@ try {
   // Privy not available - wallet features will be disabled
 }
 
+const useFallbackWallet = () => ({
+  wallet: null,
+  authenticated: false,
+  login: () => {},
+});
+
 export default function Dashboard() {
   // NextAuth session for Gmail access
   const { data: session, status } = useSession();
   const router = useRouter();
   
   // Privy wallet for payments (may be null if not configured)
-  const walletState = usePlasmaWallet ? usePlasmaWallet() : null;
+  const walletState = (usePlasmaWallet ?? useFallbackWallet)();
   const wallet = walletState?.wallet || null;
   const isWalletConnected = walletState?.authenticated || false;
   const connectWallet = walletState?.login || (() => {});

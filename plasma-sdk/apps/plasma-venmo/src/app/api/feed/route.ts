@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@plasma-pay/db';
+import { prisma, type Activity } from '@plasma-pay/db';
 
 // ============================================================================
 // IN-MEMORY LIKES TRACKING
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
     ]);
     
     // Format feed items with per-user like status
-    const feed = activities.map(activity => formatActivityToFeedItem(activity, address));
+    const feed = activities.map((activity: Activity) => formatActivityToFeedItem(activity, address));
     
     // Calculate if there are more items
     const hasMore = offset + activities.length < total;

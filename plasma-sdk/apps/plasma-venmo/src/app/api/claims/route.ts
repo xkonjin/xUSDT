@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma, generateClaimToken, hashClaimToken, notifications as notifyHelpers } from '@plasma-pay/db';
+import { prisma, generateClaimToken, hashClaimToken, notifications as notifyHelpers, type Claim } from '@plasma-pay/db';
 import { 
   checkRateLimit, 
   rateLimitResponse, 
@@ -200,7 +200,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      claims: claims.map(c => ({
+      claims: claims.map((c: Claim) => ({
         id: c.id,
         senderAddress: c.senderAddress,
         recipientEmail: c.recipientEmail,

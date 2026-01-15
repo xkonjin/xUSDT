@@ -1,4 +1,5 @@
 export { useMarkets, useMarket, useTrendingMarkets } from "./useMarkets";
+export { useBalance, formatBalance, formatCompactBalance } from "./useBalance";
 export { 
   useUserBets, 
   usePortfolioStats, 

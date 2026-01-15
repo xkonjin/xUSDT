@@ -1,69 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ========================================
-   PLENMO LIGHT CLAYMORPHISM THEME
-   Inspired by Cash App & Venmo
-   Soft, friendly, tactile UI
+   PLEDICTIONS LIQUID GLASS THEME
+   Purple brand, glassmorphism, modern
    ======================================== */
 
 :root {
-  /* Background colors */
-  --bg-primary: 248, 250, 252;        /* #F8FAFC - Main background */
-  --bg-secondary: 241, 245, 249;      /* #F1F5F9 - Secondary background */
-  --bg-card: 255, 255, 255;           /* #FFFFFF - Card background */
-  
-  /* Text colors */
-  --text-primary: 30, 41, 59;         /* #1E293B - Main text */
-  --text-secondary: 71, 85, 105;      /* #475569 - Secondary text */
-  --text-muted: 100, 116, 139;        /* #64748B - Muted text */
-  --text-on-accent: 255, 255, 255;    /* #FFFFFF - Text on accent colors */
-  
-  /* Accent colors */
-  --accent-cyan: 0, 212, 255;         /* #00D4FF - Primary cyan */
-  --accent-cyan-dark: 0, 180, 220;    /* #00B4DC - Darker cyan */
-  --accent-purple: 168, 85, 247;      /* #A855F7 - Purple accent */
-  --accent-blue: 59, 130, 246;        /* #3B82F6 - Blue accent */
-  --accent-pink: 236, 72, 153;        /* #EC4899 - Pink accent */
-  
-  /* Status colors */
-  --success: 34, 197, 94;             /* #22C55E - Success green */
-  --success-light: 220, 252, 231;     /* #DCFCE7 - Success background */
-  --warning: 245, 158, 11;            /* #F59E0B - Warning orange */
-  --warning-light: 254, 249, 195;     /* #FEF9C3 - Warning background */
-  --error: 239, 68, 68;               /* #EF4444 - Error red */
-  --error-light: 254, 226, 226;       /* #FEE2E2 - Error background */
-  --info: 59, 130, 246;               /* #3B82F6 - Info blue */
-  --info-light: 219, 234, 254;        /* #DBEAFE - Info background */
-  
-  /* Clay shadow colors */
-  --shadow-dark: 166, 180, 200;       /* Shadow color for depth */
-  --shadow-light: 255, 255, 255;      /* Highlight color */
-  
-  /* Legacy compatibility */
-  --plasma-cyan: var(--accent-cyan);
-  --glass-white: var(--bg-card);
-  --background: var(--bg-primary);
-  --foreground: var(--text-primary);
+  /* Brand Purple */
+  --purple-50: #f5f3ff;
+  --purple-100: #ede9fe;
+  --purple-200: #ddd6fe;
+  --purple-300: #c4b5fd;
+  --purple-400: #a78bfa;
+  --purple-500: #8B5CF6;
+  --purple-600: #7c3aed;
+  --purple-700: #6d28d9;
+  --purple-800: #5b21b6;
+  --purple-900: #4c1d95;
+
+  /* Glass */
+  --glass-white: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-highlight: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+
+  /* Text */
+  --text-primary: 255, 255, 255;
+  --text-secondary: 200, 200, 210;
+  --text-muted: 140, 140, 160;
+
+  /* Status */
+  --yes-purple: 139, 92, 246;
+  --no-gray: 107, 114, 128;
 }
 
 /* ========================================
    BASE STYLES
    ======================================== */
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: linear-gradient(
     180deg,
-    rgb(var(--bg-primary)) 0%,
-    rgb(var(--bg-secondary)) 100%
+    #0f0a1e 0%,
+    #1a1030 50%,
+    #0d0818 100%
   );
   color: rgb(var(--text-primary));
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    "SF Pro Text", system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
+}
+
+/* Apply Space Grotesk to headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
 }
 
 /* ========================================
@@ -71,768 +69,486 @@ body {
    ======================================== */
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgb(var(--bg-secondary));
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(var(--shadow-dark), 0.4);
-  border-radius: 4px;
+  background: rgba(139, 92, 246, 0.4);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--shadow-dark), 0.6);
+  background: rgba(139, 92, 246, 0.6);
+}
+
+/* Hide scrollbar for horizontal scroll elements */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ========================================
-   CLAYMORPHISM COMPONENTS
+   LIQUID GLASS COMPONENTS
    ======================================== */
 
 @layer components {
   /* ----------------------------------------
-     CLAY CARD - Soft elevated containers
+     GLASS CARD - Core glass panel
      ---------------------------------------- */
-  .clay-card {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgba(var(--bg-secondary), 0.8) 100%
-    );
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 24px;
-    border: 1px solid rgba(var(--shadow-light), 0.9);
     box-shadow: 
-      /* Outer shadow - creates depth */
-      12px 12px 24px rgba(var(--shadow-dark), 0.25),
-      /* Outer highlight - top-left glow */
-      -12px -12px 24px rgba(var(--shadow-light), 0.95),
-      /* Inner highlight - pillow effect */
-      inset 2px 2px 6px rgba(var(--shadow-light), 0.8),
-      /* Inner shadow - subtle depth */
-      inset -2px -2px 6px rgba(var(--shadow-dark), 0.08);
+      0 8px 32px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.2s ease-out;
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* ----------------------------------------
+     MARKET CARD - Prediction market display
+     ---------------------------------------- */
+  .market-card {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
     transition: all 0.3s ease;
   }
 
-  .clay-card:hover {
-    transform: translateY(-2px);
+  .market-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 50%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .market-card:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    transform: translateY(-4px);
     box-shadow: 
-      16px 16px 32px rgba(var(--shadow-dark), 0.28),
-      -16px -16px 32px rgba(var(--shadow-light), 0.98),
-      inset 2px 2px 6px rgba(var(--shadow-light), 0.8),
-      inset -2px -2px 6px rgba(var(--shadow-dark), 0.08);
+      0 20px 60px rgba(139, 92, 246, 0.2),
+      0 8px 20px rgba(0, 0, 0, 0.3);
   }
 
-  /* Card color variants */
-  .clay-card-cyan {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--accent-cyan), 0.08) 0%,
-      rgba(var(--accent-cyan), 0.03) 100%
-    );
-    border: 1px solid rgba(var(--accent-cyan), 0.2);
-  }
-
-  .clay-card-purple {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--accent-purple), 0.08) 0%,
-      rgba(var(--accent-purple), 0.03) 100%
-    );
-    border: 1px solid rgba(var(--accent-purple), 0.2);
-  }
-
-  .clay-card-success {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--success), 0.08) 0%,
-      rgba(var(--success), 0.03) 100%
-    );
-    border: 1px solid rgba(var(--success), 0.2);
+  .market-card:active {
+    transform: scale(0.98);
+    transition-duration: 0.1s;
   }
 
   /* ----------------------------------------
-     CLAY BUTTON - 3D puffy buttons
+     ODDS BAR - Yes/No visual display
      ---------------------------------------- */
-  .clay-button {
+  .odds-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(107, 114, 128, 0.3);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .odds-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      var(--purple-500) 0%,
+      var(--purple-400) 100%
+    );
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+    transition: width 0.4s ease-out;
+  }
+
+  /* ----------------------------------------
+     CATEGORY PILL - Filter tags
+     ---------------------------------------- */
+  .category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .category-pill:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .category-pill.active {
+    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    border-color: var(--purple-400);
+    color: white;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+  }
+
+  /* ----------------------------------------
+     GLASS BUTTON - Action buttons
+     ---------------------------------------- */
+  .glass-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 14px 28px;
+    gap: 8px;
+    padding: 12px 24px;
     min-height: 48px;
-    border: none;
     border-radius: 16px;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-cyan-dark)) 100%
-    );
-    color: rgb(var(--text-on-accent));
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
     font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 
-      /* Outer depth shadow */
-      6px 6px 16px rgba(var(--accent-cyan-dark), 0.35),
-      /* Outer highlight */
-      -4px -4px 12px rgba(var(--shadow-light), 0.6),
-      /* Inner highlight - top */
-      inset 2px 2px 4px rgba(255, 255, 255, 0.4),
-      /* Inner shadow - bottom */
-      inset -2px -2px 4px rgba(var(--accent-cyan-dark), 0.2);
+    font-size: 15px;
     transition: all 0.2s ease;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
   }
 
-  .clay-button:hover {
-    transform: translateY(-3px) scale(1.02);
+  .glass-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .glass-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Primary button - Purple */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.5);
     box-shadow: 
-      8px 8px 20px rgba(var(--accent-cyan-dark), 0.4),
-      -6px -6px 16px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.5),
-      inset -2px -2px 4px rgba(var(--accent-cyan-dark), 0.2);
+      0 4px 16px rgba(139, 92, 246, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  .clay-button:active {
-    transform: translateY(1px) scale(0.98);
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--purple-400) 0%, var(--purple-500) 100%);
     box-shadow: 
-      2px 2px 8px rgba(var(--accent-cyan-dark), 0.3),
-      -2px -2px 6px rgba(var(--shadow-light), 0.4),
-      inset 4px 4px 8px rgba(var(--accent-cyan-dark), 0.25),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.3);
+      0 6px 24px rgba(139, 92, 246, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
   }
 
-  .clay-button:focus-visible {
-    outline: 3px solid rgba(var(--accent-cyan), 0.4);
-    outline-offset: 3px;
+  /* Yes button */
+  .btn-yes {
+    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    padding: 12px 20px;
+    min-height: 44px;
+    border-radius: 14px;
   }
 
-  /* Button color variants */
-  .clay-button-secondary {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
-    );
-    color: rgb(var(--text-primary));
-    box-shadow: 
-      6px 6px 16px rgba(var(--shadow-dark), 0.2),
-      -4px -4px 12px rgba(var(--shadow-light), 0.9),
-      inset 2px 2px 4px rgba(var(--shadow-light), 0.6),
-      inset -2px -2px 4px rgba(var(--shadow-dark), 0.1);
+  .btn-yes:hover {
+    background: linear-gradient(135deg, var(--purple-400) 0%, var(--purple-500) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
   }
 
-  .clay-button-secondary:hover {
-    box-shadow: 
-      8px 8px 20px rgba(var(--shadow-dark), 0.25),
-      -6px -6px 16px rgba(var(--shadow-light), 0.95),
-      inset 2px 2px 4px rgba(var(--shadow-light), 0.7),
-      inset -2px -2px 4px rgba(var(--shadow-dark), 0.1);
+  /* No button */
+  .btn-no {
+    background: rgba(107, 114, 128, 0.3);
+    border: 1px solid rgba(107, 114, 128, 0.4);
+    padding: 12px 20px;
+    min-height: 44px;
+    border-radius: 14px;
   }
 
-  .clay-button-purple {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-purple)) 0%,
-      rgba(var(--accent-purple), 0.85) 100%
-    );
-    box-shadow: 
-      6px 6px 16px rgba(var(--accent-purple), 0.35),
-      -4px -4px 12px rgba(var(--shadow-light), 0.6),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -2px -2px 4px rgba(var(--accent-purple), 0.2);
+  .btn-no:hover {
+    background: rgba(107, 114, 128, 0.4);
+    transform: translateY(-1px);
   }
 
-  .clay-button-success {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--success)) 0%,
-      rgba(var(--success), 0.85) 100%
-    );
-    box-shadow: 
-      6px 6px 16px rgba(var(--success), 0.35),
-      -4px -4px 12px rgba(var(--shadow-light), 0.6),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -2px -2px 4px rgba(var(--success), 0.2);
+  /* Secondary ghost button */
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .clay-button-error {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--error)) 0%,
-      rgba(var(--error), 0.85) 100%
-    );
-    box-shadow: 
-      6px 6px 16px rgba(var(--error), 0.35),
-      -4px -4px 12px rgba(var(--shadow-light), 0.6),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -2px -2px 4px rgba(var(--error), 0.2);
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
   }
 
-  .clay-button-small {
-    padding: 10px 20px;
-    min-height: 40px;
-    font-size: 14px;
-    border-radius: 12px;
+  /* Ghost button */
+  .btn-ghost {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px 12px;
+    min-height: auto;
   }
 
-  .clay-button-large {
-    padding: 18px 36px;
-    min-height: 56px;
-    font-size: 18px;
-    border-radius: 20px;
+  .btn-ghost:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.08);
   }
 
   /* ----------------------------------------
-     CLAY INPUT - Inset input fields
+     GLASS INPUT
      ---------------------------------------- */
-  .clay-input {
+  .glass-input {
     width: 100%;
-    padding: 16px 20px;
+    padding: 14px 18px;
     min-height: 52px;
-    border: 1px solid rgba(var(--shadow-dark), 0.15);
     border-radius: 16px;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-secondary)) 0%,
-      rgb(var(--bg-primary)) 100%
-    );
-    color: rgb(var(--text-primary));
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: white;
     font-size: 16px;
-    box-shadow: 
-      /* Inset shadows create recessed effect */
-      inset 4px 4px 10px rgba(var(--shadow-dark), 0.15),
-      inset -4px -4px 10px rgba(var(--shadow-light), 0.95);
     outline: none;
     transition: all 0.2s ease;
   }
 
-  .clay-input:focus {
-    border-color: rgba(var(--accent-cyan), 0.5);
-    box-shadow: 
-      inset 6px 6px 12px rgba(var(--shadow-dark), 0.18),
-      inset -6px -6px 12px rgba(var(--shadow-light), 0.98),
-      0 0 0 3px rgba(var(--accent-cyan), 0.15);
+  .glass-input:focus {
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
   }
 
-  .clay-input::placeholder {
-    color: rgba(var(--text-muted), 0.8);
+  .glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
   }
 
-  .clay-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  /* Input variants */
-  .clay-input-error {
-    border-color: rgba(var(--error), 0.5);
-    box-shadow: 
-      inset 4px 4px 10px rgba(var(--shadow-dark), 0.15),
-      inset -4px -4px 10px rgba(var(--shadow-light), 0.95),
-      0 0 0 2px rgba(var(--error), 0.1);
-  }
-
-  .clay-textarea {
-    min-height: 120px;
-    resize: vertical;
-  }
-
-  /* ----------------------------------------
-     CLAY AVATAR - Colorful circular avatars
-     ---------------------------------------- */
-  .clay-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-cyan-dark)) 100%
-    );
-    color: rgb(var(--text-on-accent));
+  /* Input with larger text for amounts */
+  .input-liquid {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    font-size: 28px;
     font-weight: 700;
-    font-size: 18px;
-    text-transform: uppercase;
-    box-shadow: 
-      6px 6px 14px rgba(var(--accent-cyan-dark), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.4),
-      inset -1px -1px 3px rgba(var(--accent-cyan-dark), 0.2);
-    transition: all 0.3s ease;
+    color: white;
+    outline: none;
+    transition: all 0.2s ease;
   }
 
-  .clay-avatar:hover {
-    transform: translateY(-2px) scale(1.05);
-  }
-
-  /* Avatar sizes */
-  .clay-avatar-sm {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
-  }
-
-  .clay-avatar-lg {
-    width: 64px;
-    height: 64px;
-    font-size: 24px;
-  }
-
-  .clay-avatar-xl {
-    width: 80px;
-    height: 80px;
-    font-size: 30px;
-  }
-
-  /* Avatar color variants */
-  .clay-avatar-purple {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-purple)) 0%,
-      rgba(var(--accent-purple), 0.8) 100%
-    );
-    box-shadow: 
-      6px 6px 14px rgba(var(--accent-purple), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -1px -1px 3px rgba(var(--accent-purple), 0.2);
-  }
-
-  .clay-avatar-pink {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-pink)) 0%,
-      rgba(var(--accent-pink), 0.8) 100%
-    );
-    box-shadow: 
-      6px 6px 14px rgba(var(--accent-pink), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -1px -1px 3px rgba(var(--accent-pink), 0.2);
-  }
-
-  .clay-avatar-blue {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-blue)) 0%,
-      rgba(var(--accent-blue), 0.8) 100%
-    );
-    box-shadow: 
-      6px 6px 14px rgba(var(--accent-blue), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -1px -1px 3px rgba(var(--accent-blue), 0.2);
-  }
-
-  .clay-avatar-success {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--success)) 0%,
-      rgba(var(--success), 0.8) 100%
-    );
-    box-shadow: 
-      6px 6px 14px rgba(var(--success), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -1px -1px 3px rgba(var(--success), 0.2);
-  }
-
-  .clay-avatar-warning {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--warning)) 0%,
-      rgba(var(--warning), 0.8) 100%
-    );
-    box-shadow: 
-      6px 6px 14px rgba(var(--warning), 0.3),
-      -4px -4px 10px rgba(var(--shadow-light), 0.7),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3),
-      inset -1px -1px 3px rgba(var(--warning), 0.2);
+  .input-liquid:focus {
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
   }
 
   /* ----------------------------------------
-     CLAY BADGE - Pill-shaped status badges
+     VOLUME BADGE
      ---------------------------------------- */
-  .clay-badge {
+  .volume-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 50px;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
-    );
-    color: rgb(var(--text-secondary));
-    font-size: 13px;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--purple-300);
+    font-size: 12px;
     font-weight: 600;
-    box-shadow: 
-      4px 4px 10px rgba(var(--shadow-dark), 0.15),
-      -3px -3px 8px rgba(var(--shadow-light), 0.9),
-      inset 1px 1px 2px rgba(var(--shadow-light), 0.5),
-      inset -1px -1px 2px rgba(var(--shadow-dark), 0.05);
-    transition: all 0.2s ease;
-  }
-
-  /* Badge color variants */
-  .clay-badge-cyan {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--accent-cyan), 0.15) 0%,
-      rgba(var(--accent-cyan), 0.08) 100%
-    );
-    color: rgb(var(--accent-cyan-dark));
-    border: 1px solid rgba(var(--accent-cyan), 0.2);
-  }
-
-  .clay-badge-purple {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--accent-purple), 0.15) 0%,
-      rgba(var(--accent-purple), 0.08) 100%
-    );
-    color: rgb(var(--accent-purple));
-    border: 1px solid rgba(var(--accent-purple), 0.2);
-  }
-
-  .clay-badge-success {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--success), 0.15) 0%,
-      rgba(var(--success), 0.08) 100%
-    );
-    color: rgb(var(--success));
-    border: 1px solid rgba(var(--success), 0.2);
-  }
-
-  .clay-badge-warning {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--warning), 0.15) 0%,
-      rgba(var(--warning), 0.08) 100%
-    );
-    color: rgb(var(--warning));
-    border: 1px solid rgba(var(--warning), 0.2);
-  }
-
-  .clay-badge-error {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--error), 0.15) 0%,
-      rgba(var(--error), 0.08) 100%
-    );
-    color: rgb(var(--error));
-    border: 1px solid rgba(var(--error), 0.2);
   }
 
   /* ----------------------------------------
-     ADDITIONAL CLAY COMPONENTS
+     BOTTOM SHEET MODAL
      ---------------------------------------- */
-
-  /* Clay Toggle Switch */
-  .clay-toggle {
-    position: relative;
-    width: 56px;
-    height: 32px;
-    border-radius: 50px;
+  .bottom-sheet {
     background: linear-gradient(
-      145deg,
-      rgb(var(--bg-secondary)) 0%,
-      rgb(var(--bg-primary)) 100%
+      180deg,
+      rgba(26, 16, 48, 0.98) 0%,
+      rgba(13, 8, 24, 0.99) 100%
     );
-    box-shadow: 
-      inset 4px 4px 8px rgba(var(--shadow-dark), 0.2),
-      inset -4px -4px 8px rgba(var(--shadow-light), 0.95);
-    cursor: pointer;
-    transition: all 0.3s ease;
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 24px 24px 0 0;
   }
 
-  .clay-toggle.active {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-cyan-dark)) 100%
-    );
-    box-shadow: 
-      4px 4px 10px rgba(var(--accent-cyan), 0.3),
-      -4px -4px 8px rgba(var(--shadow-light), 0.5),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3);
+  @media (min-width: 640px) {
+    .bottom-sheet {
+      border-radius: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
   }
 
-  .clay-toggle-knob {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
-    );
-    box-shadow: 
-      3px 3px 6px rgba(var(--shadow-dark), 0.2),
-      -2px -2px 5px rgba(var(--shadow-light), 0.9);
-    transition: all 0.3s ease;
+  /* ----------------------------------------
+     STAT CARD
+     ---------------------------------------- */
+  .stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px;
   }
 
-  .clay-toggle.active .clay-toggle-knob {
-    left: 28px;
-    background: rgb(var(--bg-card));
+  /* ----------------------------------------
+     HEADER STYLES
+     ---------------------------------------- */
+  .glass-header {
+    background: rgba(15, 10, 30, 0.8);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  /* Clay Divider */
-  .clay-divider {
-    height: 2px;
-    margin: 16px 0;
-    border-radius: 2px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(var(--shadow-dark), 0.15) 20%,
-      rgba(var(--shadow-dark), 0.15) 80%,
-      transparent 100%
-    );
-    box-shadow: 
-      0 1px 1px rgba(var(--shadow-light), 0.8);
-  }
-
-  /* Clay Icon Button */
-  .clay-icon-button {
-    display: flex;
+  /* ----------------------------------------
+     BADGES
+     ---------------------------------------- */
+  .badge-yes {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border: none;
-    border-radius: 14px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-no {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: rgba(107, 114, 128, 0.4);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: var(--purple-300);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--purple-400);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* ----------------------------------------
+     PREDICTION CARD (Legacy compat)
+     ---------------------------------------- */
+  .prediction-card {
     background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
     );
-    color: rgb(var(--text-secondary));
-    cursor: pointer;
-    box-shadow: 
-      5px 5px 12px rgba(var(--shadow-dark), 0.18),
-      -5px -5px 12px rgba(var(--shadow-light), 0.95),
-      inset 1px 1px 2px rgba(var(--shadow-light), 0.5);
-    transition: all 0.2s ease;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    transition: all 0.3s ease;
   }
 
-  .clay-icon-button:hover {
-    transform: translateY(-2px);
-    color: rgb(var(--accent-cyan));
-    box-shadow: 
-      7px 7px 16px rgba(var(--shadow-dark), 0.22),
-      -7px -7px 16px rgba(var(--shadow-light), 0.98),
-      inset 1px 1px 2px rgba(var(--shadow-light), 0.6);
+  .prediction-card:hover {
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 12px 40px rgba(139, 92, 246, 0.15);
   }
 
-  .clay-icon-button:active {
-    transform: translateY(1px);
-    box-shadow: 
-      2px 2px 6px rgba(var(--shadow-dark), 0.15),
-      -2px -2px 6px rgba(var(--shadow-light), 0.9),
-      inset 3px 3px 6px rgba(var(--shadow-dark), 0.1);
-  }
-
-  /* Clay Progress Bar */
-  .clay-progress {
-    height: 12px;
-    border-radius: 50px;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-secondary)) 0%,
-      rgb(var(--bg-primary)) 100%
-    );
-    box-shadow: 
-      inset 3px 3px 6px rgba(var(--shadow-dark), 0.15),
-      inset -3px -3px 6px rgba(var(--shadow-light), 0.9);
+  /* ----------------------------------------
+     PRICE BAR (Legacy compat)
+     ---------------------------------------- */
+  .price-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(107, 114, 128, 0.3);
     overflow: hidden;
   }
 
-  .clay-progress-bar {
+  .price-bar-fill {
     height: 100%;
-    border-radius: 50px;
-    background: linear-gradient(
-      90deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-cyan-dark)) 100%
-    );
-    box-shadow: 
-      inset 0 2px 4px rgba(255, 255, 255, 0.3),
-      2px 0 8px rgba(var(--accent-cyan), 0.3);
-    transition: width 0.4s ease;
-  }
-
-  /* Clay Chip/Tag */
-  .clay-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 50px;
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
-    );
-    color: rgb(var(--text-primary));
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 
-      4px 4px 10px rgba(var(--shadow-dark), 0.12),
-      -4px -4px 10px rgba(var(--shadow-light), 0.9),
-      inset 1px 1px 2px rgba(var(--shadow-light), 0.5);
-    transition: all 0.2s ease;
-    cursor: pointer;
-  }
-
-  .clay-chip:hover {
-    transform: scale(1.02);
-    box-shadow: 
-      5px 5px 12px rgba(var(--shadow-dark), 0.15),
-      -5px -5px 12px rgba(var(--shadow-light), 0.95),
-      inset 1px 1px 2px rgba(var(--shadow-light), 0.6);
-  }
-
-  .clay-chip.selected {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--accent-cyan), 0.15) 0%,
-      rgba(var(--accent-cyan), 0.08) 100%
-    );
-    color: rgb(var(--accent-cyan-dark));
-    border: 1px solid rgba(var(--accent-cyan), 0.3);
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--purple-500) 0%, var(--purple-400) 100%);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+    transition: width 0.4s ease-out;
   }
 
   /* ----------------------------------------
-     LEGACY COMPATIBILITY CLASSES
+     LEGACY COMPATIBILITY
      ---------------------------------------- */
-
-  /* Old glass classes mapped to clay */
-  .clay {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgb(var(--bg-secondary)) 100%
-    );
-    border-radius: 24px;
-    border: 1px solid rgba(var(--shadow-dark), 0.1);
-    box-shadow: 
-      8px 8px 20px rgba(var(--shadow-dark), 0.2),
-      -8px -8px 20px rgba(var(--shadow-light), 0.95),
-      inset 2px 2px 4px rgba(var(--shadow-light), 0.6),
-      inset -2px -2px 4px rgba(var(--shadow-dark), 0.05);
-  }
-
-  .liquid-glass,
-  .liquid-glass-subtle,
-  .liquid-glass-elevated,
-  .liquid-glass-plasma {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-card)) 0%,
-      rgba(var(--bg-secondary), 0.9) 100%
-    );
-    border-radius: 20px;
-    border: 1px solid rgba(var(--shadow-dark), 0.08);
-    box-shadow: 
-      10px 10px 24px rgba(var(--shadow-dark), 0.2),
-      -10px -10px 24px rgba(var(--shadow-light), 0.95),
-      inset 2px 2px 4px rgba(var(--shadow-light), 0.5);
-  }
-
-  .plasma-glow {
-    box-shadow: 
-      0 0 30px rgba(var(--accent-cyan), 0.25),
-      0 0 60px rgba(var(--accent-cyan), 0.1);
-  }
-
-  .gradient-text {
+  .liquid-metal-elevated {
     background: linear-gradient(
       135deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-purple)) 100%
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+  }
+
+  .text-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--purple-400) 0%,
+      var(--purple-300) 50%,
+      var(--purple-400) 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-  }
-
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(
-      180deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-cyan-dark)) 100%
-    );
-    color: white;
-    font-weight: 600;
-    border-radius: 1rem;
-    padding: 1rem 2rem;
-    min-height: 48px;
-    border: none;
-    transition: all 0.3s ease;
-    box-shadow: 
-      6px 6px 16px rgba(var(--accent-cyan-dark), 0.3),
-      -4px -4px 12px rgba(var(--shadow-light), 0.5),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.3);
-    cursor: pointer;
-  }
-
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      8px 8px 20px rgba(var(--accent-cyan-dark), 0.4),
-      -6px -6px 16px rgba(var(--shadow-light), 0.6),
-      inset 2px 2px 4px rgba(255, 255, 255, 0.4);
-  }
-
-  .btn-primary:active {
-    transform: scale(0.98);
-  }
-
-  .input-glass {
-    background: linear-gradient(
-      145deg,
-      rgb(var(--bg-secondary)) 0%,
-      rgb(var(--bg-primary)) 100%
-    );
-    border: 1px solid rgba(var(--shadow-dark), 0.12);
-    border-radius: 1rem;
-    padding: 1rem;
-    color: rgb(var(--text-primary));
-    transition: all 0.2s ease;
-    min-height: 48px;
-    box-shadow: 
-      inset 4px 4px 8px rgba(var(--shadow-dark), 0.12),
-      inset -4px -4px 8px rgba(var(--shadow-light), 0.95);
-  }
-
-  .input-glass:focus {
-    outline: none;
-    border-color: rgba(var(--accent-cyan), 0.4);
-    box-shadow: 
-      inset 4px 4px 8px rgba(var(--shadow-dark), 0.12),
-      inset -4px -4px 8px rgba(var(--shadow-light), 0.95),
-      0 0 0 3px rgba(var(--accent-cyan), 0.1);
-  }
-
-  .input-glass::placeholder {
-    color: rgba(var(--text-muted), 0.7);
   }
 }
 
@@ -846,59 +562,17 @@ body {
     min-width: 44px;
   }
 
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
   /* Text colors */
-  .text-primary {
-    color: rgb(var(--text-primary));
+  .text-yes {
+    color: var(--purple-400);
   }
 
-  .text-secondary {
-    color: rgb(var(--text-secondary));
-  }
-
-  .text-muted {
-    color: rgb(var(--text-muted));
-  }
-
-  .text-accent {
-    color: rgb(var(--accent-cyan));
-  }
-
-  /* Background utilities */
-  .bg-primary {
-    background-color: rgb(var(--bg-primary));
-  }
-
-  .bg-secondary {
-    background-color: rgb(var(--bg-secondary));
-  }
-
-  .bg-card {
-    background-color: rgb(var(--bg-card));
-  }
-
-  /* Status utilities */
-  .text-success {
-    color: rgb(var(--success));
-  }
-
-  .text-warning {
-    color: rgb(var(--warning));
-  }
-
-  .text-error {
-    color: rgb(var(--error));
-  }
-
-  .bg-success-light {
-    background-color: rgb(var(--success-light));
-  }
-
-  .bg-warning-light {
-    background-color: rgb(var(--warning-light));
-  }
-
-  .bg-error-light {
-    background-color: rgb(var(--error-light));
+  .text-no {
+    color: rgb(156, 163, 175);
   }
 }
 
@@ -906,164 +580,44 @@ body {
    ANIMATIONS
    ======================================== */
 
-@keyframes fade-in-scale {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
+@keyframes pulse {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
   }
-}
-
-@keyframes slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
   }
 }
 
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes confetti-fall {
+@keyframes shimmer {
   0% {
-    transform: translateY(-100px) rotate(0deg);
-    opacity: 1;
+    background-position: -200% 0;
   }
   100% {
-    transform: translateY(400px) rotate(720deg);
-    opacity: 0;
+    background-position: 200% 0;
   }
 }
 
-@keyframes success-bounce {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 
-      6px 6px 16px rgba(var(--accent-cyan-dark), 0.3),
-      -4px -4px 12px rgba(var(--shadow-light), 0.5);
-  }
-  50% {
-    box-shadow: 
-      8px 8px 24px rgba(var(--accent-cyan), 0.4),
-      -6px -6px 16px rgba(var(--shadow-light), 0.7);
-  }
-}
-
-@keyframes avatar-bob {
+@keyframes float {
   0%, 100% {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-10px);
   }
-}
-
-@keyframes clay-bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Animation utility classes */
-.animate-fade-in-scale {
-  animation: fade-in-scale 0.2s ease-out forwards;
-}
-
-.animate-slide-down {
-  animation: slide-down 0.2s ease-out forwards;
-}
-
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out forwards;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out forwards;
-}
-
-.animate-confetti-fall {
-  animation: confetti-fall 3s linear forwards;
-}
-
-.animate-success-bounce {
-  animation: success-bounce 0.5s ease-out forwards;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-avatar-bob {
-  animation: avatar-bob 2.2s ease-in-out infinite;
-}
-
-.animate-clay-bounce {
-  animation: clay-bounce 2s ease-in-out infinite;
 }
 
 /* ========================================
    ACCESSIBILITY
    ======================================== */
 
-/* Ensure sufficient contrast for text */
-.clay-text {
-  color: rgb(var(--text-primary));
-  text-shadow: 0 1px 0 rgba(var(--shadow-light), 0.5);
-}
-
-/* Focus states for accessibility */
 *:focus-visible {
-  outline: 3px solid rgba(var(--accent-cyan), 0.5);
+  outline: 2px solid var(--purple-500);
   outline-offset: 2px;
 }
 
-/* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1075,29 +629,19 @@ body {
 }
 
 /* ========================================
-   RESPONSIVE ADJUSTMENTS
+   RESPONSIVE
    ======================================== */
 
 @media (max-width: 640px) {
-  .clay-card {
-    border-radius: 20px;
-    box-shadow: 
-      8px 8px 18px rgba(var(--shadow-dark), 0.2),
-      -8px -8px 18px rgba(var(--shadow-light), 0.9),
-      inset 2px 2px 4px rgba(var(--shadow-light), 0.7),
-      inset -2px -2px 4px rgba(var(--shadow-dark), 0.06);
+  .glass-card,
+  .market-card {
+    border-radius: 16px;
   }
 
-  .clay-button {
-    padding: 12px 24px;
+  .glass-btn {
+    padding: 10px 20px;
     min-height: 44px;
-    font-size: 15px;
-    border-radius: 14px;
-  }
-
-  .clay-input {
-    padding: 14px 18px;
-    min-height: 48px;
+    font-size: 14px;
     border-radius: 14px;
   }
 }

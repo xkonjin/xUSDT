@@ -8,33 +8,45 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+      },
       colors: {
-        plasma: {
-          50: '#e6fcff',
-          100: '#b3f5ff',
-          200: '#80eeff',
-          300: '#4de7ff',
-          400: '#1ae0ff',
-          500: '#00d4ff',
-          600: '#00aad4',
-          700: '#0080a8',
-          800: '#00567d',
-          900: '#002c52',
+        // Brand Purple
+        purple: {
+          50: '#f5f3ff',
+          100: '#ede9fe',
+          200: '#ddd6fe',
+          300: '#c4b5fd',
+          400: '#a78bfa',
+          500: '#8B5CF6',  // Primary brand
+          600: '#7c3aed',
+          700: '#6d28d9',
+          800: '#5b21b6',
+          900: '#4c1d95',
+          950: '#2e1065',
         },
+        // Yes/No outcomes
         yes: {
-          DEFAULT: '#10B981',
-          light: '#34D399',
-          dark: '#059669',
+          DEFAULT: '#8B5CF6',  // Purple for Yes
+          light: '#a78bfa',
+          dark: '#7c3aed',
         },
         no: {
-          DEFAULT: '#EF4444',
-          light: '#F87171',
-          dark: '#DC2626',
+          DEFAULT: '#6b7280',  // Gray for No
+          light: '#9ca3af',
+          dark: '#4b5563',
         },
-        prediction: {
-          primary: '#8B5CF6',
-          secondary: '#A78BFA',
+        // Glass variables
+        glass: {
+          white: 'rgba(255, 255, 255, 0.15)',
+          border: 'rgba(255, 255, 255, 0.2)',
+          highlight: 'rgba(255, 255, 255, 0.3)',
         },
+      },
+      backdropBlur: {
+        xs: '2px',
       },
       animation: {
         'slide-up': 'slideUp 0.3s ease-out',
@@ -43,6 +55,7 @@ const config: Config = {
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'confetti': 'confetti 3s linear forwards',
         'bounce-success': 'bounceSuccess 0.5s ease-out',
+        'shimmer': 'shimmer 2s linear infinite',
       },
       keyframes: {
         slideUp: {
@@ -68,6 +81,10 @@ const config: Config = {
         bounceSuccess: {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.05)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         },
       },
     },

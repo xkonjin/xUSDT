@@ -143,19 +143,31 @@ export default function MyBetsPage() {
   }
 
   // Use demo bets when in demo mode
-  const sourceBets = isDemoMode 
-    ? demoBets.map((db) => ({
-        id: db.id,
-        marketId: db.marketId,
-        market: db.market,
-        userAddress: "demo",
-        outcome: db.outcome,
-        shares: db.shares,
-        amount: db.amount,
-        status: db.status,
-        createdAt: db.placedAt,
-        txHash: "demo-" + db.id,
-      }))
+  const sourceBets = isDemoMode
+    ? demoBets.map((db) => {
+        const currentPrice = db.outcome === "YES" ? db.market.yesPrice : db.market.noPrice;
+        const currentValue = db.shares * currentPrice;
+        const costBasis = db.amount;
+        const pnl = currentValue - costBasis;
+        const pnlPercent = costBasis > 0 ? pnl / costBasis : 0;
+
+        return {
+          id: db.id,
+          marketId: db.marketId,
+          market: db.market,
+          userAddress: "demo",
+          outcome: db.outcome,
+          shares: db.shares,
+          costBasis,
+          currentValue,
+          pnl,
+          pnlPercent,
+          status: db.status,
+          placedAt: db.placedAt,
+          resolvedAt: db.resolvedAt,
+          txHash: "demo-" + db.id,
+        };
+      })
     : bets || [];
 
   const filteredBets = sourceBets.filter((bet) => {

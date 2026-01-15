@@ -16,6 +16,8 @@ jest.mock('@plasma-pay/db', () => {
       activity: {
         findMany: jest.fn(),
         count: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
     },
   };
@@ -32,7 +34,7 @@ jest.mock('next/server', () => ({
 }));
 
 // Import after mocking
-import { GET } from '../route';
+import { GET, POST } from '../route';
 import { prisma } from '@plasma-pay/db';
 
 // Cast to mocked type
@@ -362,6 +364,116 @@ describe('GET /api/feed', () => {
           take: 100,
         })
       );
+    });
+  });
+});
+
+describe('POST /api/feed (like/unlike)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const createPostRequest = (body: object) => {
+    return new Request('http://localhost:3002/api/feed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  };
+
+  describe('like functionality', () => {
+    it('returns error when activityId is missing', async () => {
+      const request = createPostRequest({ userAddress: '0x1234' });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('activityId and userAddress are required');
+    });
+
+    it('returns error when userAddress is missing', async () => {
+      const request = createPostRequest({ activityId: 'activity-1' });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('activityId and userAddress are required');
+    });
+
+    it('returns 404 when activity not found', async () => {
+      (mockedPrisma.activity.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const request = createPostRequest({
+        activityId: 'nonexistent',
+        userAddress: '0x1234',
+      });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Activity not found');
+    });
+
+    it('successfully likes an activity', async () => {
+      const mockActivity = {
+        id: 'activity-1',
+        likes: 5,
+      };
+
+      (mockedPrisma.activity.findUnique as jest.Mock).mockResolvedValue(mockActivity);
+      (mockedPrisma.activity.update as jest.Mock).mockResolvedValue({ likes: 6 });
+
+      const request = createPostRequest({
+        activityId: 'activity-1',
+        userAddress: '0x1234567890123456789012345678901234567890',
+      });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.isLiked).toBe(true);
+      expect(data.likes).toBe(6);
+    });
+
+    it('toggles like to unlike on second call', async () => {
+      const mockActivity = { id: 'activity-1', likes: 6 };
+      (mockedPrisma.activity.findUnique as jest.Mock).mockResolvedValue(mockActivity);
+      (mockedPrisma.activity.update as jest.Mock).mockResolvedValue({ likes: 5 });
+
+      // First call - like
+      const request1 = createPostRequest({
+        activityId: 'activity-1',
+        userAddress: '0xabcdef1234567890123456789012345678901234',
+      });
+      const response1 = await POST(request1);
+      const data1 = await response1.json();
+      expect(data1.isLiked).toBe(true);
+
+      // Second call - unlike (same user, same activity)
+      const request2 = createPostRequest({
+        activityId: 'activity-1',
+        userAddress: '0xabcdef1234567890123456789012345678901234',
+      });
+      const response2 = await POST(request2);
+      const data2 = await response2.json();
+      expect(data2.isLiked).toBe(false);
+    });
+
+    it('handles database errors gracefully', async () => {
+      (mockedPrisma.activity.findUnique as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
+
+      const request = createPostRequest({
+        activityId: 'activity-1',
+        userAddress: '0x1234',
+      });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.error).toBe('Failed to process like');
     });
   });
 });

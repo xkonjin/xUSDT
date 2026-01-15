@@ -8,6 +8,7 @@ export { CashOutModal } from "./CashOutModal";
 export { SearchBar } from "./SearchBar";
 export { CategoryTabs } from "./CategoryTabs";
 export { DemoModeBanner } from "./DemoModeBanner";
+export { OddsBar, OddsBarInline } from "./OddsBar";
 
 // Charts & Visualization
 export { Sparkline } from "./Sparkline";

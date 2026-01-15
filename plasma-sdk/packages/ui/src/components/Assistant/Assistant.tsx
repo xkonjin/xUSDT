@@ -186,8 +186,17 @@ export function Assistant({ apiKey, onNavigate }: AssistantProps) {
   const handleAvatarClick = useCallback(() => {
     if (isDragging) return;
     wakeUp();
+    
+    // If opening bubble and no messages, add a greeting
+    if (!showBubble && messages.length === 0) {
+      const greeting = memory.userName 
+        ? `Hey ${memory.userName}! How can I help? 👋`
+        : "Hey! I'm Plenny, your payment buddy! 👋";
+      addMessage({ type: 'assistant', content: greeting, emotion: 'happy' });
+    }
+    
     setShowBubble(!showBubble);
-  }, [isDragging, showBubble, wakeUp]);
+  }, [isDragging, showBubble, wakeUp, messages.length, memory.userName, addMessage]);
 
   // Toggle voice
   const toggleVoice = useCallback(() => {
