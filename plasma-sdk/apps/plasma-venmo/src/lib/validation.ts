@@ -115,6 +115,61 @@ export function validateAddress(address: string | undefined): ValidationResult {
 }
 
 /**
+ * Parse technical/contract errors into user-friendly messages
+ */
+export function parseUserFriendlyError(error: string, context?: { amount?: string; balance?: string }): string {
+  const lowerError = error.toLowerCase();
+  
+  // Insufficient balance
+  if (lowerError.includes('exceeds balance') || lowerError.includes('insufficient')) {
+    if (context?.amount && context?.balance) {
+      return `You don't have enough USDT0. You need $${context.amount} but only have $${context.balance}.`;
+    }
+    return "You don't have enough USDT0 to complete this payment.";
+  }
+  
+  // User rejected/cancelled
+  if (lowerError.includes('rejected') || lowerError.includes('denied') || lowerError.includes('cancelled') || lowerError.includes('canceled')) {
+    return 'Transaction was cancelled.';
+  }
+  
+  // Network issues
+  if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('connection') || lowerError.includes('fetch')) {
+    return 'Network error. Please check your connection and try again.';
+  }
+  
+  // Invalid signature
+  if (lowerError.includes('signature') && lowerError.includes('invalid')) {
+    return 'Something went wrong signing the transaction. Please try again.';
+  }
+  
+  // Contract revert (generic)
+  if (lowerError.includes('revert') || lowerError.includes('contract function')) {
+    if (lowerError.includes('erc20')) {
+      return "You don't have enough USDT0 to complete this payment.";
+    }
+    return 'Transaction failed. Please try again.';
+  }
+  
+  // Service not configured
+  if (lowerError.includes('not configured') || lowerError.includes('configuration')) {
+    return 'This feature is currently unavailable. Please try again later.';
+  }
+  
+  // Rate limiting
+  if (lowerError.includes('rate limit') || lowerError.includes('too many')) {
+    return 'Too many requests. Please wait a moment and try again.';
+  }
+  
+  // Fallback - don't show technical details to users
+  if (error.length > 100 || error.includes('0x') || error.includes('args:')) {
+    return 'Something went wrong. Please try again.';
+  }
+  
+  return error;
+}
+
+/**
  * Log startup warnings for missing optional env vars
  */
 export function logStartupWarnings(): void {

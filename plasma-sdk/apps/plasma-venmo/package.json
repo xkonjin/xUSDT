@@ -24,7 +24,6 @@
     "@plasma-pay/ui": "*",
     "@privy-io/react-auth": "^1.92.0",
     "@privy-io/server-auth": "^1.14.0",
-    "@sendgrid/mail": "^8.1.6",
     "clsx": "^2.1.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.0",

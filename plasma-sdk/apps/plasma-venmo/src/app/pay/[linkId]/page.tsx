@@ -18,6 +18,7 @@ import Link from "next/link";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { ExternalWalletPayButton } from "@/components/ExternalWalletPay";
+import { parseUserFriendlyError } from "@/lib/validation";
 
 // Type for payment link data
 interface PaymentLinkData {
@@ -159,50 +160,10 @@ export default function PayPage({
       } : null);
     } catch (err) {
       const rawError = err instanceof Error ? err.message : "Payment failed";
-      setError(parseUserFriendlyError(rawError, amount));
+      setError(parseUserFriendlyError(rawError, { amount, balance: balance || '0' }));
     } finally {
       setPaying(false);
     }
-  }
-
-  // Convert technical errors to user-friendly messages
-  function parseUserFriendlyError(error: string, payAmount: string): string {
-    const lowerError = error.toLowerCase();
-    
-    // Insufficient balance
-    if (lowerError.includes('exceeds balance') || lowerError.includes('insufficient')) {
-      return `You don't have enough USDT0. You need $${payAmount} but only have $${balance || '0'}.`;
-    }
-    
-    // User rejected/cancelled
-    if (lowerError.includes('rejected') || lowerError.includes('denied') || lowerError.includes('cancelled')) {
-      return 'Transaction was cancelled.';
-    }
-    
-    // Network issues
-    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('connection')) {
-      return 'Network error. Please check your connection and try again.';
-    }
-    
-    // Invalid signature
-    if (lowerError.includes('signature') || lowerError.includes('invalid')) {
-      return 'Something went wrong signing the transaction. Please try again.';
-    }
-    
-    // Contract revert (generic)
-    if (lowerError.includes('revert') || lowerError.includes('contract')) {
-      if (lowerError.includes('erc20')) {
-        return `You don't have enough USDT0 to complete this payment.`;
-      }
-      return 'Transaction failed. Please try again or use an external wallet.';
-    }
-    
-    // Fallback - don't show technical details
-    if (error.length > 100 || error.includes('0x')) {
-      return 'Payment failed. Please try again or use an external wallet.';
-    }
-    
-    return error;
   }
 
   // Loading state

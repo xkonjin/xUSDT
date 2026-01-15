@@ -2,12 +2,13 @@
  * Notification Service API
  * 
  * Handles sending email notifications for various events.
- * Supports both SendGrid (primary) and Resend (fallback) for email delivery.
+ * Uses Resend for email delivery when configured.
+ * 
+ * Note: Email notifications are optional. Users can share payment links
+ * directly via text, DM, or any messaging app.
  * 
  * Environment variables:
- * - SENDGRID_API_KEY: SendGrid API key (preferred - no domain verification needed)
- * - SENDGRID_FROM_EMAIL: Sender email for SendGrid
- * - RESEND_API_KEY: Resend API key (fallback)
+ * - RESEND_API_KEY: Resend API key (optional)
  * - RESEND_FROM_EMAIL: Sender email for Resend
  * 
  * Endpoints:
@@ -17,21 +18,9 @@
 
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import sgMail from '@sendgrid/mail';
 import { prisma, notifications as notifyHelpers, type NotificationType, type Notification } from '@plasma-pay/db';
 
-// Initialize SendGrid (preferred - no domain verification needed)
-let sendgridInitialized = false;
-function initSendGrid(): boolean {
-  if (!process.env.SENDGRID_API_KEY) return false;
-  if (!sendgridInitialized) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    sendgridInitialized = true;
-  }
-  return true;
-}
-
-// Initialize Resend client (fallback)
+// Initialize Resend client
 let resendClient: Resend | null = null;
 function getResend(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
@@ -263,59 +252,22 @@ export async function POST(request: Request) {
     const html = template.html(notificationData);
     const toEmail = notification.recipientEmail!;
 
-    // Try SendGrid first (no domain verification required)
-    const hasSendGrid = initSendGrid();
-    if (hasSendGrid) {
-      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'plenmo@plasma.to';
-      
-      try {
-        const [response] = await sgMail.send({
-          to: toEmail,
-          from: fromEmail,
-          subject,
-          html,
-        });
-
-        await notifyHelpers.markSent(notification.id);
-
-        console.log('📧 Email sent via SendGrid:', {
-          id: notification.id,
-          to: toEmail,
-          statusCode: response.statusCode,
-        });
-
-        return NextResponse.json({
-          success: true,
-          id: notification.id,
-          provider: 'sendgrid',
-          statusCode: response.statusCode,
-        });
-      } catch (sgError: any) {
-        console.error('[notify] SendGrid error:', {
-          notificationId: notification.id,
-          recipientEmail: toEmail,
-          error: sgError.message,
-          response: sgError.response?.body,
-        });
-        // Fall through to try Resend
-      }
-    }
-
-    // Fallback to Resend
+    // Get Resend client
     const resend = getResend();
     
     if (!resend) {
       // No email provider configured - log and mark as sent (dev mode)
-      console.log('📧 Notification (dev mode - no email provider):');
+      console.log('📧 Notification (no RESEND_API_KEY configured):');
       console.log('  To:', toEmail);
       console.log('  Subject:', subject);
       console.log('  Type:', notification.type);
+      console.log('  Note: Email notifications are optional. Users can share payment links directly.');
       
       await notifyHelpers.markSent(notification.id);
       
       return NextResponse.json({
         success: true,
-        message: 'Notification logged (dev mode - no SENDGRID_API_KEY or RESEND_API_KEY)',
+        message: 'Email not sent (RESEND_API_KEY not configured). Share payment links directly instead.',
         id: notification.id,
       });
     }

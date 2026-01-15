@@ -21,9 +21,11 @@ import {
   X,
   Loader2,
   ExternalLink,
-  Zap
+  Zap,
+  RotateCcw
 } from "lucide-react";
 import { ModalPortal } from "./ui/ModalPortal";
+import { posthog } from "@/lib/posthog";
 import type { BridgeQuote, ChainInfo, TokenInfo, BridgeProvider } from "@plasma-pay/aggregator";
 import { POPULAR_SOURCE_CHAINS, POPULAR_TOKENS } from "@plasma-pay/aggregator";
 
@@ -190,11 +192,27 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
     return () => clearInterval(interval);
   }, [quote.best, txState.status, fetchQuote]);
   
+  // Reset error state and allow retry
+  const resetError = () => {
+    setTxState({ status: "idle" });
+    // Refetch quote
+    fetchQuote();
+  };
+
   // Execute bridge transaction
   const executeBridge = async () => {
     if (!quote.best || !selectedToken) return;
     
     setTxState({ status: "bridging" });
+    
+    // Track bridge attempt
+    posthog?.capture("bridge_initiated", {
+      provider: quote.best.provider,
+      fromChain: selectedChain.name,
+      fromToken: selectedToken.symbol,
+      amount: amount,
+      estimatedOutput: quote.best.toAmount,
+    });
     
     try {
       // Get transaction data from API
@@ -217,19 +235,33 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
       
       const txData = await txResponse.json();
       
+      // Track that we got transaction data (wallet connection needed)
+      posthog?.capture("bridge_wallet_required", {
+        provider: quote.best.provider,
+        fromChain: selectedChain.name,
+      });
+      
       // For now, show a message about connecting external wallet
       // In production, this would use WalletConnect or the user's connected wallet
       setTxState({ 
         status: "error",
-        error: "External wallet connection required. Please use a Web3 wallet like MetaMask to execute the transaction.",
+        error: "Connect your wallet to complete this transaction. WalletConnect integration coming soon!",
       });
       
       console.log("Transaction data:", txData);
       
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Bridge failed";
+      
+      posthog?.capture("bridge_error", {
+        provider: quote.best?.provider,
+        fromChain: selectedChain.name,
+        error: errorMessage,
+      });
+      
       setTxState({
         status: "error",
-        error: err instanceof Error ? err.message : "Bridge failed",
+        error: errorMessage,
       });
     }
   };
@@ -382,12 +414,12 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
               {quote.loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-white/50">Getting best rate...</span>
+                  <span className="text-white/50 text-lg">Finding best price...</span>
                 </span>
               ) : quote.best ? (
                 `$${formatOutputAmount(quote.best.toAmount)}`
               ) : (
-                <span className="text-white/30">--</span>
+                <span className="text-white/30">Enter amount above</span>
               )}
             </span>
             
@@ -484,9 +516,20 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
 
         {/* Error */}
         {(quote.error || txState.error) && (
-          <div className="flex items-start gap-2 text-red-400 text-sm bg-red-500/10 rounded-xl p-3 mb-4">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{quote.error || txState.error}</span>
+          <div className="bg-red-500/10 rounded-xl p-3 mb-4">
+            <div className="flex items-start gap-2 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{quote.error || txState.error}</span>
+            </div>
+            {txState.error && (
+              <button
+                onClick={resetError}
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-sm transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Try Again
+              </button>
+            )}
           </div>
         )}
 
@@ -499,22 +542,22 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
           {txState.status === "idle" ? (
             <>
               <ArrowRightLeft className="w-5 h-5" />
-              Bridge to USDT0
+              Convert to USDT0
             </>
           ) : txState.status === "bridging" ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Preparing Transaction...
+              Preparing...
             </>
           ) : txState.status === "success" ? (
             <>
               <Check className="w-5 h-5" />
-              Bridge Complete!
+              Conversion Complete!
             </>
           ) : (
             <>
               <ArrowRightLeft className="w-5 h-5" />
-              Bridge to USDT0
+              Convert to USDT0
             </>
           )}
         </button>

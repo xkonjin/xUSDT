@@ -6,6 +6,7 @@ import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { useAssistantReaction } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
+import { parseUserFriendlyError } from "@/lib/validation";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
 import { ModalPortal } from "./ui/ModalPortal";
@@ -281,13 +282,15 @@ export function SendMoneyForm({
       } else {
         playSound('error');
         hapticFeedback('light');
-        const errorMsg = result.error || "Something went wrong. Your money is safe - try again?";
-        setError(errorMsg);
+        const rawError = result.error || "Something went wrong";
+        const friendlyError = parseUserFriendlyError(rawError, { amount, balance });
+        setError(friendlyError);
         assistantError("Payment failed. Let me help you fix this!");
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Unknown error";
-      setError(errorMsg);
+      const rawError = err instanceof Error ? err.message : "Unknown error";
+      const friendlyError = parseUserFriendlyError(rawError, { amount, balance });
+      setError(friendlyError);
       assistantError("Something went wrong. Your funds are safe!");
     } finally {
       setLoading(false);
