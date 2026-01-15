@@ -158,10 +158,51 @@ export default function PayPage({
         txHash: result.txHash,
       } : null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
+      const rawError = err instanceof Error ? err.message : "Payment failed";
+      setError(parseUserFriendlyError(rawError, amount));
     } finally {
       setPaying(false);
     }
+  }
+
+  // Convert technical errors to user-friendly messages
+  function parseUserFriendlyError(error: string, payAmount: string): string {
+    const lowerError = error.toLowerCase();
+    
+    // Insufficient balance
+    if (lowerError.includes('exceeds balance') || lowerError.includes('insufficient')) {
+      return `You don't have enough USDT0. You need $${payAmount} but only have $${balance || '0'}.`;
+    }
+    
+    // User rejected/cancelled
+    if (lowerError.includes('rejected') || lowerError.includes('denied') || lowerError.includes('cancelled')) {
+      return 'Transaction was cancelled.';
+    }
+    
+    // Network issues
+    if (lowerError.includes('network') || lowerError.includes('timeout') || lowerError.includes('connection')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    
+    // Invalid signature
+    if (lowerError.includes('signature') || lowerError.includes('invalid')) {
+      return 'Something went wrong signing the transaction. Please try again.';
+    }
+    
+    // Contract revert (generic)
+    if (lowerError.includes('revert') || lowerError.includes('contract')) {
+      if (lowerError.includes('erc20')) {
+        return `You don't have enough USDT0 to complete this payment.`;
+      }
+      return 'Transaction failed. Please try again or use an external wallet.';
+    }
+    
+    // Fallback - don't show technical details
+    if (error.length > 100 || error.includes('0x')) {
+      return 'Payment failed. Please try again or use an external wallet.';
+    }
+    
+    return error;
   }
 
   // Loading state
@@ -354,8 +395,18 @@ export default function PayPage({
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm mb-6">
-              {error}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-200 text-sm font-medium">{error}</p>
+                  {error.includes("enough") && (
+                    <p className="text-white/50 text-xs mt-2">
+                      You can add funds or pay with an external wallet below.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
