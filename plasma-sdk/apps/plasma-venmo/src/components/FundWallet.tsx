@@ -152,16 +152,25 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-center">
-                  <p className="text-amber-400 text-sm mb-2">
-                    Card payments are not yet available
+                {/* Coming Soon Badge */}
+                <div className="bg-plenmo-500/10 border border-plenmo-500/30 rounded-2xl p-4 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-plenmo-500/20 text-plenmo-400 text-xs font-semibold mb-2">
+                    <span className="w-2 h-2 rounded-full bg-plenmo-500 animate-pulse" />
+                    Coming Soon
+                  </div>
+                  <p className="text-white/70 text-sm font-medium mb-1">
+                    Card payments launching soon!
                   </p>
                   <p className="text-white/40 text-xs">
-                    You can fund your wallet by transferring USDT0 to your address instead.
+                    Buy USDT with debit card, credit card, Apple Pay & Google Pay.
                   </p>
                 </div>
                 
-                {/* Fallback: Copy Address */}
+                {/* Alternative: Copy Address */}
+                <p className="text-white/50 text-xs text-center">
+                  For now, fund your wallet by transferring USDT0:
+                </p>
+                
                 <div className="bg-white/5 rounded-2xl p-4">
                   <p className="text-white/40 text-xs mb-2">Your Plenmo Address</p>
                   <div className="flex items-center justify-between gap-2">
