@@ -354,7 +354,14 @@ export function useUSDT0Balance() {
  * ```
  */
 export function useFundWallet() {
+  // IMPORTANT: Call ALL hooks first before any conditional returns
+  // React hooks must be called in the same order on every render
   const mockContext = useContext(MockWalletContext);
+  const { wallet } = usePlasmaWallet();
+  const { fundWallet: privyFundWallet } = usePrivyFundWallet();
+  const [loading, setLoading] = useState(false);
+
+  // Now we can safely check mock context after all hooks are called
   if (mockContext?.wallet) {
     return {
       fundWallet: async (options?: FundWalletOptions) => {
@@ -364,9 +371,6 @@ export function useFundWallet() {
       ready: true,
     };
   }
-  const { wallet } = usePlasmaWallet();
-  const { fundWallet: privyFundWallet } = usePrivyFundWallet();
-  const [loading, setLoading] = useState(false);
 
   const fundWallet = useCallback(
     async (options?: FundWalletOptions) => {
@@ -419,16 +423,9 @@ export function useFundWallet() {
  * ```
  */
 export function useConnectExternalWallet() {
+  // IMPORTANT: Call ALL hooks first before any conditional returns
+  // React hooks must be called in the same order on every render
   const mockContext = useContext(MockWalletContext);
-  if (mockContext) {
-    return {
-      connectWallet: () => {
-        console.log("[Mock] Connect wallet requested");
-      },
-      loading: false,
-      error: null,
-    };
-  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { connectWallet: privyConnectWallet } = usePrivyConnectWallet({
@@ -441,6 +438,17 @@ export function useConnectExternalWallet() {
       setError(typeof err === "string" ? err : "Failed to connect wallet");
     },
   });
+
+  // Now we can safely check mock context after all hooks are called
+  if (mockContext) {
+    return {
+      connectWallet: () => {
+        console.log("[Mock] Connect wallet requested");
+      },
+      loading: false,
+      error: null,
+    };
+  }
 
   const connectWallet = useCallback(
     () => {
@@ -472,15 +480,9 @@ export function useConnectExternalWallet() {
  * ```
  */
 export function useAllWallets() {
+  // IMPORTANT: Call ALL hooks first before any conditional returns
+  // React hooks must be called in the same order on every render
   const mockContext = useContext(MockWalletContext);
-  if (mockContext?.wallet) {
-    return {
-      wallets: [mockContext.wallet.connectedWallet],
-      embeddedWallet: mockContext.wallet,
-      externalWallets: [],
-      hasExternalWallet: false,
-    };
-  }
   const { wallets } = useWallets();
   
   const embeddedWallet = useMemo(() => {
@@ -490,6 +492,16 @@ export function useAllWallets() {
   const externalWallets = useMemo(() => {
     return wallets.filter(w => w.walletClientType !== 'privy');
   }, [wallets]);
+
+  // Now we can safely check mock context after all hooks are called
+  if (mockContext?.wallet) {
+    return {
+      wallets: [mockContext.wallet.connectedWallet],
+      embeddedWallet: mockContext.wallet,
+      externalWallets: [],
+      hasExternalWallet: false,
+    };
+  }
 
   return {
     wallets,
