@@ -40,6 +40,7 @@ export default function SendPage() {
     } else {
       hideMainButton();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipient, amount, loading, success]);
 
   const handleSend = async () => {

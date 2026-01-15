@@ -1,0 +1,191 @@
+{
+  "name": "SubKiller Production Release",
+  "version": "1.0.0",
+  "description": "Subscription management with AI detection and gasless payments - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Security & Foundation",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SUB-001",
+          "title": "Move secrets to environment variables",
+          "description": "Remove .env.local from repo, use proper secrets management",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SUB-002",
+          "title": "Server-side payment verification",
+          "description": "Replace localStorage with server-side payment status check",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SUB-003",
+          "title": "Add rate limiting to API endpoints",
+          "description": "Prevent abuse of scan/categorize/pay endpoints",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "SUB-004",
+          "title": "Implement subscription cancellation via email",
+          "description": "Auto-generate and send cancellation emails",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Core Feature Enhancement",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SUB-005",
+          "title": "Add Plaid/bank integration",
+          "description": "Accurate cost detection via transaction data",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-006",
+          "title": "Implement spending analytics dashboard",
+          "description": "Charts showing subscription costs over time",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-007",
+          "title": "Add subscription renewal reminders",
+          "description": "Email/push notifications before renewal dates",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-008",
+          "title": "Token refresh for Gmail access",
+          "description": "Handle expired Gmail tokens gracefully",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-009",
+          "title": "Add unit tests for subscription-detector.ts",
+          "description": "Test pattern matching and cost estimation",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-010",
+          "title": "Add API route integration tests",
+          "description": "Test scan, categorize, pay endpoints",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "SUB-011",
+          "title": "Add onboarding flow",
+          "description": "Explain privacy/permissions before Gmail access",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Advanced Features",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SUB-012",
+          "title": "Support multiple email accounts",
+          "description": "Scan multiple Gmail/Outlook accounts",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SUB-013",
+          "title": "Historical subscription tracking",
+          "description": "Track changes in subscriptions over time",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SUB-014",
+          "title": "Price change detection and alerts",
+          "description": "Notify when subscription prices increase",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "SUB-015",
+          "title": "Export subscription data",
+          "description": "CSV/PDF download of all subscriptions",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Polish & Launch",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "SUB-016",
+          "title": "Add skeleton loaders during scan",
+          "description": "Better loading UX during email scanning",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SUB-017",
+          "title": "Add subscription logos via Clearbit",
+          "description": "Visual recognition of subscription services",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SUB-018",
+          "title": "Improve empty state",
+          "description": "Better UX when no subscriptions found",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SUB-019",
+          "title": "Cache AI categorization results",
+          "description": "Reduce OpenAI API costs",
+          "status": "not_started",
+          "priority": "P3"
+        },
+        {
+          "id": "SUB-020",
+          "title": "WCAG 2.1 AA compliance audit",
+          "description": "Full accessibility compliance",
+          "status": "not_started",
+          "priority": "P3"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 60,
+    "productionReadiness": 45,
+    "testCoverage": 10,
+    "targetTestCoverage": 70
+  },
+  "designReferences": [
+    "Rocket Money - Category icons, spending charts, cancellation flow",
+    "Truebill - Clean dashboard, subscription cards",
+    "Bobby - Simple subscription tracking UI"
+  ],
+  "blockers": [
+    "Google OAuth verification required for production Gmail access",
+    "Plaid integration requires subscription"
+  ]
+}

@@ -11,13 +11,14 @@
 
 "use client";
 
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, useContext } from "react";
 import { 
   usePrivy, 
   useWallets,
   useFundWallet as usePrivyFundWallet,
   useConnectWallet as usePrivyConnectWallet,
 } from "@privy-io/react-auth";
+import { MockWalletContext } from "./mock-provider";
 import type { Address, Hex } from "viem";
 import { createPublicClient, http, formatUnits } from "viem";
 import {
@@ -77,34 +78,36 @@ const ERC20_BALANCE_ABI = [
  * @returns PlasmaWalletState with authentication and wallet info
  */
 export function usePlasmaWallet(): PlasmaWalletState {
-  // Use Privy hooks directly - the "use client" directive ensures this only runs client-side
-  const { user, authenticated, ready, login, logout, linkEmail, linkPhone } =
-    usePrivy();
-  const { wallets } = useWallets();
+  // Check if we're in mock mode (dev without Privy configured)
+  const mockContext = useContext(MockWalletContext);
+  if (mockContext) {
+    return mockContext as unknown as PlasmaWalletState;
+  }
+
+  const privyData = usePrivy();
+  const walletsData = useWallets();
 
   // Extract embedded wallet from Privy wallets array
-  // Memoized to prevent recreating the wallet object on every render
   const embeddedWallet = useMemo(() => {
-    if (!wallets || wallets.length === 0) return null;
+    if (!walletsData?.wallets || walletsData.wallets.length === 0) return null;
 
-    // Find the Privy embedded wallet (walletClientType === "privy")
-    const privyWallet = wallets.find(
+    const privyWallet = walletsData.wallets.find(
       (w) => w.walletClientType === "privy"
     );
     if (!privyWallet) return null;
 
     return createPlasmaEmbeddedWallet(privyWallet);
-  }, [wallets]);
+  }, [walletsData?.wallets]);
 
   return {
-    user,
-    authenticated,
-    ready,
+    user: privyData.user,
+    authenticated: privyData.authenticated,
+    ready: privyData.ready,
     wallet: embeddedWallet,
-    login,
-    logout,
-    linkEmail,
-    linkPhone,
+    login: privyData.login,
+    logout: privyData.logout,
+    linkEmail: privyData.linkEmail,
+    linkPhone: privyData.linkPhone,
   };
 }
 
@@ -351,6 +354,16 @@ export function useUSDT0Balance() {
  * ```
  */
 export function useFundWallet() {
+  const mockContext = useContext(MockWalletContext);
+  if (mockContext?.wallet) {
+    return {
+      fundWallet: async (options?: FundWalletOptions) => {
+        console.log("[Mock] Fund wallet requested", options ?? "");
+      },
+      loading: false,
+      ready: true,
+    };
+  }
   const { wallet } = usePlasmaWallet();
   const { fundWallet: privyFundWallet } = usePrivyFundWallet();
   const [loading, setLoading] = useState(false);
@@ -406,9 +419,18 @@ export function useFundWallet() {
  * ```
  */
 export function useConnectExternalWallet() {
+  const mockContext = useContext(MockWalletContext);
+  if (mockContext) {
+    return {
+      connectWallet: () => {
+        console.log("[Mock] Connect wallet requested");
+      },
+      loading: false,
+      error: null,
+    };
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
   const { connectWallet: privyConnectWallet } = usePrivyConnectWallet({
     onSuccess: () => {
       setLoading(false);
@@ -416,7 +438,7 @@ export function useConnectExternalWallet() {
     },
     onError: (err) => {
       setLoading(false);
-      setError(typeof err === 'string' ? err : 'Failed to connect wallet');
+      setError(typeof err === "string" ? err : "Failed to connect wallet");
     },
   });
 
@@ -450,6 +472,15 @@ export function useConnectExternalWallet() {
  * ```
  */
 export function useAllWallets() {
+  const mockContext = useContext(MockWalletContext);
+  if (mockContext?.wallet) {
+    return {
+      wallets: [mockContext.wallet.connectedWallet],
+      embeddedWallet: mockContext.wallet,
+      externalWallets: [],
+      hasExternalWallet: false,
+    };
+  }
   const { wallets } = useWallets();
   
   const embeddedWallet = useMemo(() => {

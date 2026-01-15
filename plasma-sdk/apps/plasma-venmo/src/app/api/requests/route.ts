@@ -10,7 +10,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma, notifications as notifyHelpers } from '@plasma-pay/db';
+import { prisma, notifications as notifyHelpers, type PaymentRequest } from '@plasma-pay/db';
 import type { Address } from 'viem';
 
 /**
@@ -99,10 +99,10 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create notification for recipient (if they have an email)
+    // Create notification for recipient (if they have an email) and send it
     const isEmail = toIdentifier.includes('@');
     if (isEmail) {
-      await notifyHelpers.create({
+      const notification = await notifyHelpers.create({
         recipientEmail: toIdentifier,
         recipientAddress: toAddress || undefined,
         type: 'payment_request',
@@ -112,11 +112,28 @@ export async function POST(request: Request) {
           requestId: paymentRequest.id,
           amount,
           fromAddress,
+          fromEmail,
           memo,
         },
         relatedType: 'payment_request',
         relatedId: paymentRequest.id,
       });
+
+      // Actually send the email notification
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
+        const notifyResponse = await fetch(`${baseUrl}/api/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: notification.id }),
+        });
+        
+        if (!notifyResponse.ok) {
+          console.error('[requests] Failed to send notification email:', await notifyResponse.text());
+        }
+      } catch (notifyError) {
+        console.error('[requests] Error sending notification:', notifyError);
+      }
     }
 
     return NextResponse.json({
@@ -182,7 +199,7 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
       });
 
-      results.sent = sent.map(r => ({
+      results.sent = sent.map((r: PaymentRequest) => ({
         id: r.id,
         fromAddress: r.fromAddress,
         toIdentifier: r.toIdentifier,
@@ -216,7 +233,7 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
       });
 
-      results.received = received.map(r => ({
+      results.received = received.map((r: PaymentRequest) => ({
         id: r.id,
         fromAddress: r.fromAddress,
         fromEmail: r.fromEmail,
@@ -236,6 +253,13 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('List requests error:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({
+        success: true,
+        requests: { sent: [], received: [] },
+        warning: 'Database unavailable',
+      });
+    }
     return NextResponse.json(
       { error: 'Failed to list payment requests' },
       { status: 500 }

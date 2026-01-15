@@ -2,16 +2,53 @@
 
 import { ReactNode } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
+import { defineChain } from 'viem';
 import {
   PLASMA_MAINNET_CHAIN_ID,
   PLASMA_MAINNET_RPC,
   PLASMA_TESTNET_CHAIN_ID,
   PLASMA_TESTNET_RPC,
+  PLASMA_EXPLORER_URL,
 } from '@plasma-pay/core';
 import type { PlasmaPrivyConfig } from './types';
 
 // Plasma brand accent color - typed as hex string literal for Privy config
 const PLASMA_BRAND_COLOR: `#${string}` = '#00D4FF';
+
+// Define Plasma Mainnet chain using viem's defineChain
+const plasmaMainnet = defineChain({
+  id: PLASMA_MAINNET_CHAIN_ID,
+  name: 'Plasma',
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [PLASMA_MAINNET_RPC] },
+  },
+  blockExplorers: {
+    default: { name: 'Plasma Explorer', url: PLASMA_EXPLORER_URL },
+  },
+});
+
+// Define Plasma Testnet chain using viem's defineChain
+const plasmaTestnet = defineChain({
+  id: PLASMA_TESTNET_CHAIN_ID,
+  name: 'Plasma Testnet',
+  nativeCurrency: {
+    name: 'Ether',
+    symbol: 'ETH',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: { http: [PLASMA_TESTNET_RPC] },
+  },
+  blockExplorers: {
+    default: { name: 'Plasma Explorer', url: PLASMA_EXPLORER_URL },
+  },
+  testnet: true,
+});
 
 interface PlasmaPrivyProviderProps {
   children: ReactNode;
@@ -28,8 +65,7 @@ export function PlasmaPrivyProvider({ children, config }: PlasmaPrivyProviderPro
   } = config;
 
   const isTestnet = plasmaChainId === PLASMA_TESTNET_CHAIN_ID;
-  const rpcUrl = isTestnet ? PLASMA_TESTNET_RPC : PLASMA_MAINNET_RPC;
-  const chainName = isTestnet ? 'Plasma Testnet' : 'Plasma';
+  const chain = isTestnet ? plasmaTestnet : plasmaMainnet;
 
   return (
     <PrivyProvider
@@ -40,7 +76,6 @@ export function PlasmaPrivyProvider({ children, config }: PlasmaPrivyProviderPro
           theme: appearance.theme ?? 'dark',
           accentColor: appearance.accentColor ?? PLASMA_BRAND_COLOR,
           logo: appearance.logo,
-          // Show popular external wallets in the login/connect modal
           walletList: [
             'metamask',
             'rabby_wallet', 
@@ -55,36 +90,8 @@ export function PlasmaPrivyProvider({ children, config }: PlasmaPrivyProviderPro
           createOnLogin: embeddedWallets.createOnLogin ?? 'users-without-wallets',
           noPromptOnSignature: embeddedWallets.noPromptOnSignature ?? true,
         },
-        // External wallet connections are enabled when 'wallet' is in loginMethods
-        // and walletList is configured in appearance
-        defaultChain: {
-          id: plasmaChainId,
-          name: chainName,
-          network: chainName.toLowerCase().replace(' ', '-'),
-          rpcUrls: {
-            default: { http: [rpcUrl] },
-          },
-          nativeCurrency: {
-            name: 'Ether',
-            symbol: 'ETH',
-            decimals: 18,
-          },
-        },
-        supportedChains: [
-          {
-            id: plasmaChainId,
-            name: chainName,
-            network: chainName.toLowerCase().replace(' ', '-'),
-            rpcUrls: {
-              default: { http: [rpcUrl] },
-            },
-            nativeCurrency: {
-              name: 'Ether',
-              symbol: 'ETH',
-              decimals: 18,
-            },
-          },
-        ],
+        defaultChain: chain,
+        supportedChains: [chain],
       }}
     >
       {children}

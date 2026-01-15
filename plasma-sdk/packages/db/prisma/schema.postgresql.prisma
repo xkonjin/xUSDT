@@ -1,0 +1,423 @@
+// Prisma schema for Plasma Pay database - PostgreSQL version for production
+// Use this schema when deploying to Vercel with Vercel Postgres or Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// PAYMENT LINKS - Shareable URLs for receiving payments
+// ============================================================================
+model PaymentLink {
+  id             String    @id @default(uuid())
+  creatorAddress String
+  creatorEmail   String?
+  amount         Float?
+  currency       String    @default("USDT0")
+  memo           String?
+  status         String    @default("active")
+  expiresAt      DateTime?
+  paidBy         String?
+  paidAt         DateTime?
+  txHash         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([creatorAddress])
+  @@index([status])
+}
+
+// ============================================================================
+// PAYMENT REQUESTS
+// ============================================================================
+model PaymentRequest {
+  id             String    @id @default(uuid())
+  fromAddress    String
+  fromEmail      String?
+  toIdentifier   String
+  toAddress      String?
+  amount         Float
+  currency       String    @default("USDT0")
+  memo           String?
+  status         String    @default("pending")
+  expiresAt      DateTime
+  paidAt         DateTime?
+  txHash         String?
+  declinedAt     DateTime?
+  declineReason  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([toIdentifier])
+  @@index([status])
+}
+
+// ============================================================================
+// CLAIMS
+// ============================================================================
+model Claim {
+  id             String    @id @default(uuid())
+  tokenHash      String    @unique
+  senderAddress  String
+  senderEmail    String?
+  recipientEmail String?
+  recipientPhone String?
+  authorization  String
+  amount         Float
+  currency       String    @default("USDT0")
+  memo           String?
+  status         String    @default("pending")
+  expiresAt      DateTime
+  claimedBy      String?
+  claimedAt      DateTime?
+  txHash         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([senderAddress])
+  @@index([recipientEmail])
+  @@index([status])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+model Notification {
+  id               String    @id @default(uuid())
+  recipientEmail   String?
+  recipientPhone   String?
+  recipientAddress String?
+  type             String
+  title            String
+  body             String
+  data             String?
+  status           String    @default("pending")
+  sentAt           DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  relatedType      String?
+  relatedId        String?
+  createdAt        DateTime  @default(now())
+
+  @@index([recipientEmail])
+  @@index([recipientAddress])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// INVOICES
+// ============================================================================
+model Invoice {
+  id              String    @id @default(uuid())
+  amount          Float
+  currency        String    @default("USDT0")
+  description     String?
+  merchantAddress String
+  paymentOptions  String
+  status          String    @default("pending")
+  expiresAt       DateTime
+  paidBy          String?
+  paidAt          DateTime?
+  txHash          String?
+  network         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([merchantAddress])
+  @@index([status])
+}
+
+// ============================================================================
+// BILLS
+// ============================================================================
+model Bill {
+  id              String    @id @default(uuid())
+  creatorAddress  String
+  title           String
+  subtotal        Float
+  tax             Float     @default(0)
+  taxPercent      Float     @default(0)
+  tip             Float     @default(0)
+  tipPercent      Float     @default(0)
+  total           Float
+  currency        String    @default("USDT0")
+  receiptImageUrl String?
+  status          String    @default("draft")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  items          BillItem[]
+  participants   BillParticipant[]
+  paymentIntents PaymentIntent[]
+
+  @@index([creatorAddress])
+  @@index([status])
+}
+
+model BillItem {
+  id        String   @id @default(uuid())
+  billId    String
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  name      String
+  price     Float
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  assignments BillItemAssignment[]
+
+  @@index([billId])
+}
+
+model BillParticipant {
+  id            String    @id @default(uuid())
+  billId        String
+  bill          Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  name          String
+  email         String?
+  phone         String?
+  color         String    @default("#00d4ff")
+  share         Float     @default(0)
+  paid          Boolean   @default(false)
+  paidAt        DateTime?
+  txHash        String?
+  paymentLinkId String?
+  createdAt     DateTime  @default(now())
+
+  assignments BillItemAssignment[]
+
+  @@index([billId])
+}
+
+model BillItemAssignment {
+  id            String          @id @default(uuid())
+  itemId        String
+  item          BillItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   BillParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
+
+  @@unique([itemId, participantId])
+  @@index([itemId])
+  @@index([participantId])
+}
+
+// ============================================================================
+// PAYMENT INTENTS
+// ============================================================================
+model PaymentIntent {
+  id               String    @id @default(uuid())
+  billId           String
+  bill             Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  participantIndex Int
+  amountUsd        Float
+  recipientAddress String
+  sourceChainId    Int?
+  sourceToken      String?
+  bridgeProvider   String?
+  bridgeQuoteId    String?
+  payerAddress     String?
+  sourceTxHash     String?
+  destTxHash       String?
+  status           String    @default("pending")
+  expiresAt        DateTime
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([billId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ============================================================================
+// TELEGRAM WALLETS
+// ============================================================================
+model TelegramWallet {
+  id               String   @id @default(uuid())
+  telegramUserId   String   @unique
+  telegramUsername String?
+  walletAddress    String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([walletAddress])
+}
+
+// ============================================================================
+// SUBKILLER PAYMENTS
+// ============================================================================
+model SubKillerPayment {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique
+  email         String?
+  amount        Float    @default(0.99)
+  txHash        String?
+  createdAt     DateTime @default(now())
+
+  @@index([walletAddress])
+}
+
+// ============================================================================
+// STREAMS
+// ============================================================================
+model Stream {
+  id              String   @id @default(uuid())
+  sender          String
+  recipient       String
+  depositAmount   String
+  withdrawnAmount String   @default("0")
+  startTime       Int
+  endTime         Int
+  cliffTime       Int
+  cliffAmount     String   @default("0")
+  ratePerSecond   String
+  cancelable      Boolean  @default(true)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sender])
+  @@index([recipient])
+  @@index([active])
+}
+
+// ============================================================================
+// REFERRALS
+// ============================================================================
+model Referral {
+  id              String    @id @default(uuid())
+  referrerAddress String
+  refereeAddress  String
+  rewardAmount    Float     @default(0.10)
+  rewardCurrency  String    @default("USDT0")
+  rewardStatus    String    @default("pending")
+  rewardPaidAt    DateTime?
+  rewardTxHash    String?
+  source          String    @default("app")
+  shareLinkId     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([referrerAddress, refereeAddress])
+  @@index([referrerAddress])
+  @@index([refereeAddress])
+  @@index([rewardStatus])
+}
+
+// ============================================================================
+// SHARE LINKS
+// ============================================================================
+model ShareLink {
+  id             String    @id @default(uuid())
+  creatorAddress String
+  type           String
+  shortCode      String    @unique
+  targetUrl      String?
+  targetData     String?
+  clickCount     Int       @default(0)
+  uniqueClicks   Int       @default(0)
+  convertCount   Int       @default(0)
+  lastClickedAt  DateTime?
+  lastClickedFrom String?
+  channel        String?
+  status         String    @default("active")
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([creatorAddress])
+  @@index([shortCode])
+  @@index([type])
+  @@index([status])
+}
+
+// ============================================================================
+// GAS SPONSORSHIP
+// ============================================================================
+model GasSponsorshipLog {
+  id          String   @id @default(uuid())
+  userAddress String
+  txHash      String
+  gasUsed     String
+  gasCostUsd  Float
+  txType      String
+  createdAt   DateTime @default(now())
+
+  @@index([userAddress])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// USER SETTINGS
+// ============================================================================
+model UserSettings {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique
+  displayName   String?
+  email         String?
+  phone         String?
+  avatarUrl     String?
+  referralCode  String   @unique
+  preferences   String?
+  totalReferred Int      @default(0)
+  totalEarned   Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([walletAddress])
+  @@index([referralCode])
+}
+
+// ============================================================================
+// CONTACTS
+// ============================================================================
+model Contact {
+  id             String    @id @default(uuid())
+  ownerAddress   String
+  contactAddress String?
+  name           String
+  email          String?
+  phone          String?
+  isFavorite     Boolean   @default(false)
+  lastPayment    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([ownerAddress, contactAddress])
+  @@index([ownerAddress])
+  @@index([isFavorite])
+  @@index([lastPayment])
+}
+
+// ============================================================================
+// ACTIVITY
+// ============================================================================
+model Activity {
+  id            String   @id @default(uuid())
+  type          String
+  actorAddress  String
+  actorName     String
+  targetAddress String
+  targetName    String
+  amount        Float
+  currency      String   @default("USDT0")
+  memo          String?
+  txHash        String?
+  visibility    String   @default("public")
+  likes         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([visibility])
+  @@index([createdAt])
+  @@index([actorAddress])
+  @@index([targetAddress])
+}

@@ -56,6 +56,7 @@ export function useGasSponsorship(address: string | undefined): GasSponsorshipSt
 
   useEffect(() => {
     fetchSponsorship();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   return {

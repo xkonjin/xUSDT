@@ -6,6 +6,57 @@ import { TextEncoder, TextDecoder } from 'util'
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
+// Web API polyfills for testing API routes
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(url, init = {}) {
+      this.url = url;
+      this.method = init.method || 'GET';
+      this.headers = new Headers(init.headers);
+      this._body = init.body;
+    }
+    
+    async json() {
+      return JSON.parse(this._body);
+    }
+  };
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, init = {}) {
+      this._body = body;
+      this.status = init.status || 200;
+      this.headers = new Headers(init.headers);
+    }
+    
+    async json() {
+      return JSON.parse(this._body);
+    }
+  };
+}
+
+if (typeof global.Headers === 'undefined') {
+  global.Headers = class Headers {
+    constructor(init = {}) {
+      this._headers = new Map();
+      if (init) {
+        Object.entries(init).forEach(([key, value]) => {
+          this._headers.set(key.toLowerCase(), value);
+        });
+      }
+    }
+    
+    get(name) {
+      return this._headers.get(name.toLowerCase()) || null;
+    }
+    
+    set(name, value) {
+      this._headers.set(name.toLowerCase(), value);
+    }
+  };
+}
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'test-privy-app-id'
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3002'

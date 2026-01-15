@@ -12,8 +12,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma, generateClaimToken, hashClaimToken, notifications as notifyHelpers } from '@plasma-pay/db';
-import type { Address } from 'viem';
+import { prisma, generateClaimToken, hashClaimToken, notifications as notifyHelpers, type Claim } from '@plasma-pay/db';
+import { 
+  checkRateLimit, 
+  rateLimitResponse, 
+  validateAddress, 
+  errorResponse,
+} from '@/lib/api-utils';
+import { RATE_LIMIT_CONFIGS as RateLimitConfigs } from '@/lib/rate-limiter';
 
 /**
  * POST /api/claims
@@ -31,6 +37,12 @@ import type { Address } from 'viem';
  * - memo: Optional memo
  */
 export async function POST(request: Request) {
+  // Rate limiting
+  const { allowed, retryAfter } = checkRateLimit(request, RateLimitConfigs.payment);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+
   try {
     const body = await request.json();
     const {
@@ -43,13 +55,12 @@ export async function POST(request: Request) {
       memo,
     } = body;
 
-    // Validate required fields
-    if (!senderAddress) {
-      return NextResponse.json(
-        { error: 'senderAddress is required' },
-        { status: 400 }
-      );
+    // Validate sender address
+    const addressValidation = validateAddress(senderAddress);
+    if (!addressValidation.valid) {
+      return errorResponse(addressValidation.error || 'Invalid sender address');
     }
+    const normalizedSenderAddress = addressValidation.normalized!;
 
     if (!recipientEmail && !recipientPhone) {
       return NextResponse.json(
@@ -80,7 +91,7 @@ export async function POST(request: Request) {
     const claim = await prisma.claim.create({
       data: {
         tokenHash,
-        senderAddress,
+        senderAddress: normalizedSenderAddress,
         senderEmail,
         recipientEmail: recipientEmail?.toLowerCase(),
         recipientPhone,
@@ -152,24 +163,30 @@ export async function POST(request: Request) {
  * - status: Optional filter by status
  */
 export async function GET(request: Request) {
+  // Rate limiting (read operations have higher limit)
+  const { allowed, retryAfter } = checkRateLimit(request, RateLimitConfigs.read);
+  if (!allowed && retryAfter) {
+    return rateLimitResponse(retryAfter);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get('address');
     const status = searchParams.get('status');
 
-    if (!address) {
-      return NextResponse.json(
-        { error: 'address query parameter is required' },
-        { status: 400 }
-      );
+    // Validate address
+    const addressValidation = validateAddress(address);
+    if (!addressValidation.valid) {
+      return errorResponse(addressValidation.error || 'Invalid address');
     }
+    const normalizedAddress = addressValidation.normalized!;
 
     // Build query
     const where: {
       senderAddress: string;
       status?: string;
     } = {
-      senderAddress: address,
+      senderAddress: normalizedAddress,
     };
 
     if (status) {
@@ -183,7 +200,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      claims: claims.map(c => ({
+      claims: claims.map((c: Claim) => ({
         id: c.id,
         senderAddress: c.senderAddress,
         recipientEmail: c.recipientEmail,

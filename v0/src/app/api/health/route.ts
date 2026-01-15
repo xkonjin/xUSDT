@@ -36,7 +36,15 @@ export async function GET(req: NextRequest) {
     } catch {
       body = raw || null;
     }
-    return NextResponse.json(body ?? { error: "empty upstream response" }, { status: res.status });
+    const upstream = (body ?? null) as Record<string, unknown> | null;
+    const ok =
+      res.ok &&
+      (Boolean(upstream?.ok) ||
+        upstream?.status === "healthy" ||
+        upstream?.status === "ok");
+    const ts = Number(upstream?.ts) || Date.now();
+
+    return NextResponse.json({ ok, ts, upstream }, { status: res.status });
   } catch (e) {
     console.error("Health check failed:", e);
     return NextResponse.json(

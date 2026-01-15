@@ -44,7 +44,7 @@ export default function SendScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       posthog.capture('send_completed', { amount: parseFloat(amount) });
       setSuccess(true);
-    } catch (err) {
+    } catch {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError('Failed to send. Please try again.');
     } finally {

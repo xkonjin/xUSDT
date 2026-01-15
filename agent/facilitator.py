@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 import requests
 from dataclasses import dataclass
@@ -7,8 +8,17 @@ from typing import Optional, Dict, Any
 
 from web3 import Web3
 from web3.contract import Contract
+from web3.exceptions import (
+    ContractLogicError,
+    InvalidAddress,
+    TimeExhausted,
+    TransactionNotFound,
+)
 
 from .config import settings
+
+# Configure logger for settlement operations
+logger = logging.getLogger(__name__)
 
 
 ROUTER_ABI = [
@@ -195,7 +205,14 @@ class PaymentFacilitator:
             receipt = self._wait_for_receipt(self.w3_eth, tx_hash, confirmations=1)
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
-        except Exception as e:  # noqa: BLE001 - bubble error in response
+        except (ContractLogicError, InvalidAddress) as e:
+            logger.warning("Ethereum router settlement failed: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+        except (TimeExhausted, TransactionNotFound) as e:
+            logger.warning("Ethereum router tx timeout/not found: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=f"tx_timeout: {e}", receipt=None)
+        except Exception as e:
+            logger.exception("Unexpected error in Ethereum router settlement")
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
     def settle_plasma_eip3009(
@@ -237,7 +254,14 @@ class PaymentFacilitator:
             receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
-        except Exception as e:  # noqa: BLE001
+        except (ContractLogicError, InvalidAddress) as e:
+            logger.warning("Plasma EIP-3009 settlement failed: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+        except (TimeExhausted, TransactionNotFound) as e:
+            logger.warning("Plasma EIP-3009 tx timeout/not found: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=f"tx_timeout: {e}", receipt=None)
+        except Exception as e:
+            logger.exception("Unexpected error in Plasma EIP-3009 settlement")
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
     def settle_plasma_pay_and_mint(

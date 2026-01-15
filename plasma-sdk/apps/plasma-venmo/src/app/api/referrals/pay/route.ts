@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@plasma-pay/db";
 import { createWalletClient, http, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { getValidatedRelayerKey } from "@/lib/validation";
 
 const PLASMA_RPC = process.env.PLASMA_RPC || "https://rpc.plasma.to";
 const USDT0_ADDRESS = process.env.USDT0_ADDRESS || "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
-const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY;
 
 // POST /api/referrals/pay - Pay out pending referral rewards
 export async function POST(request: NextRequest) {
@@ -29,13 +29,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No pending referral found" }, { status: 404 });
     }
 
-    if (!RELAYER_PRIVATE_KEY) {
-      console.error("RELAYER_PRIVATE_KEY not configured");
-      return NextResponse.json({ error: "Relayer not configured" }, { status: 500 });
+    // Validate relayer key with proper error handling
+    const { key: RELAYER_KEY, error: relayerError } = getValidatedRelayerKey();
+    if (!RELAYER_KEY || relayerError) {
+      console.error("[referrals/pay] Relayer key validation failed");
+      return NextResponse.json(
+        { error: relayerError || "Payment service configuration error. Please contact support." },
+        { status: 500 }
+      );
     }
 
     // Pay the referrer
-    const account = privateKeyToAccount(RELAYER_PRIVATE_KEY as `0x${string}`);
+    const account = privateKeyToAccount(RELAYER_KEY);
     const client = createWalletClient({
       account,
       chain: {

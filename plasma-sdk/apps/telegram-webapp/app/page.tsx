@@ -4,21 +4,23 @@ import { useEffect, useState } from "react";
 import { Send, Receipt, Clock, Gift } from "lucide-react";
 import {
   initTelegramWebApp,
-  getTelegramUser,
-  getStartParam,
   hapticFeedback,
   isTelegramWebApp,
 } from "@/lib/telegram";
+import { useTelegramAuth } from "@/lib/use-telegram-auth";
 
 export default function TelegramHome() {
-  const [user, setUser] = useState<{ id: number; first_name: string } | null>(null);
-  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const { user, startParam: referralCode } = useTelegramAuth();
 
   useEffect(() => {
+    setIsMounted(true);
     initTelegramWebApp();
-    setUser(getTelegramUser());
-    setReferralCode(getStartParam());
   }, []);
+
+  if (!isMounted) {
+    return <div className="min-h-screen bg-[#0a0a0f]" />;
+  }
 
   const handleAction = (action: string) => {
     hapticFeedback("medium");

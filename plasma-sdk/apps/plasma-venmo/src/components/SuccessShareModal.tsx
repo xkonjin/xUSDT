@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface SuccessShareModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export function SuccessShareModal({
   const txUrl = `https://scan.plasma.to/tx/${txHash}`;
 
   const handleShare = async (channel: "whatsapp" | "telegram" | "twitter") => {
-    const text = `Just sent $${amount} instantly with zero fees on Plasma Pay! Try it yourself:`;
+    const text = `Just sent $${amount} instantly with zero fees on Plenmo! Try it yourself:`;
     const url = referralLink || "https://plasma.to";
 
     await share({ channel, text, url });
@@ -51,15 +52,13 @@ export function SuccessShareModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-md liquid-glass-elevated rounded-3xl p-8 animate-in fade-in zoom-in-95 duration-200">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose}
+      zIndex={110}
+      backdropClassName="bg-black/80 backdrop-blur-sm"
+    >
+      <div className="relative w-full max-w-md liquid-glass-elevated rounded-3xl p-8">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -162,6 +161,6 @@ export function SuccessShareModal({
           Done
         </button>
       </div>
-    </div>
+    </ModalPortal>
   );
 }

@@ -1,0 +1,208 @@
+/* ========================================
+   PLASMA LIGHT CLAYMORPHISM THEME
+   Shared across all Plasma SDK apps
+   Inspired by Cash App & Venmo
+   ======================================== */
+
+:root {
+  /* Background colors */
+  --bg-primary: 248, 250, 252;
+  --bg-secondary: 241, 245, 249;
+  --bg-card: 255, 255, 255;
+  
+  /* Text colors */
+  --text-primary: 30, 41, 59;
+  --text-secondary: 71, 85, 105;
+  --text-muted: 100, 116, 139;
+  --text-on-accent: 255, 255, 255;
+  
+  /* Accent colors */
+  --accent-cyan: 0, 212, 255;
+  --accent-cyan-dark: 0, 180, 220;
+  --accent-purple: 168, 85, 247;
+  --accent-blue: 59, 130, 246;
+  --accent-pink: 236, 72, 153;
+  
+  /* Status colors */
+  --success: 34, 197, 94;
+  --success-light: 220, 252, 231;
+  --warning: 245, 158, 11;
+  --warning-light: 254, 249, 195;
+  --error: 239, 68, 68;
+  --error-light: 254, 226, 226;
+  
+  /* Clay shadows */
+  --shadow-dark: 166, 180, 200;
+  --shadow-light: 255, 255, 255;
+  
+  /* Legacy compatibility */
+  --plasma-cyan: var(--accent-cyan);
+  --glass-white: var(--bg-card);
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+}
+
+body {
+  background: linear-gradient(180deg, rgb(var(--bg-primary)) 0%, rgb(var(--bg-secondary)) 100%);
+  color: rgb(var(--text-primary));
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Clay Card */
+.clay-card {
+  background: linear-gradient(145deg, rgb(var(--bg-card)) 0%, rgba(var(--bg-secondary), 0.8) 100%);
+  border-radius: 24px;
+  border: 1px solid rgba(var(--shadow-light), 0.9);
+  box-shadow: 
+    12px 12px 24px rgba(var(--shadow-dark), 0.25),
+    -12px -12px 24px rgba(var(--shadow-light), 0.95),
+    inset 2px 2px 6px rgba(var(--shadow-light), 0.8),
+    inset -2px -2px 6px rgba(var(--shadow-dark), 0.08);
+  transition: all 0.3s ease;
+}
+
+.clay-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Clay Button */
+.clay-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 28px;
+  min-height: 48px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgb(var(--accent-cyan)) 0%, rgb(var(--accent-cyan-dark)) 100%);
+  color: rgb(var(--text-on-accent));
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 
+    6px 6px 16px rgba(var(--accent-cyan-dark), 0.35),
+    -4px -4px 12px rgba(var(--shadow-light), 0.6),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.clay-button:hover {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.clay-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.clay-button-secondary {
+  background: linear-gradient(145deg, rgb(var(--bg-card)) 0%, rgb(var(--bg-secondary)) 100%);
+  color: rgb(var(--text-primary));
+  box-shadow: 
+    6px 6px 16px rgba(var(--shadow-dark), 0.2),
+    -4px -4px 12px rgba(var(--shadow-light), 0.9);
+}
+
+.clay-button-success {
+  background: linear-gradient(145deg, rgb(var(--success)) 0%, rgba(var(--success), 0.85) 100%);
+}
+
+/* Clay Input */
+.clay-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--shadow-dark), 0.15);
+  background: rgb(var(--bg-card));
+  color: rgb(var(--text-primary));
+  font-size: 16px;
+  box-shadow: 
+    inset 4px 4px 8px rgba(var(--shadow-dark), 0.1),
+    inset -4px -4px 8px rgba(var(--shadow-light), 0.9);
+  transition: all 0.2s ease;
+}
+
+.clay-input:focus {
+  outline: none;
+  border-color: rgba(var(--accent-cyan), 0.5);
+  box-shadow: 
+    inset 4px 4px 8px rgba(var(--shadow-dark), 0.1),
+    inset -4px -4px 8px rgba(var(--shadow-light), 0.9),
+    0 0 0 3px rgba(var(--accent-cyan), 0.15);
+}
+
+/* Clay Avatar */
+.clay-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 600;
+  color: white;
+  box-shadow: 
+    4px 4px 8px rgba(var(--shadow-dark), 0.2),
+    -2px -2px 6px rgba(var(--shadow-light), 0.8);
+}
+
+/* Clay Badge */
+.clay-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(var(--accent-cyan), 0.12);
+  color: rgb(var(--accent-cyan-dark));
+}
+
+.clay-badge-success {
+  background: rgba(var(--success), 0.12);
+  color: rgb(var(--success));
+}
+
+.clay-badge-warning {
+  background: rgba(var(--warning), 0.12);
+  color: rgb(var(--warning));
+}
+
+.clay-badge-error {
+  background: rgba(var(--error), 0.12);
+  color: rgb(var(--error));
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, rgb(var(--accent-cyan)) 0%, rgb(var(--accent-purple)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Legacy glass classes - mapped to clay */
+.liquid-glass, .glass {
+  background: linear-gradient(145deg, rgb(var(--bg-card)) 0%, rgba(var(--bg-secondary), 0.8) 100%);
+  border-radius: 24px;
+  border: 1px solid rgba(var(--shadow-light), 0.9);
+  box-shadow: 
+    12px 12px 24px rgba(var(--shadow-dark), 0.25),
+    -12px -12px 24px rgba(var(--shadow-light), 0.95);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 28px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgb(var(--accent-cyan)) 0%, rgb(var(--accent-cyan-dark)) 100%);
+  color: white;
+  font-weight: 600;
+  box-shadow: 
+    6px 6px 16px rgba(var(--accent-cyan-dark), 0.35),
+    -4px -4px 12px rgba(var(--shadow-light), 0.6);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+}

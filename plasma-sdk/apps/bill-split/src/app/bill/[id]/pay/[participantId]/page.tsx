@@ -567,7 +567,7 @@ export default function BillPayPage({
                     <p className="text-blue-300/80 text-xs flex items-start gap-2">
                       <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>
-                        After adding funds, click "Back to payment" or wait for your balance to update automatically.
+                        After adding funds, click &quot;Back to payment&quot; or wait for your balance to update automatically.
                       </span>
                     </p>
                   </div>

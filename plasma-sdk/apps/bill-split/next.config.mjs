@@ -10,6 +10,8 @@ const nextConfig = {
     '@plasma-pay/gasless',
     '@plasma-pay/privy-auth',
     '@plasma-pay/aggregator',
+    '@plasma-pay/db',
+    '@plasma-pay/ui',
   ],
 };
 

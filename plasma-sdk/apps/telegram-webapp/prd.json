@@ -1,0 +1,124 @@
+{
+  "name": "Telegram WebApp Production Release",
+  "version": "1.0.0",
+  "description": "Telegram Mini App for Plasma Pay - Production ready release",
+  "currentPhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Security & Backend Integration",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "TG-WEB-001",
+          "title": "Implement Telegram initData validation",
+          "description": "Verify HMAC signature with bot token on server",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "TG-WEB-002",
+          "title": "Implement wallet connection flow",
+          "description": "Add Privy/WalletConnect integration",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "TG-WEB-003",
+          "title": "Connect send flow to real API",
+          "description": "Replace setTimeout simulation with actual relay API",
+          "status": "not_started",
+          "priority": "P0"
+        },
+        {
+          "id": "TG-WEB-004",
+          "title": "Implement real balance fetching",
+          "description": "Query blockchain for USDT0 balance",
+          "status": "not_started",
+          "priority": "P0"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Feature Completion",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "TG-WEB-005",
+          "title": "Connect request flow to API",
+          "description": "Create real payment requests in database",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "TG-WEB-006",
+          "title": "Implement transaction history",
+          "description": "Fetch and display payment history",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "TG-WEB-007",
+          "title": "Connect streams to real data",
+          "description": "Query actual streams from contract",
+          "status": "not_started",
+          "priority": "P1"
+        },
+        {
+          "id": "TG-WEB-008",
+          "title": "Implement referral tracking backend",
+          "description": "Store referral codes and rewards",
+          "status": "not_started",
+          "priority": "P1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Telegram UX Polish",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "TG-WEB-009",
+          "title": "Add swipe gestures",
+          "description": "Swipe navigation patterns",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "TG-WEB-010",
+          "title": "Add skeleton loading states",
+          "description": "Better loading UX",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "TG-WEB-011",
+          "title": "Add pull-to-refresh",
+          "description": "Standard mobile refresh pattern",
+          "status": "not_started",
+          "priority": "P2"
+        },
+        {
+          "id": "TG-WEB-012",
+          "title": "Integrate with Telegram theme",
+          "description": "Full theme variable support",
+          "status": "not_started",
+          "priority": "P2"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "featureCompleteness": 35,
+    "productionReadiness": 25,
+    "testCoverage": 0,
+    "targetTestCoverage": 60
+  },
+  "designReferences": [
+    "TON Wallet - Telegram-native design",
+    "Notcoin - Mini app UX patterns",
+    "Hamster Kombat - Engagement mechanics"
+  ]
+}

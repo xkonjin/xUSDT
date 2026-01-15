@@ -1,20 +1,29 @@
 from __future__ import annotations
 
+import logging
+import os
 import time
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 from web3 import Web3
-from typing import Optional
+from typing import Optional, List
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from .merchant_agent import build_payment_required, verify_and_settle
 from .x402_models import PaymentSubmitted
 from .config import settings
 from .x402_models import PaymentOption, PaymentRequired
+from .persistence import get_channel_receipt_store
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from pathlib import Path
 
@@ -24,13 +33,28 @@ from .polymarket import polymarket_router
 # Import predictions router for Plasma Predictions
 from .predictions import router as predictions_router
 
+# =============================================================================
+# Rate Limiting Configuration (Issue #212)
+# =============================================================================
+# Using slowapi for rate limiting to prevent DoS and abuse
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="xUSDT Merchant (Plasma/Ethereum)")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS configuration - restrict origins in production
+# Set CORS_ORIGINS env var to comma-separated list of allowed origins
+# Default allows localhost:3000 for development
+_cors_origins = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+_cors_origins = [origin.strip() for origin in _cors_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # =============================================================================
@@ -75,7 +99,8 @@ def health() -> dict:
 
 
 @app.get("/premium")
-def get_premium(invoiceId: Optional[str] = None) -> Response:
+@limiter.limit("30/minute")
+def get_premium(request: Request, invoiceId: Optional[str] = None) -> Response:
     # If an invoiceId is provided and marked confirmed, grant access (200)
     if invoiceId:
         from .merchant_agent import get_invoice_record
@@ -100,7 +125,14 @@ def get_premium(invoiceId: Optional[str] = None) -> Response:
 
 
 @app.post("/pay")
-def post_pay(submitted: PaymentSubmitted) -> dict:
+@limiter.limit("10/minute")
+def post_pay(request: Request, submitted: PaymentSubmitted) -> dict:
+    # Extract user IP for rate limiting (check X-Forwarded-For for proxied requests)
+    user_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if not user_ip and request.client:
+        user_ip = request.client.host
+    user_ip = user_ip or "unknown"
+    
     # Normalize web3-native types (AttributeDict, HexBytes, bytes) so FastAPI can serialize
     from hexbytes import HexBytes
     from web3.datastructures import AttributeDict
@@ -118,7 +150,7 @@ def post_pay(submitted: PaymentSubmitted) -> dict:
             return {k: _jsonify(v) for k, v in obj.items()}
         return obj
 
-    completed = verify_and_settle(submitted)
+    completed = verify_and_settle(submitted, user_ip=user_ip)
     out = _jsonify(completed.model_dump())
     if not isinstance(out.get("receipt"), dict):  # final guard
         out["receipt"] = str(out.get("receipt")) if out.get("receipt") is not None else None
@@ -229,17 +261,34 @@ class RelayTotalIn(BaseModel):
 
 
 @app.post("/router/relay_total")
-def router_relay_total(body: RelayTotalIn) -> dict:
+@limiter.limit("5/minute")
+def router_relay_total(request: Request, body: RelayTotalIn) -> dict:
     """Relay a signed EIP‑712 PaymentRouter.gaslessTransfer using the relayer key.
 
     Expects signature as a 65‑byte 0x hex string; splits into v/r/s and submits the tx.
     """
+    from fastapi import HTTPException
+    
     router_addr = Web3.to_checksum_address(settings.ROUTER_ADDRESS)
     token_addr = Web3.to_checksum_address(settings.USDT0_ADDRESS)
     merchant_addr = Web3.to_checksum_address(settings.MERCHANT_ADDRESS)
 
-    # Split signature into r, s, v
+    # Validate and split signature into r, s, v
     hex_sig = body.signature[2:] if body.signature.startswith("0x") else body.signature
+    
+    # Validate signature length (65 bytes = 130 hex chars)
+    if len(hex_sig) != 130:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid signature length: expected 130 hex chars (65 bytes), got {len(hex_sig)}"
+        )
+    
+    # Validate signature is valid hex
+    try:
+        bytes.fromhex(hex_sig)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid signature format: expected hex string")
+    
     r = Web3.to_hex(bytes.fromhex(hex_sig[0:64]))
     s = Web3.to_hex(bytes.fromhex(hex_sig[64:128]))
     v_raw = int(hex_sig[128:130], 16)
@@ -304,8 +353,55 @@ def get_invoice(invoice_id: str) -> dict:
 
 
 # ---------------- Channel-first optional endpoints -----------------
-# In-memory store of pending channel receipts; replace with durable store in production.
-_PENDING_CHANNEL_RECEIPTS: list[dict] = []
+# Persistent storage for pending channel receipts. 
+# Uses file-based persistence with in-memory fallback for fast access.
+_PENDING_CHANNEL_RECEIPTS: List[dict] = []  # In-memory cache
+_CHANNEL_RECEIPTS_KEY = "pending"  # Single key for pending receipts list
+
+
+def _get_pending_channel_receipts() -> List[dict]:
+    """Get pending channel receipts from persistent store or memory cache."""
+    global _PENDING_CHANNEL_RECEIPTS
+    
+    # If memory cache is populated, use it
+    if _PENDING_CHANNEL_RECEIPTS:
+        return _PENDING_CHANNEL_RECEIPTS
+    
+    # Try loading from persistent store
+    try:
+        store = get_channel_receipt_store()
+        data = store.get(_CHANNEL_RECEIPTS_KEY)
+        if data and isinstance(data, list):
+            _PENDING_CHANNEL_RECEIPTS = data
+            return _PENDING_CHANNEL_RECEIPTS
+    except Exception as e:
+        logger.warning(f"Failed to load channel receipts from persistence: {e}")
+    
+    return _PENDING_CHANNEL_RECEIPTS
+
+
+def _set_pending_channel_receipts(receipts: List[dict]) -> None:
+    """Store pending channel receipts with persistence."""
+    global _PENDING_CHANNEL_RECEIPTS
+    _PENDING_CHANNEL_RECEIPTS = receipts
+    
+    try:
+        store = get_channel_receipt_store()
+        store.set(_CHANNEL_RECEIPTS_KEY, receipts)
+    except Exception as e:
+        logger.warning(f"Failed to persist channel receipts: {e}")
+
+
+def _clear_pending_channel_receipts() -> None:
+    """Clear pending channel receipts from both memory and persistent store."""
+    global _PENDING_CHANNEL_RECEIPTS
+    _PENDING_CHANNEL_RECEIPTS = []
+    
+    try:
+        store = get_channel_receipt_store()
+        store.delete(_CHANNEL_RECEIPTS_KEY)
+    except Exception as e:
+        logger.warning(f"Failed to clear channel receipts from persistence: {e}")
 
 
 class ChannelReceiptIn(BaseModel):
@@ -372,8 +468,8 @@ def post_channel_receipt(body: ChannelReceiptIn) -> dict:
         "channel": body.channel,
         "signature": body.signature,
     }
-    _PENDING_CHANNEL_RECEIPTS.clear()
-    _PENDING_CHANNEL_RECEIPTS.append(rec)
+    # Store the receipt (clearing any previous ones)
+    _set_pending_channel_receipts([rec])
     return {"ok": True, "queued": 1}
 
 
@@ -385,7 +481,9 @@ def post_channel_settle() -> dict:
     """
     if not settings.CHANNEL_ADDRESS:
         return {"ok": False, "error": "channel_not_configured"}
-    if not _PENDING_CHANNEL_RECEIPTS:
+    
+    pending = _get_pending_channel_receipts()
+    if not pending:
         return {"ok": True, "txHash": None, "settled": 0}
 
     # Convert to receipt tuples and signature bytes for the ABI call
@@ -398,17 +496,17 @@ def post_channel_settle() -> dict:
             "nonce": r["nonce"],
             "expiry": int(r["expiry"]),
         }
-        for r in _PENDING_CHANNEL_RECEIPTS
+        for r in pending
     ]
-    sigs = [r["signature"] for r in _PENDING_CHANNEL_RECEIPTS]
-    channel_addr = _PENDING_CHANNEL_RECEIPTS[0]["channel"]
+    sigs = [r["signature"] for r in pending]
+    channel_addr = pending[0]["channel"]
 
     from .facilitator import PaymentFacilitator
 
     fac = PaymentFacilitator()
     res = fac.settle_plasma_channel(receipts, sigs, channel_address=channel_addr)
     if res.success:
-        _PENDING_CHANNEL_RECEIPTS.clear()
+        _clear_pending_channel_receipts()
         return {"ok": True, "txHash": res.tx_hash, "settled": len(receipts), "receipt": {"status": True}}
     return {"ok": False, "error": res.error}
 

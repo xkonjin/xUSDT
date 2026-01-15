@@ -77,6 +77,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
 
   useEffect(() => {
     fetchLinks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   // Clear action error after timeout
@@ -165,7 +166,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <Link2 className="w-5 h-5 text-plenmo-500" />
           Payment Links
         </h2>
         <div className="space-y-3">
@@ -181,7 +182,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <Link2 className="w-5 h-5 text-plenmo-500" />
           Payment Links
         </h2>
         <div className="flex flex-col items-center gap-3 py-4">
@@ -203,7 +204,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-          <Link2 className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <Link2 className="w-5 h-5 text-plenmo-500" />
           Payment Links
           {links.length > 0 && (
             <span className="text-sm bg-white/10 text-white/50 px-2 py-0.5 rounded-full">
@@ -213,7 +214,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         </h2>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors text-[rgb(0,212,255)] text-sm"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 transition-colors text-plenmo-500 text-sm"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">New Link</span>
@@ -329,7 +330,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                       {link.amount !== null ? `$${link.amount}` : "Any amount"}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      link.status === "active" ? "bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)]" :
+                      link.status === "active" ? "bg-plenmo-500/20 text-plenmo-500" :
                       link.status === "paid" ? "bg-green-500/20 text-green-400" :
                       "bg-white/10 text-white/40"
                     }`}>

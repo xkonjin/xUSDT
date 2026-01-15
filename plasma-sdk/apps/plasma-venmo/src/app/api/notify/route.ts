@@ -2,7 +2,14 @@
  * Notification Service API
  * 
  * Handles sending email notifications for various events.
- * Uses Resend for email delivery.
+ * Uses Resend for email delivery when configured.
+ * 
+ * Note: Email notifications are optional. Users can share payment links
+ * directly via text, DM, or any messaging app.
+ * 
+ * Environment variables:
+ * - RESEND_API_KEY: Resend API key (optional)
+ * - RESEND_FROM_EMAIL: Sender email for Resend
  * 
  * Endpoints:
  * - POST /api/notify - Send a notification
@@ -11,9 +18,9 @@
 
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { prisma, notifications as notifyHelpers, type NotificationType } from '@plasma-pay/db';
+import { prisma, notifications as notifyHelpers, type NotificationType, type Notification } from '@plasma-pay/db';
 
-// Initialize Resend client (lazy - only when API key exists)
+// Initialize Resend client
 let resendClient: Resend | null = null;
 function getResend(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
@@ -41,8 +48,7 @@ function wrapEmailTemplate(content: string): string {
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
               <h1 style="margin: 0; font-size: 24px; font-weight: 700;">
-                <span style="color: #00d4ff;">Plasma</span>
-                <span style="color: #ffffff;">Venmo</span>
+                <span style="color: #00d4ff;">Plenmo</span>
               </h1>
             </td>
           </tr>
@@ -102,7 +108,7 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
       </p>
       ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plasma Venmo</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plenmo</a>
       </div>
     `),
   },
@@ -242,40 +248,56 @@ export async function POST(request: Request) {
     // Parse data
     const notificationData = notification.data ? JSON.parse(notification.data) : {};
 
+    const subject = template.subject(notificationData);
+    const html = template.html(notificationData);
+    const toEmail = notification.recipientEmail!;
+
     // Get Resend client
     const resend = getResend();
     
     if (!resend) {
-      // Log notification but mark as sent (dev mode)
-      console.log('📧 Notification (dev mode - no RESEND_API_KEY):');
-      console.log('  To:', notification.recipientEmail);
-      console.log('  Subject:', template.subject(notificationData));
+      // No email provider configured - log and mark as sent (dev mode)
+      console.log('📧 Notification (no RESEND_API_KEY configured):');
+      console.log('  To:', toEmail);
+      console.log('  Subject:', subject);
       console.log('  Type:', notification.type);
+      console.log('  Note: Email notifications are optional. Users can share payment links directly.');
       
       await notifyHelpers.markSent(notification.id);
       
       return NextResponse.json({
         success: true,
-        message: 'Notification logged (dev mode)',
+        message: 'Email not sent (RESEND_API_KEY not configured). Share payment links directly instead.',
         id: notification.id,
       });
     }
 
     // Send via Resend SDK
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plasma Venmo <onboarding@resend.dev>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plenmo <onboarding@resend.dev>';
     
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,
-      to: notification.recipientEmail!,
-      subject: template.subject(notificationData),
-      html: template.html(notificationData),
+      to: toEmail,
+      subject,
+      html,
     });
 
     if (emailError) {
-      console.error('Resend error:', emailError);
+      console.error('[notify] Resend API error:', {
+        notificationId: notification.id,
+        recipientEmail: toEmail,
+        errorName: emailError.name,
+        errorMessage: emailError.message,
+        fullError: JSON.stringify(emailError),
+      });
       await notifyHelpers.markFailed(notification.id, JSON.stringify(emailError));
       return NextResponse.json(
-        { error: 'Failed to send email', details: emailError },
+        { 
+          error: 'Failed to send email', 
+          details: emailError,
+          canRetry: true,
+          message: 'We couldn\'t send the notification email. Would you like to try again?'
+        },
         { status: 500 }
       );
     }
@@ -283,15 +305,16 @@ export async function POST(request: Request) {
     // Mark as sent
     await notifyHelpers.markSent(notification.id);
 
-    console.log('📧 Email sent successfully:', {
+    console.log('📧 Email sent via Resend:', {
       id: notification.id,
-      to: notification.recipientEmail,
+      to: toEmail,
       resendId: emailData?.id,
     });
 
     return NextResponse.json({
       success: true,
       id: notification.id,
+      provider: 'resend',
       emailId: emailData?.id,
     });
   } catch (error) {
@@ -349,7 +372,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      pending: pending.map(n => ({
+      pending: pending.map((n: Notification) => ({
         id: n.id,
         type: n.type,
         recipientEmail: n.recipientEmail,

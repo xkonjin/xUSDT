@@ -11,11 +11,14 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mock aggregator to avoid ESM transformation issues
+    '^@plasma-pay/aggregator$': '<rootDir>/src/__mocks__/aggregator.ts',
     '^@plasma-pay/(.*)$': '<rootDir>/../../packages/$1/src',
   },
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}',
+    '<rootDir>/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}',
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

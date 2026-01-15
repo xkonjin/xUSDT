@@ -1,8 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePlasmaWallet, useGaslessTransfer } from "@plasma-pay/privy-auth";
-import type { Bet, PlaceBetParams, CashOutParams, BetResult } from "@/lib/types";
+import type {
+  Bet,
+  PlaceBetParams,
+  CashOutParams,
+  BetResult,
+  UserBet,
+  PredictionMarket,
+} from "@/lib/types";
 import { GASLESS_ROUTER_ADDRESS } from "@/lib/constants";
 import { usePredictionStore } from "@/lib/store";
+import { useDemoStore, type DemoBet, type DemoPortfolioStats } from "@/lib/demo-store";
 import type { Address, Hex } from "viem";
 import type { EIP3009TypedData } from "@plasma-pay/core";
 
@@ -53,14 +61,15 @@ async function submitCashOut(params: CashOutParams & { signature: EIP712Signatur
   };
 }
 
-export function useUserBets() {
+export function useUserBets(addressOverride?: string | null) {
   const { wallet, authenticated } = usePlasmaWallet();
-  const address = wallet?.address;
+  const address = addressOverride || wallet?.address;
+  const shouldFetch = Boolean(address) && (addressOverride ? true : authenticated);
 
   return useQuery({
     queryKey: ["user-bets", address],
     queryFn: () => fetchUserBets(address!),
-    enabled: authenticated && !!address,
+    enabled: shouldFetch,
   });
 }
 
@@ -208,6 +217,74 @@ export function useCashOut() {
         type: "cashout",
         status: "failed",
       });
+    },
+  });
+}
+
+export interface DemoPlaceBetParams {
+  market: PredictionMarket;
+  outcome: "YES" | "NO";
+  amount: number;
+}
+
+export interface DemoCashOutParams {
+  betId: string;
+  currentPrice: number;
+}
+
+const mapDemoBetToUserBet = (bet: DemoBet): UserBet => ({
+  id: bet.id,
+  marketId: bet.marketId,
+  market: bet.market,
+  userAddress: "demo",
+  outcome: bet.outcome,
+  shares: bet.shares,
+  amount: bet.amount,
+  status: bet.status,
+  createdAt: bet.placedAt,
+  settledAt: bet.resolvedAt,
+  txHash: `demo-${bet.id}`,
+});
+
+export function useDemoUserBets() {
+  const demoBets = useDemoStore((state) => state.demoBets);
+
+  return useQuery({
+    queryKey: ["demo-bets", demoBets.length],
+    queryFn: async () => demoBets.map(mapDemoBetToUserBet),
+    initialData: demoBets.map(mapDemoBetToUserBet),
+  });
+}
+
+export function useDemoPortfolioStats(currentMarkets: PredictionMarket[]): DemoPortfolioStats {
+  const getPortfolioStats = useDemoStore((state) => state.getPortfolioStats);
+  return getPortfolioStats(currentMarkets);
+}
+
+export function useDemoPlaceBet() {
+  const placeDemoBet = useDemoStore((state) => state.placeDemoBet);
+
+  return useMutation({
+    mutationFn: async (params: DemoPlaceBetParams) => {
+      const result = placeDemoBet(params);
+      if (!result) {
+        throw new Error("Insufficient balance");
+      }
+      return result;
+    },
+  });
+}
+
+export function useDemoCashOut() {
+  const cashOutDemoBet = useDemoStore((state) => state.cashOutDemoBet);
+
+  return useMutation({
+    mutationFn: async (params: DemoCashOutParams) => {
+      const success = cashOutDemoBet(params.betId, params.currentPrice);
+      if (!success) {
+        throw new Error("Unable to cash out demo bet");
+      }
+      return { success };
     },
   });
 }

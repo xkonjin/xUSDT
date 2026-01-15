@@ -73,6 +73,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
 
   useEffect(() => {
     fetchHistory(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   const loadMore = () => {
@@ -85,7 +86,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <TransactionListSkeleton count={3} />
@@ -98,7 +99,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <div className="flex flex-col items-center gap-3 py-4">
@@ -120,7 +121,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     return (
       <div className="liquid-glass rounded-3xl p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+          <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
         <EmptyState
@@ -135,17 +136,19 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   return (
     <div className="liquid-glass rounded-3xl p-6 md:p-8">
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <History className="w-5 h-5 text-[rgb(0,212,255)]" />
+        <History className="w-5 h-5 text-plenmo-500" />
         Recent Activity
       </h2>
       <div className="space-y-3">
         {transactions.map((tx) => (
-          <div
+          <button
             key={tx.id}
-            className="flex items-center gap-4 p-4 liquid-glass-subtle rounded-2xl hover:bg-white/[0.08] transition-all duration-200 cursor-pointer group"
+            type="button"
+            className="flex items-center gap-4 p-4 liquid-glass-subtle rounded-2xl hover:bg-white/[0.08] transition-all duration-200 cursor-pointer group w-full text-left"
             onClick={() =>
               window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
             }
+            aria-label={`View ${tx.type === "sent" ? "sent" : "received"} transaction of $${tx.amount} ${tx.type === "sent" ? "to" : "from"} ${tx.counterparty}`}
           >
             <div className="relative">
               <Avatar name={tx.counterparty} size="lg" />
@@ -182,7 +185,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
             >
               {tx.type === "sent" ? "-" : "+"}${tx.amount}
             </div>
-          </div>
+          </button>
         ))}
 
         {/* Load More Button */}

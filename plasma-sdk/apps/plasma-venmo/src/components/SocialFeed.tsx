@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Avatar } from "./ui/Avatar";
 import { 
   ArrowUpRight, 
@@ -12,12 +12,15 @@ import {
   Eye,
   EyeOff,
   Settings,
-  X
+  X,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
+import { ModalPortal } from "./ui/ModalPortal";
 
 interface FeedItem {
   id: string;
-  type: "sent" | "received" | "request";
+  type: "payment" | "claim" | "request";
   user: {
     name: string;
     avatar?: string;
@@ -36,6 +39,13 @@ interface FeedItem {
   visibility: "public" | "friends" | "private";
 }
 
+interface FeedPagination {
+  limit: number;
+  offset: number;
+  total: number;
+  hasMore: boolean;
+}
+
 interface SocialFeedProps {
   address?: string;
   className?: string;
@@ -44,12 +54,64 @@ interface SocialFeedProps {
 export function SocialFeed({ address, className = "" }: SocialFeedProps) {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<FeedPagination | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [privacySettings, setPrivacySettings] = useState({
     shareTransactions: false,
     showAmount: false,
     showMemo: true,
   });
+
+  // Fetch feed from API
+  const fetchFeed = useCallback(async (offset = 0, append = false) => {
+    try {
+      if (offset === 0) {
+        setLoading(true);
+        setError(null);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const params = new URLSearchParams({
+        limit: '20',
+        offset: offset.toString(),
+      });
+      
+      if (address) {
+        params.set('address', address);
+      }
+
+      const response = await fetch(`/api/feed?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch feed');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        if (append) {
+          setFeed(prev => [...prev, ...data.feed]);
+        } else {
+          setFeed(data.feed);
+        }
+        setPagination(data.pagination);
+      } else {
+        throw new Error(data.error || 'Failed to fetch feed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      // If API fails, fall back to mock data for demo
+      if (offset === 0) {
+        setFeed(generateMockFeed());
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [address]);
 
   useEffect(() => {
     // Load privacy settings from localStorage
@@ -58,12 +120,16 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
       setPrivacySettings(JSON.parse(stored));
     }
     
-    // Simulate loading feed
-    setTimeout(() => {
-      setFeed(generateMockFeed());
-      setLoading(false);
-    }, 500);
-  }, []);
+    // Fetch feed from API
+    fetchFeed();
+  }, [fetchFeed]);
+
+  // Load more function for infinite scroll
+  const loadMore = useCallback(() => {
+    if (pagination?.hasMore && !loadingMore) {
+      fetchFeed(pagination.offset + pagination.limit, true);
+    }
+  }, [pagination, loadingMore, fetchFeed]);
 
   const savePrivacySettings = (settings: typeof privacySettings) => {
     setPrivacySettings(settings);
@@ -138,6 +204,33 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
         </div>
       )}
 
+      {/* Error state */}
+      {error && (
+        <div className="clay-card p-4 mb-4 text-center">
+          <AlertCircle className="w-8 h-8 text-yellow-400/60 mx-auto mb-2" />
+          <p className="text-white/60 text-sm mb-3">
+            {error}
+          </p>
+          <button
+            onClick={() => fetchFeed()}
+            className="text-[rgb(0,212,255)] text-sm hover:underline flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && feed.length === 0 && !error && (
+        <div className="clay-card p-8 text-center">
+          <Globe className="w-12 h-12 text-white/20 mx-auto mb-4" />
+          <p className="text-white/60 text-sm">
+            No activity yet. Be the first to make a payment!
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
         {feed.map((item) => (
           <FeedCard 
@@ -148,6 +241,26 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
           />
         ))}
       </div>
+
+      {/* Load more button */}
+      {pagination?.hasMore && (
+        <div className="mt-4 text-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2 rounded-xl bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-colors disabled:opacity-50"
+          >
+            {loadingMore ? (
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              'Load more'
+            )}
+          </button>
+        </div>
+      )}
 
       {showPrivacyModal && (
         <PrivacySettingsModal
@@ -177,15 +290,31 @@ function FeedCard({
     return `${Math.floor(seconds / 86400)}d`;
   };
 
+  // Determine display based on activity type
+  const getActivityText = () => {
+    switch (item.type) {
+      case 'payment':
+        return 'paid';
+      case 'claim':
+        return 'claimed from';
+      case 'request':
+        return 'requested from';
+      default:
+        return 'paid';
+    }
+  };
+
+  const isOutgoing = item.type === 'payment' || item.type === 'request';
+
   return (
     <div className="clay p-4 transition-all duration-200 hover:scale-[1.01]">
       <div className="flex items-start gap-3">
         <div className="relative">
           <Avatar name={item.user.name} size="md" />
           <div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${
-            item.type === "sent" ? "bg-red-500" : "bg-green-500"
+            isOutgoing ? "bg-red-500" : "bg-green-500"
           }`}>
-            {item.type === "sent" ? (
+            {isOutgoing ? (
               <ArrowUpRight className="w-2.5 h-2.5 text-white" />
             ) : (
               <ArrowDownLeft className="w-2.5 h-2.5 text-white" />
@@ -197,7 +326,7 @@ function FeedCard({
           <div className="flex items-center gap-2">
             <span className="font-semibold text-white">{item.user.name}</span>
             <span className="text-white/40">
-              {item.type === "sent" ? "paid" : "received from"}
+              {getActivityText()}
             </span>
             <span className="font-semibold text-white">{item.counterparty.name}</span>
           </div>
@@ -229,9 +358,9 @@ function FeedCard({
 
         {showAmount && (
           <div className={`font-bold text-lg ${
-            item.type === "sent" ? "text-red-400" : "text-green-400"
+            isOutgoing ? "text-red-400" : "text-green-400"
           }`}>
-            {item.type === "sent" ? "-" : "+"}${item.amount}
+            {isOutgoing ? "-" : "+"}${item.amount}
           </div>
         )}
       </div>
@@ -260,10 +389,13 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative w-full max-w-md clay-card p-6 animate-fade-in-scale">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose}
+      zIndex={110}
+      backdropClassName="bg-black/80 backdrop-blur-sm"
+    >
+      <div className="relative w-full max-w-md clay-card p-6">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-white/40 hover:text-white transition-colors"
@@ -319,7 +451,7 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 
@@ -362,7 +494,7 @@ function ToggleOption({
   );
 }
 
-// Mock data generator
+// Mock data generator (fallback when API unavailable)
 function generateMockFeed(): FeedItem[] {
   const names = ["Alex", "Jordan", "Sam", "Riley", "Casey", "Morgan", "Taylor", "Quinn", "Avery", "Blake"];
   const memos = [
@@ -377,10 +509,11 @@ function generateMockFeed(): FeedItem[] {
     "Road trip gas",
     "",
   ];
+  const types: FeedItem["type"][] = ["payment", "claim", "request"];
 
   return Array.from({ length: 10 }, (_, i) => ({
     id: `feed-${i}`,
-    type: Math.random() > 0.5 ? "sent" : "received",
+    type: types[Math.floor(Math.random() * types.length)],
     user: {
       name: names[Math.floor(Math.random() * names.length)],
       address: `0x${Math.random().toString(16).slice(2, 10)}`,

@@ -64,10 +64,6 @@ export function formatPrice(price: number): string {
   return `${Math.round(price * 100)}¢`;
 }
 
-export function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
 export function formatTimeLeft(endDate: string): string {
   const end = new Date(endDate);
   const now = new Date();
@@ -85,4 +81,19 @@ export function formatTimeLeft(endDate: string): string {
   if (days > 0) return `${days}d left`;
   if (hours > 0) return `${hours}h left`;
   return "< 1h left";
+}
+
+export function formatVolume(amount: number): string {
+  if (amount >= 1_000_000) {
+    return `$${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    return `$${(amount / 1_000).toFixed(1)}K`;
+  }
+  return `$${amount.toFixed(0)}`;
+}
+
+export function formatAddress(address: string, chars: number = 4): string {
+  if (!address) return '';
+  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
 }

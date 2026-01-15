@@ -14,6 +14,35 @@ import { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
 /**
+ * Check if Google OAuth is configured
+ */
+export const isGoogleOAuthConfigured = (): boolean => {
+  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+};
+
+/**
+ * Get Google client ID (returns placeholder for dev if not set)
+ */
+const getGoogleClientId = (): string => {
+  if (process.env.GOOGLE_CLIENT_ID) {
+    return process.env.GOOGLE_CLIENT_ID;
+  }
+  // Return a placeholder - the app will show a setup message instead
+  return 'not-configured';
+};
+
+/**
+ * Get Google client secret (returns placeholder for dev if not set)
+ */
+const getGoogleClientSecret = (): string => {
+  if (process.env.GOOGLE_CLIENT_SECRET) {
+    return process.env.GOOGLE_CLIENT_SECRET;
+  }
+  // Return a placeholder - the app will show a setup message instead
+  return 'not-configured';
+};
+
+/**
  * Generate a development-only secret for local testing
  */
 const getSecret = (): string | undefined => {
@@ -36,8 +65,8 @@ export const authOptions: AuthOptions = {
   
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: getGoogleClientId(),
+      clientSecret: getGoogleClientSecret(),
       authorization: {
         params: {
           scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',

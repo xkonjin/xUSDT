@@ -12,9 +12,7 @@ import { prisma, notifications as notifyHelpers } from '@plasma-pay/db';
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC, plasmaMainnet } from '@plasma-pay/core';
-
-// Relayer key for executing transfers
-const RELAYER_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
+import { getValidatedRelayerKey } from '@/lib/validation';
 
 // ABI for transferWithAuthorization
 const TRANSFER_WITH_AUTH_ABI = [
@@ -121,10 +119,12 @@ export async function POST(
     const { id } = await context.params;
     const body = await request.json();
 
-    // Validate relayer
-    if (!RELAYER_KEY) {
+    // Validate relayer key with proper error handling
+    const { key: RELAYER_KEY, error: relayerError } = getValidatedRelayerKey();
+    if (!RELAYER_KEY || relayerError) {
+      console.error('[requests] Relayer key validation failed');
       return NextResponse.json(
-        { error: 'Relayer not configured' },
+        { error: relayerError || 'Payment service configuration error. Please contact support.' },
         { status: 500 }
       );
     }

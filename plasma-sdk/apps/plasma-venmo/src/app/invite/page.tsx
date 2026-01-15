@@ -76,7 +76,7 @@ export default function InvitePage() {
   const handleShare = async (channel: "whatsapp" | "telegram" | "sms" | "twitter") => {
     await share({
       channel,
-      title: "Join Plasma Pay",
+      title: "Join Plenmo",
       text: "Send money instantly with zero fees! Use my referral link and we both earn $0.10:",
       url: referralLink,
     });

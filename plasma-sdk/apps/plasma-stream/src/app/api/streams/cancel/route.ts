@@ -2,14 +2,13 @@
  * Plasma Stream Cancel API Route
  *
  * Handles stream cancellation requests from stream senders.
- * Calculates vested amount for recipient and refunds remaining to sender.
+ * Uses StreamService abstraction for mock/contract implementations.
  *
- * NOTE: This simulates cancellation - no actual funds are transferred.
- * For production, integrate with on-chain streaming contracts.
+ * Set STREAM_CONTRACT_ADDRESS env var to use real contracts.
  */
 
 import { NextResponse } from "next/server";
-import { prisma } from "@plasma-pay/db";
+import { getStreamService } from "@/lib/contracts";
 
 interface CancelRequest {
   streamId: string;
@@ -34,91 +33,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch stream from database
-    const stream = await prisma.stream.findUnique({
-      where: { id: streamId },
-    });
+    // Use stream service abstraction (mock or contract implementation)
+    const streamService = getStreamService();
+    const result = await streamService.cancel(streamId, senderAddress);
 
-    if (!stream) {
-      return NextResponse.json({ error: "Stream not found" }, { status: 404 });
-    }
-
-    // Verify caller is sender
-    if (stream.sender.toLowerCase() !== senderAddress.toLowerCase()) {
+    if (!result.success) {
+      // Map specific errors to HTTP status codes
+      const errorStatus = getErrorStatus(result.error);
       return NextResponse.json(
-        { error: "Only the sender can cancel" },
-        { status: 403 }
+        { error: result.error },
+        { status: errorStatus }
       );
     }
-
-    // Check stream is cancelable
-    if (!stream.cancelable) {
-      return NextResponse.json(
-        { error: "This stream is not cancelable" },
-        { status: 400 }
-      );
-    }
-
-    // Check stream is active
-    if (!stream.active) {
-      return NextResponse.json(
-        { error: "Stream is already inactive" },
-        { status: 400 }
-      );
-    }
-
-    // Calculate vested amount at cancellation time
-    const now = Math.floor(Date.now() / 1000);
-    const depositAmount = BigInt(stream.depositAmount);
-    const withdrawnAmount = BigInt(stream.withdrawnAmount);
-    const duration = stream.endTime - stream.startTime;
-
-    let vestedForRecipient = BigInt(0);
-    
-    // If past cliff, calculate vested amount
-    if (now >= stream.cliffTime) {
-      const elapsed = Math.min(now - stream.startTime, duration);
-      const vestedFraction = elapsed / duration;
-      vestedForRecipient =
-        (depositAmount * BigInt(Math.floor(vestedFraction * 1_000_000))) /
-        BigInt(1_000_000);
-    }
-
-    // Remaining for recipient = vested - already withdrawn
-    const remainingForRecipient = vestedForRecipient > withdrawnAmount 
-      ? vestedForRecipient - withdrawnAmount 
-      : BigInt(0);
-
-    // Refund for sender = total - vested
-    const refundForSender = depositAmount - vestedForRecipient;
-
-    // Update stream in database
-    await prisma.stream.update({
-      where: { id: streamId },
-      data: {
-        active: false,
-        // Set withdrawn to vested (recipient can still claim up to this)
-        withdrawnAmount: vestedForRecipient.toString(),
-      },
-    });
-
-    // Generate mock transaction hash
-    const mockTxHash = `0x${Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join("")}`;
 
     return NextResponse.json({
       success: true,
-      txHash: mockTxHash,
-      details: {
-        streamId,
-        totalDeposit: depositAmount.toString(),
-        vestedForRecipient: vestedForRecipient.toString(),
-        alreadyWithdrawn: withdrawnAmount.toString(),
-        remainingForRecipient: remainingForRecipient.toString(),
-        refundForSender: refundForSender.toString(),
-        refundForSenderFormatted: `${Number(refundForSender) / 1_000_000} USDT0`,
-      },
+      txHash: result.txHash,
+      details: result.details,
     });
   } catch (error) {
     return NextResponse.json(
@@ -128,4 +59,15 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Map error messages to HTTP status codes
+ */
+function getErrorStatus(error?: string): number {
+  if (!error) return 500;
+  if (error === "Stream not found") return 404;
+  if (error === "Only the sender can cancel") return 403;
+  if (error === "This stream is not cancelable" || error === "Stream is already inactive") return 400;
+  return 500;
 }

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { ExternalWalletPayButton } from "@/components/ExternalWalletPay";
+import { parseUserFriendlyError } from "@/lib/validation";
 
 // Type for payment link data
 interface PaymentLinkData {
@@ -158,7 +159,8 @@ export default function PayPage({
         txHash: result.txHash,
       } : null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
+      const rawError = err instanceof Error ? err.message : "Payment failed";
+      setError(parseUserFriendlyError(rawError, { amount, balance: balance || '0' }));
     } finally {
       setPaying(false);
     }
@@ -169,7 +171,7 @@ export default function PayPage({
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
+          <Loader2 className="w-12 h-12 text-plenmo-500 animate-spin" />
           <span className="text-white/50">Loading payment link...</span>
         </div>
       </main>
@@ -186,10 +188,10 @@ export default function PayPage({
           <p className="text-white/50 mb-6">{error}</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -206,10 +208,10 @@ export default function PayPage({
           <p className="text-white/50 mb-6">This payment link doesn&apos;t exist or has been removed.</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -226,7 +228,7 @@ export default function PayPage({
             <h1 className="text-3xl font-bold text-white mb-2">Payment Complete!</h1>
             <p className="text-white/50 mb-6">
               {paymentLink.amount !== null 
-                ? `$${paymentLink.amount} USDT0 sent successfully`
+                ? `$${paymentLink.amount} sent successfully`
                 : `Payment sent successfully`
               }
             </p>
@@ -236,7 +238,7 @@ export default function PayPage({
                 href={`https://scan.plasma.to/tx/${success || paymentLink.txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline mb-6"
+                className="inline-flex items-center gap-2 text-plenmo-500 hover:underline mb-6"
               >
                 View on Plasma Scan
                 <ExternalLink className="w-4 h-4" />
@@ -248,7 +250,7 @@ export default function PayPage({
                 href="/"
                 className="btn-primary inline-block"
               >
-                Open Plasma Venmo
+                Open Plenmo
               </Link>
             </div>
           </div>
@@ -267,10 +269,10 @@ export default function PayPage({
           <p className="text-white/50 mb-6">This payment link has expired and can no longer be used.</p>
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go to Plasma Venmo
+            Go to Plenmo
           </Link>
         </div>
       </main>
@@ -295,7 +297,7 @@ export default function PayPage({
           className="inline-flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Plasma Venmo
+          Back to Plenmo
         </Link>
 
         {/* Payment Card */}
@@ -326,13 +328,13 @@ export default function PayPage({
           {/* Amount section */}
           <div className="mb-6">
             <label className="block text-white/50 text-sm mb-2 font-medium">
-              Amount (USDT0)
+              Amount
             </label>
             {paymentLink.amount !== null ? (
               // Fixed amount display
               <div className="text-5xl font-bold tracking-tight">
                 <span className="gradient-text">${paymentLink.amount}</span>
-                <span className="text-white/30 text-xl ml-2">USDT0</span>
+                <span className="text-white/30 text-xl ml-2">USD</span>
               </div>
             ) : (
               // Editable amount input
@@ -354,15 +356,25 @@ export default function PayPage({
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm mb-6">
-              {error}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-200 text-sm font-medium">{error}</p>
+                  {error.includes("enough") && (
+                    <p className="text-white/50 text-xs mt-2">
+                      You can add funds or pay with an external wallet below.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Balance info (if authenticated) */}
           {authenticated && balance && (
             <div className="text-white/40 text-sm mb-4">
-              Your balance: ${balance} USDT0
+              Your balance: ${balance}
             </div>
           )}
 
@@ -405,7 +417,7 @@ export default function PayPage({
                     Processing...
                   </>
                 ) : (
-                  <>Pay {amount ? `$${amount}` : ''} USDT0</>
+                  <>Pay {amount ? `$${amount}` : ''}</>
                 )}
               </button>
               
@@ -427,7 +439,7 @@ export default function PayPage({
 
           {/* Zero gas fees badge */}
           <p className="text-white/30 text-xs text-center mt-4">
-            Zero gas fees on Plasma Chain
+            Zero fees. Instant transfer.
           </p>
         </div>
 

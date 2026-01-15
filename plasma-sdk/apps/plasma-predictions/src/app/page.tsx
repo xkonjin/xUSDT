@@ -1,157 +1,245 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { usePlasmaWallet } from "@plasma-pay/privy-auth";
-import { TrendingUp, Zap, Shield, Clock } from "lucide-react";
-import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/BottomNav";
-import { useTrendingMarkets } from "@/hooks/useMarkets";
+import { 
+  Wallet, 
+  ChevronLeft, 
+  ChevronRight,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
+import { useMarkets } from "@/hooks/useMarkets";
+import { useBalance, formatBalance } from "@/hooks/useBalance";
 import { MarketCard, MarketCardSkeleton } from "@/components/MarketCard";
 import { BettingModal } from "@/components/BettingModal";
+import { usePredictionStore } from "@/lib/store";
+import { MARKET_CATEGORIES } from "@/lib/constants";
+import type { MarketCategory } from "@/lib/types";
 
-const FEATURES = [
-  {
-    icon: Zap,
-    title: "Zero Gas Fees",
-    description: "All transactions are sponsored. Never pay for gas.",
-  },
-  {
-    icon: Clock,
-    title: "Instant Settlement",
-    description: "2-4 second confirmation. No waiting for blocks.",
-  },
-  {
-    icon: Shield,
-    title: "Simple & Secure",
-    description: "One signature to bet. Powered by Plasma chain.",
-  },
-];
+// Header Component
+function Header() {
+  const { balance, resetBalance } = useBalance();
+  
+  return (
+    <header className="glass-header sticky top-0 z-40 px-4 py-4">
+      <div className="max-w-5xl mx-auto flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-display text-xl font-bold text-white">
+            Pledictions
+          </span>
+        </div>
+        
+        {/* Balance */}
+        <button 
+          onClick={resetBalance}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+          title="Click to reset balance"
+        >
+          <Wallet className="w-4 h-4 text-purple-400" />
+          <span className="font-semibold text-white">{formatBalance(balance)}</span>
+        </button>
+      </div>
+    </header>
+  );
+}
 
-export default function HomePage() {
-  const router = useRouter();
-  const { authenticated, login, ready } = usePlasmaWallet();
-  const { data: trendingMarkets, isLoading } = useTrendingMarkets();
+// Category Filter Tabs
+function CategoryTabs() {
+  const { selectedCategory, setCategory } = usePredictionStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+
+  const checkScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setShowLeftArrow(scrollLeft > 0);
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const ref = scrollRef.current;
+    ref?.addEventListener('scroll', checkScroll);
+    return () => ref?.removeEventListener('scroll', checkScroll);
+  }, []);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const scrollAmount = 200;
+    scrollRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  };
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <Header />
+    <div className="relative mb-6">
+      {/* Left Arrow */}
+      {showLeftArrow && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
 
-      {/* Hero Section */}
-      <section className="px-4 py-12 sm:py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+      {/* Scrollable Categories */}
+      <div
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto hide-scrollbar px-1 py-1"
+      >
+        {MARKET_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setCategory(cat.id as MarketCategory)}
+            className={`category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
           >
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Bet on{" "}
-              <span className="text-gradient-purple">What Happens Next</span>
-            </h1>
-            <p className="text-lg sm:text-xl text-white/60 mb-8 max-w-2xl mx-auto">
-              The fastest prediction market. Zero gas fees. Instant settlement.
-              Bet on politics, crypto, sports and more.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => router.push("/predictions")}
-                className="btn-primary text-lg px-8 py-3 w-full sm:w-auto"
-              >
-                Browse Markets
-              </button>
-              {!authenticated && ready && (
-                <button
-                  onClick={login}
-                  className="btn-secondary text-lg px-8 py-3 w-full sm:w-auto"
-                >
-                  Sign Up Free
-                </button>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      </section>
+            <span>{cat.emoji}</span>
+            <span>{cat.label}</span>
+          </button>
+        ))}
+      </div>
 
-      {/* Features */}
-      <section className="px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 * i }}
-                className="stat-card p-6 text-center"
-              >
-                <feature.icon className="w-10 h-10 text-prediction-primary mx-auto mb-4" />
-                <h3 className="text-white font-semibold mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-white/60 text-sm">{feature.description}</p>
-              </motion.div>
+      {/* Right Arrow */}
+      {showRightArrow && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/80 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* Fade Edges */}
+      {showLeftArrow && (
+        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#0f0a1e] to-transparent pointer-events-none" />
+      )}
+      {showRightArrow && (
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#0f0a1e] to-transparent pointer-events-none" />
+      )}
+    </div>
+  );
+}
+
+// Markets Grid
+function MarketsGrid() {
+  const { selectedCategory } = usePredictionStore();
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useMarkets({
+    category: selectedCategory,
+    sortBy: "volume",
+  });
+
+  const markets = data?.pages.flatMap((page) => page.markets) ?? [];
+
+  return (
+    <div>
+      {/* Results Info */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-purple-400" />
+          <h2 className="font-display text-lg font-semibold text-white">
+            {selectedCategory === "all" ? "All Markets" : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Markets`}
+          </h2>
+        </div>
+        {!isLoading && (
+          <span className="text-sm text-white/50">
+            {markets.length} markets
+          </span>
+        )}
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isLoading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <MarketCardSkeleton key={i} />
+            ))
+          : markets.map((market, i) => (
+              <MarketCard key={market.id} market={market} index={i} />
             ))}
-          </div>
-        </div>
-      </section>
+      </div>
 
-      {/* Trending Markets */}
-      <section className="px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-prediction-primary" />
-              Trending Markets
-            </h2>
-            <button
-              onClick={() => router.push("/predictions")}
-              className="text-prediction-primary text-sm font-medium hover:underline"
-            >
-              View All →
-            </button>
+      {/* Empty State */}
+      {!isLoading && markets.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-16"
+        >
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-white/30" />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {isLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <MarketCardSkeleton key={i} />
-                ))
-              : trendingMarkets?.map((market, i) => (
-                  <MarketCard key={market.id} market={market} index={i} />
-                ))}
-          </div>
-        </div>
-      </section>
+          <p className="text-white/60 text-lg">No markets found</p>
+          <p className="text-white/40 text-sm mt-1">Try selecting a different category</p>
+        </motion.div>
+      )}
 
-      {/* CTA Section */}
-      <section className="px-4 py-16">
-        <div className="max-w-2xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="liquid-glass-elevated rounded-3xl p-8 text-center"
+      {/* Load More */}
+      {hasNextPage && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="btn-secondary px-8 py-3"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Ready to make your first prediction?
-            </h2>
-            <p className="text-white/60 mb-6">
-              Join thousands of predictors betting on the future. No crypto
-              experience required.
-            </p>
-            <button
-              onClick={() =>
-                authenticated ? router.push("/predictions") : login()
-              }
-              className="btn-primary text-lg px-8 py-3"
-            >
-              {authenticated ? "Start Betting" : "Get Started Free"}
-            </button>
-          </motion.div>
+            {isFetchingNextPage ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Loading...
+              </span>
+            ) : (
+              "Load More Markets"
+            )}
+          </button>
         </div>
-      </section>
+      )}
+    </div>
+  );
+}
 
-      <BottomNav />
+// Main Page
+export default function HomePage() {
+  return (
+    <div className="min-h-dvh pb-8">
+      <Header />
+      
+      {/* Hero Section */}
+      <section className="px-4 py-8 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+            <span className="badge-live">Live</span>
+            <span className="text-sm text-purple-300">Real Polymarket data</span>
+          </div>
+          
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
+            Predict the Future.{" "}
+            <span className="text-gradient">Win Big.</span>
+          </h1>
+          
+          <p className="text-white/50 text-base max-w-md mx-auto">
+            Bet on real-world events. Politics, crypto, sports & more.
+          </p>
+        </motion.div>
+      </section>
+      
+      {/* Main Content */}
+      <main className="px-4 max-w-5xl mx-auto">
+        <CategoryTabs />
+        <MarketsGrid />
+      </main>
+      
+      {/* Betting Modal */}
       <BettingModal />
     </div>
   );

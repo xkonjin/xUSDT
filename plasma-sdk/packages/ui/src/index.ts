@@ -68,3 +68,33 @@ export type { SuccessShareProps, ShareAction } from "./components/SuccessShare";
 export { WalletManager } from "./components/WalletManager";
 export type { WalletManagerProps } from "./components/WalletManager";
 
+// Celebration animations
+export { Celebration, SuccessCheckmark, PaymentSuccess } from "./components/Celebration";
+export type { default as CelebrationComponent } from "./components/Celebration";
+
+// AI Assistant
+export {
+  Assistant,
+  AssistantProvider,
+  useAssistant,
+  useAssistantReaction,
+  AssistantAvatar,
+  AssistantBubble,
+  useAssistantStore,
+  useMousePosition,
+  useSpeech,
+  useAssistantAI,
+  collectUIContext,
+  PersonalityEngine,
+  DEFAULT_CONFIG,
+  PAGE_NAMES,
+} from "./components/Assistant";
+export type {
+  AssistantState,
+  AssistantEmotion,
+  AssistantMessage,
+  AssistantConfig,
+  AssistantMemory,
+  UIContext,
+  AssistantProviderProps,
+} from "./components/Assistant";

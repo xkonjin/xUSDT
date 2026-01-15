@@ -1,7 +1,15 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import type { PredictionMarket, MarketFilters } from "@/lib/types";
-import { BACKEND_URL } from "@/lib/constants";
+import type { PredictionMarket, MarketFilters, MarketCategory } from "@/lib/types";
+import { 
+  parseOutcomes, 
+  detectCategory, 
+  type PolymarketMarket 
+} from "@/lib/polymarket";
 
+// Use local API proxy to avoid CORS issues
+const API_BASE = "/api/markets";
+
+// Fallback mock markets in case API fails
 const MOCK_MARKETS: PredictionMarket[] = [
   {
     id: "btc-100k-2025",
@@ -104,73 +112,165 @@ const MOCK_MARKETS: PredictionMarket[] = [
   },
 ];
 
+/**
+ * Transform raw Polymarket API data to our internal PredictionMarket type
+ */
+function parsePolymarketData(data: PolymarketMarket[]): PredictionMarket[] {
+  return data.map((m) => {
+    // Use the polymarket client to parse outcomes
+    const outcomes = parseOutcomes(m);
+    const yesPrice = outcomes[0]?.price ?? 0.5;
+    const noPrice = outcomes[1]?.price ?? 0.5;
+
+    // Use enhanced category detection
+    const category = detectCategory(m) as MarketCategory;
+
+    return {
+      id: m.slug || m.id,
+      polymarketId: m.conditionId,
+      conditionId: m.conditionId,
+      question: m.question,
+      description: m.description,
+      category,
+      endDate: m.endDate,
+      resolved: m.closed || false,
+      outcome: undefined, // Polymarket doesn't provide winner in the same format
+      yesPrice,
+      noPrice,
+      volume24h: m.volume24hr || 0,
+      totalVolume: m.volumeNum || parseFloat(m.volume || '0'),
+      liquidity: m.liquidityNum || parseFloat(m.liquidity || '0'),
+      imageUrl: m.image || m.icon,
+      polymarketUrl: m.slug ? `https://polymarket.com/event/${m.slug}` : undefined,
+      createdAt: m.createdAt || new Date().toISOString(),
+    } as PredictionMarket;
+  });
+}
+
 async function fetchMarkets(
   filters: MarketFilters,
   page = 0
 ): Promise<{ markets: PredictionMarket[]; hasMore: boolean }> {
-  // In production, fetch from backend
-  // const res = await fetch(`${BACKEND_URL}/api/predictions/markets?${new URLSearchParams(...)}`);
-
-  // For MVP, use mock data with filtering
-  let filtered = [...MOCK_MARKETS];
-
-  if (filters.category && filters.category !== "all") {
-    filtered = filtered.filter((m) => m.category === filters.category);
-  }
-
-  if (filters.search) {
-    const search = filters.search.toLowerCase();
-    filtered = filtered.filter(
-      (m) =>
-        m.question.toLowerCase().includes(search) ||
-        m.description?.toLowerCase().includes(search)
+  const pageSize = 20;
+  
+  try {
+    // Fetch via local API proxy to avoid CORS issues
+    const response = await fetch(
+      `${API_BASE}?limit=100`,
+      { cache: "no-store" }
     );
-  }
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const rawData = await response.json();
+    let markets = parsePolymarketData(rawData);
+    
+    // Apply filters
+    if (filters.category && filters.category !== "all") {
+      markets = markets.filter((m) => m.category === filters.category);
+    }
 
-  if (filters.resolved !== undefined) {
-    filtered = filtered.filter((m) => m.resolved === filters.resolved);
-  }
-
-  // Sort
-  switch (filters.sortBy) {
-    case "volume":
-      filtered.sort((a, b) => b.totalVolume - a.totalVolume);
-      break;
-    case "endDate":
-      filtered.sort(
-        (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      markets = markets.filter(
+        (m) =>
+          m.question.toLowerCase().includes(search) ||
+          m.description?.toLowerCase().includes(search)
       );
-      break;
-    case "liquidity":
-      filtered.sort((a, b) => b.liquidity - a.liquidity);
-      break;
-    case "newest":
-      filtered.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+
+    if (filters.resolved !== undefined) {
+      markets = markets.filter((m) => m.resolved === filters.resolved);
+    }
+
+    // Sort
+    switch (filters.sortBy) {
+      case "volume":
+        markets.sort((a, b) => b.totalVolume - a.totalVolume);
+        break;
+      case "endDate":
+        markets.sort(
+          (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+        );
+        break;
+      case "liquidity":
+        markets.sort((a, b) => b.liquidity - a.liquidity);
+        break;
+      case "newest":
+        markets.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        break;
+      default:
+        markets.sort((a, b) => b.volume24h - a.volume24h);
+    }
+
+    // Paginate
+    const start = page * pageSize;
+    const paged = markets.slice(start, start + pageSize);
+
+    return {
+      markets: paged,
+      hasMore: start + pageSize < markets.length,
+    };
+  } catch (error) {
+    console.error("Failed to fetch from Polymarket API, using fallback:", error);
+    
+    // Fallback to mock data
+    let filtered = [...MOCK_MARKETS];
+    
+    if (filters.category && filters.category !== "all") {
+      filtered = filtered.filter((m) => m.category === filters.category);
+    }
+
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      filtered = filtered.filter(
+        (m) =>
+          m.question.toLowerCase().includes(search) ||
+          m.description?.toLowerCase().includes(search)
       );
-      break;
-    default:
-      filtered.sort((a, b) => b.volume24h - a.volume24h);
+    }
+
+    filtered.sort((a, b) => b.totalVolume - a.totalVolume);
+    
+    const start = page * pageSize;
+    const paged = filtered.slice(start, start + pageSize);
+
+    return {
+      markets: paged,
+      hasMore: start + pageSize < filtered.length,
+    };
   }
-
-  // Paginate
-  const pageSize = 10;
-  const start = page * pageSize;
-  const paged = filtered.slice(start, start + pageSize);
-
-  return {
-    markets: paged,
-    hasMore: start + pageSize < filtered.length,
-  };
 }
 
 async function fetchMarket(id: string): Promise<PredictionMarket | null> {
-  // In production: fetch from backend
-  // const res = await fetch(`${BACKEND_URL}/api/predictions/markets/${id}`);
-
-  const market = MOCK_MARKETS.find((m) => m.id === id);
-  return market || null;
+  try {
+    // Try to fetch from API proxy by slug
+    const response = await fetch(
+      `${API_BASE}?slug=${encodeURIComponent(id)}&limit=1`,
+      { cache: "no-store" }
+    );
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const markets = parsePolymarketData(data);
+        return markets[0];
+      }
+    }
+    
+    // Fallback: try to find in mock data
+    const market = MOCK_MARKETS.find((m) => m.id === id);
+    return market || null;
+  } catch (error) {
+    console.error("Failed to fetch market:", error);
+    const market = MOCK_MARKETS.find((m) => m.id === id);
+    return market || null;
+  }
 }
 
 export function useMarkets(filters: MarketFilters) {

@@ -29,7 +29,7 @@ import type { Subscription, ScanResult } from '@/types';
 import { calculateTotals } from '@/lib/subscription-detector';
 
 // Conditionally import Privy hook - may not be available if not configured
-let usePlasmaWallet: any = null;
+let usePlasmaWallet: (() => any) | null = null;
 try {
   const privyAuth = require('@plasma-pay/privy-auth');
   usePlasmaWallet = privyAuth.usePlasmaWallet;
@@ -37,13 +37,19 @@ try {
   // Privy not available - wallet features will be disabled
 }
 
+const useFallbackWallet = () => ({
+  wallet: null,
+  authenticated: false,
+  login: () => {},
+});
+
 export default function Dashboard() {
   // NextAuth session for Gmail access
   const { data: session, status } = useSession();
   const router = useRouter();
   
   // Privy wallet for payments (may be null if not configured)
-  const walletState = usePlasmaWallet ? usePlasmaWallet() : null;
+  const walletState = (usePlasmaWallet ?? useFallbackWallet)();
   const wallet = walletState?.wallet || null;
   const isWalletConnected = walletState?.authenticated || false;
   const connectWallet = walletState?.login || (() => {});
@@ -59,6 +65,7 @@ export default function Dashboard() {
   const [hasPaid, setHasPaid] = useState(false);
   const [paymentTxHash, setPaymentTxHash] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(true);
   
   // Filter state
   const [filter, setFilter] = useState<string>('all');
@@ -70,15 +77,32 @@ export default function Dashboard() {
     }
   }, [status, router]);
 
-  // Check payment status on mount (could persist to localStorage or backend)
+  // SUB-002: Check payment status from server on mount
+  // Queries database instead of localStorage for security
   useEffect(() => {
-    const savedPayment = localStorage.getItem('subkiller_paid');
-    if (savedPayment) {
-      const parsed = JSON.parse(savedPayment);
-      setHasPaid(parsed.hasPaid || false);
-      setPaymentTxHash(parsed.txHash || null);
-    }
-  }, []);
+    const checkPaymentStatus = async () => {
+      // Need wallet address to check payment status
+      if (!wallet?.address) {
+        setIsCheckingPayment(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/payment-status?address=${wallet.address}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHasPaid(data.hasPaid || false);
+          setPaymentTxHash(data.txHash || null);
+        }
+      } catch (error) {
+        console.error('Failed to check payment status:', error);
+      } finally {
+        setIsCheckingPayment(false);
+      }
+    };
+
+    checkPaymentStatus();
+  }, [wallet?.address]);
 
   /**
    * Start scanning Gmail for subscription emails
@@ -140,19 +164,15 @@ export default function Dashboard() {
 
   /**
    * Handle successful payment
-   * Persists payment status to localStorage and unlocks features
+   * SUB-002: Payment is persisted to database by /api/pay
+   * We just update local state here - no more localStorage
    */
   const handlePaymentSuccess = (txHash: string) => {
     setHasPaid(true);
     setPaymentTxHash(txHash);
     setShowPaymentModal(false);
-    
-    // Persist payment status
-    localStorage.setItem('subkiller_paid', JSON.stringify({
-      hasPaid: true,
-      txHash,
-      paidAt: new Date().toISOString(),
-    }));
+    // Note: Payment is already persisted to database by /api/pay endpoint
+    // No localStorage needed - server is source of truth
   };
 
   /**

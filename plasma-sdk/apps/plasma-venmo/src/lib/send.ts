@@ -10,6 +10,7 @@ import {
   USDT0_ADDRESS,
 } from '@plasma-pay/core';
 import { withRetry, isRetryableError } from './retry';
+import { splitSignature } from './crypto';
 
 interface SendMoneyOptions {
   recipientIdentifier: string;
@@ -26,6 +27,12 @@ interface SendMoneyResult {
   error?: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (!error || typeof error !== 'object') return fallback;
+  const data = error as { message?: string; error?: string };
+  return data.message || data.error || fallback;
+};
+
 export async function sendMoney(
   wallet: PlasmaEmbeddedWallet,
   options: SendMoneyOptions
@@ -40,8 +47,8 @@ export async function sendMoney(
   });
 
   if (!resolveResponse.ok) {
-    const error = await resolveResponse.json();
-    return { success: false, error: error.message || 'Failed to resolve recipient' };
+    const error = await resolveResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Failed to resolve recipient') };
   }
 
   const resolveData = await resolveResponse.json();
@@ -131,11 +138,15 @@ async function createClaimForUnregisteredRecipient(
 ): Promise<SendMoneyResult> {
   const amountInUnits = parseUnits(amount, 6);
   
-  // Get escrow/treasury address from env or use a default
+  // Get escrow/treasury address from env
   const escrowAddress = process.env.NEXT_PUBLIC_MERCHANT_ADDRESS as Address;
   
   if (!escrowAddress) {
-    return { success: false, error: 'Escrow address not configured' };
+    console.warn('[send] NEXT_PUBLIC_MERCHANT_ADDRESS not configured - claim links unavailable');
+    return { 
+      success: false, 
+      error: 'Claim links are currently unavailable. Please send to a registered user or wallet address.' 
+    };
   }
 
   // Create transfer to escrow
@@ -185,8 +196,8 @@ async function createClaimForUnregisteredRecipient(
   });
 
   if (!claimResponse.ok) {
-    const error = await claimResponse.json();
-    return { success: false, error: error.message || 'Failed to create claim' };
+    const error = await claimResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Failed to create claim') };
   }
 
   const claimResult = await claimResponse.json();
@@ -209,8 +220,8 @@ async function createClaimForUnregisteredRecipient(
   });
 
   if (!submitResponse.ok) {
-    const error = await submitResponse.json();
-    return { success: false, error: error.message || 'Transfer to escrow failed' };
+    const error = await submitResponse.json().catch(() => ({}));
+    return { success: false, error: getErrorMessage(error, 'Transfer to escrow failed') };
   }
 
   // Trigger notification email
@@ -239,11 +250,4 @@ async function createClaimForUnregisteredRecipient(
   };
 }
 
-function splitSignature(signature: Hex): { v: number; r: Hex; s: Hex } {
-  const sig = signature.slice(2);
-  const r = `0x${sig.slice(0, 64)}` as Hex;
-  const s = `0x${sig.slice(64, 128)}` as Hex;
-  let v = parseInt(sig.slice(128, 130), 16);
-  if (v < 27) v += 27;
-  return { v, r, s };
-}
+// Note: splitSignature is now imported from './crypto' to avoid duplication

@@ -1,0 +1,103 @@
+{
+  "project": "xUSDT Issue Fixes",
+  "branchName": "ralph/fix-all-issues",
+  "description": "Fix all remaining GitHub issues from security audit and code review",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix broad exception catches in facilitator",
+      "description": "Replace broad except Exception catches with specific exception types in agent/facilitator.py",
+      "acceptanceCriteria": [
+        "Replace except Exception with specific web3 exceptions",
+        "Add proper logging for unexpected errors",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Issue #223"
+    },
+    {
+      "id": "US-002",
+      "title": "Fix duplicate splitSignature function",
+      "description": "Remove duplicate splitSignature from plasma-venmo and use @plasma-pay/core",
+      "acceptanceCriteria": [
+        "Import splitSignature from @plasma-pay/core in crypto.ts",
+        "Remove duplicate implementation from send.ts",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Issue #221"
+    },
+    {
+      "id": "US-003",
+      "title": "Fix nonce cache unbounded growth",
+      "description": "Implement more aggressive cleanup in gasless relay handler nonce cache",
+      "acceptanceCriteria": [
+        "Add periodic cleanup every 100 insertions",
+        "Reduce max cache size threshold",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Issue #229"
+    },
+    {
+      "id": "US-004",
+      "title": "Add rate limiting to merchant endpoints",
+      "description": "Add rate limiting middleware to /pay, /premium, /router/relay_total endpoints",
+      "acceptanceCriteria": [
+        "Install slowapi or implement simple rate limiter",
+        "Apply 10/minute limit to /pay endpoint",
+        "Apply 30/minute limit to /premium endpoint",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Issue #212"
+    },
+    {
+      "id": "US-005",
+      "title": "Add smart contract admin function tests",
+      "description": "Add tests for setFeeCollector and setPlatformFeeBps in PlasmaPaymentRouter",
+      "acceptanceCriteria": [
+        "Test setFeeCollector updates collector address",
+        "Test setPlatformFeeBps updates fee",
+        "Test onlyOwner modifier prevents unauthorized calls",
+        "Test edge cases (zero address, max bps)",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Issue #217"
+    },
+    {
+      "id": "US-006",
+      "title": "Fix mobile responsive quick amount buttons",
+      "description": "Add flex-wrap and responsive grid to quick amount buttons in payment forms",
+      "acceptanceCriteria": [
+        "Update SendMoneyForm.tsx with flex-wrap",
+        "Update BettingModal.tsx with responsive grid",
+        "Buttons wrap properly on narrow screens",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Issue #225"
+    },
+    {
+      "id": "US-007",
+      "title": "Add accessibility attributes to form inputs",
+      "description": "Add aria-label and aria-describedby to form inputs across apps",
+      "acceptanceCriteria": [
+        "Add aria-invalid and aria-describedby to SendMoneyForm",
+        "Add id/htmlFor associations in bill-split forms",
+        "Add aria-label to icon-only buttons",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Issue #218"
+    }
+  ]
+}

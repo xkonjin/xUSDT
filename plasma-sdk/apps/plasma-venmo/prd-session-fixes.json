@@ -1,0 +1,81 @@
+{
+  "title": "Plenmo Session Fixes - January 15, 2026",
+  "description": "Fix remaining issues from deployment review session",
+  "app": "plasma-venmo",
+  "issues": [
+    {
+      "id": "FIX-001",
+      "title": "Add PostHog environment variable to Vercel",
+      "description": "PostHog analytics is initialized in the app but NEXT_PUBLIC_POSTHOG_KEY is not set in Vercel production environment. This means no analytics data is being collected.",
+      "acceptance_criteria": [
+        "Document that NEXT_PUBLIC_POSTHOG_KEY needs to be set in Vercel",
+        "Add placeholder or instructions in .env.example",
+        "Verify PostHog initialization handles missing key gracefully"
+      ],
+      "priority": "medium",
+      "type": "config"
+    },
+    {
+      "id": "FIX-002", 
+      "title": "Verify and fix Plenny chat input text visibility",
+      "description": "The summary mentioned that the Plenny AI assistant chat input has white text on a light background, making it invisible. Need to verify this is still an issue and fix if so.",
+      "acceptance_criteria": [
+        "Check AssistantBubble.tsx input styling",
+        "Ensure input text is visible (white/light text on dark background)",
+        "Test in both light and dark contexts",
+        "Input should have: text-white, bg-black/30 or similar dark bg"
+      ],
+      "priority": "medium",
+      "type": "ui"
+    },
+    {
+      "id": "FIX-003",
+      "title": "Add user-friendly error handling to SendMoneyForm",
+      "description": "The payment page now has user-friendly errors, but SendMoneyForm may still show technical errors. Apply the same parseUserFriendlyError pattern.",
+      "acceptance_criteria": [
+        "Parse technical contract errors into plain English",
+        "Show helpful hints for common errors (insufficient balance, network issues)",
+        "Use amber warning style instead of harsh red for recoverable errors",
+        "Include actionable next steps in error messages"
+      ],
+      "priority": "medium",
+      "type": "ux"
+    },
+    {
+      "id": "FIX-004",
+      "title": "Add .env.example with all required variables",
+      "description": "Document all environment variables needed for deployment so future developers don't miss anything.",
+      "acceptance_criteria": [
+        "Create or update .env.example with all NEXT_PUBLIC_* variables",
+        "Include comments explaining each variable",
+        "List which are required vs optional",
+        "Include PostHog, Privy, Gemini, RPC, and Chain ID vars"
+      ],
+      "priority": "low",
+      "type": "docs"
+    },
+    {
+      "id": "FIX-005",
+      "title": "Remove unused email dependencies",
+      "description": "Since we switched to link sharing, the Resend and SendGrid code is mostly unused. Clean up unused imports and simplify the notify API.",
+      "acceptance_criteria": [
+        "Keep email infrastructure for future use but simplify",
+        "Remove @sendgrid/mail from package.json if not needed",
+        "Update notify API to clearly indicate email is optional/coming soon",
+        "Ensure build passes without email provider configured"
+      ],
+      "priority": "low",
+      "type": "cleanup"
+    }
+  ],
+  "test_commands": {
+    "build": "npm run build",
+    "typecheck": "npm run typecheck",
+    "lint": "npm run lint",
+    "test": "npm test"
+  },
+  "deployment": {
+    "platform": "vercel",
+    "production_url": "https://plenmo.vercel.app"
+  }
+}

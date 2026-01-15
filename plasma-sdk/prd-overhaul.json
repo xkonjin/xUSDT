@@ -1,0 +1,331 @@
+{
+  "name": "Plasma SDK Apps Complete Overhaul",
+  "description": "Complete overhaul of 5 Plasma SDK apps: backend fixes, UI redesign (Claymorphism/Liquid Glass), asset generation (Nano Banana), animations, and flow redesigns",
+  "version": "1.0.0",
+  "phases": [
+    {
+      "name": "Backend Fixes",
+      "tasks": [
+        {
+          "id": "backend-1",
+          "title": "Fix Splitzy bill creation flow - remove sign message, add payment links",
+          "description": "The current Splitzy flow shows a confusing 'Sign message' modal when creating bills. This needs to be removed. Instead, when a bill is created, generate unique payment links for each participant that they can use to pay their share directly.",
+          "acceptance_criteria": [
+            "Remove EIP-712 signing from bill creation",
+            "Generate unique payment link per participant when bill is finalized",
+            "Payment links should include: amount, recipient wallet, bill reference",
+            "Add 'Copy Link' and 'Share' buttons for each participant",
+            "Native share sheet integration (WhatsApp, SMS, etc.)"
+          ],
+          "files_to_modify": [
+            "apps/bill-split/src/app/new/page.tsx",
+            "apps/bill-split/src/app/api/bills/route.ts",
+            "apps/bill-split/src/components/ParticipantList.tsx"
+          ],
+          "priority": "P0",
+          "estimated_hours": 4
+        },
+        {
+          "id": "backend-2",
+          "title": "Fix StreamPay create stream - use mock implementation without signatures",
+          "description": "StreamPay shows 'Invalid signature' error when creating streams. The mock implementation exists but something triggers signature verification. Fix to use pure database mock without any gasless signature requirements.",
+          "acceptance_criteria": [
+            "Create stream works without signature errors",
+            "Streams are stored in SQLite database",
+            "Add 'Demo Mode' badge to UI",
+            "Withdraw and cancel work with mock implementation",
+            "Stream progress updates correctly over time"
+          ],
+          "files_to_modify": [
+            "apps/plasma-stream/src/app/create/page.tsx",
+            "apps/plasma-stream/src/lib/contracts/stream-service.ts",
+            "apps/plasma-stream/src/app/api/streams/route.ts"
+          ],
+          "priority": "P0",
+          "estimated_hours": 3
+        },
+        {
+          "id": "backend-3",
+          "title": "Add Pledictions mock prediction market backend",
+          "description": "Pledictions needs a working backend to display markets and allow betting. Create mock API routes that return sample prediction markets and handle bet placement.",
+          "acceptance_criteria": [
+            "GET /api/markets returns list of prediction markets",
+            "GET /api/markets/[id] returns market details with current odds",
+            "POST /api/bets places a bet and updates mock balance",
+            "Seed data includes 10+ sample markets across categories",
+            "Mock user balance starts at $100"
+          ],
+          "files_to_modify": [
+            "apps/plasma-predictions/src/app/api/markets/route.ts",
+            "apps/plasma-predictions/src/app/api/markets/[id]/route.ts",
+            "apps/plasma-predictions/src/app/api/bets/route.ts"
+          ],
+          "priority": "P1",
+          "estimated_hours": 4
+        }
+      ]
+    },
+    {
+      "name": "UI Redesign",
+      "tasks": [
+        {
+          "id": "ui-1",
+          "title": "Plenmo Claymorphism redesign",
+          "description": "Redesign Plenmo (plasma-venmo) with Claymorphism design system. Focus on soft, tactile UI elements that feel premium and playful. Mobile-first with proper viewport handling.",
+          "acceptance_criteria": [
+            "All cards use clay-card styling with proper shadows",
+            "Amount input uses Cash App style (large font, numpad)",
+            "Contact grid shows 4-column avatar layout",
+            "Bottom sheet for send/request forms",
+            "min-h-dvh instead of min-h-screen everywhere",
+            "Brand color: Green (#1DB954)",
+            "Touch targets minimum 44px"
+          ],
+          "files_to_modify": [
+            "apps/plasma-venmo/src/app/page.tsx",
+            "apps/plasma-venmo/src/app/globals.css",
+            "apps/plasma-venmo/tailwind.config.ts",
+            "apps/plasma-venmo/src/components/SendMoneyForm.tsx",
+            "apps/plasma-venmo/src/components/RequestMoneyForm.tsx"
+          ],
+          "priority": "P1",
+          "estimated_hours": 8
+        },
+        {
+          "id": "ui-2",
+          "title": "Pledictions Liquid Glass redesign",
+          "description": "Redesign Pledictions (plasma-predictions) with iOS 26 Liquid Glass aesthetic. Premium prediction market feel with proper odds display and category navigation.",
+          "acceptance_criteria": [
+            "Apply liquid-glass class to all cards and panels",
+            "Prediction cards show odds with proper formatting",
+            "Category tabs with horizontal scroll and indicators",
+            "Betting modal with clear amount input",
+            "Leaderboard with glass styling",
+            "Brand color: Purple (#8B5CF6)",
+            "Proper mobile viewport handling"
+          ],
+          "files_to_modify": [
+            "apps/plasma-predictions/src/app/page.tsx",
+            "apps/plasma-predictions/src/app/globals.css",
+            "apps/plasma-predictions/tailwind.config.ts",
+            "apps/plasma-predictions/src/components/MarketCard.tsx",
+            "apps/plasma-predictions/src/components/BettingModal.tsx"
+          ],
+          "priority": "P1",
+          "estimated_hours": 8
+        },
+        {
+          "id": "ui-3",
+          "title": "Splitzy Claymorphism + flow redesign",
+          "description": "Redesign Splitzy (bill-split) with Claymorphism and implement the new bill creation flow with payment link generation instead of confusing sign messages.",
+          "acceptance_criteria": [
+            "New multi-step bill creation wizard",
+            "Participant chips with color assignment",
+            "Split method selector (even/custom/by-item)",
+            "Review step with clear per-person breakdown",
+            "Payment links generated per participant",
+            "Share sheet with native integration",
+            "Brand color: Teal (#14B8A6)"
+          ],
+          "files_to_modify": [
+            "apps/bill-split/src/app/new/page.tsx",
+            "apps/bill-split/src/app/globals.css",
+            "apps/bill-split/tailwind.config.ts",
+            "apps/bill-split/src/components/BillWizard.tsx",
+            "apps/bill-split/src/components/ParticipantChip.tsx"
+          ],
+          "priority": "P1",
+          "estimated_hours": 10
+        },
+        {
+          "id": "ui-4",
+          "title": "StreamPay Payroll-style Liquid Glass",
+          "description": "Redesign StreamPay (plasma-stream) as a professional payroll streaming app with Liquid Glass. Research Gusto/Rippling for patterns. Timeline visualization for streams.",
+          "acceptance_criteria": [
+            "Professional payroll aesthetic",
+            "Stream timeline visualization",
+            "Progress ring component for active streams",
+            "Multi-step stream creation wizard",
+            "Demo mode badge clearly visible",
+            "Brand color: Orange (#F59E0B)",
+            "Liquid glass navigation and cards"
+          ],
+          "files_to_modify": [
+            "apps/plasma-stream/src/app/page.tsx",
+            "apps/plasma-stream/src/app/create/page.tsx",
+            "apps/plasma-stream/src/app/globals.css",
+            "apps/plasma-stream/tailwind.config.ts",
+            "apps/plasma-stream/src/components/StreamCard.tsx"
+          ],
+          "priority": "P1",
+          "estimated_hours": 8
+        },
+        {
+          "id": "ui-5",
+          "title": "SubKiller Liquid Glass + setup state",
+          "description": "Redesign SubKiller with Liquid Glass and proper handling of the setup state when Google OAuth is not configured. Add scanning animation and subscription cards.",
+          "acceptance_criteria": [
+            "Setup message styled nicely when OAuth not configured",
+            "Scanning animation when processing emails",
+            "Subscription cards with provider logos",
+            "Savings counter with animation",
+            "Cancel button per subscription",
+            "Brand color: Red (#EF4444)",
+            "Liquid glass styling throughout"
+          ],
+          "files_to_modify": [
+            "apps/subkiller/src/app/page.tsx",
+            "apps/subkiller/src/app/dashboard/page.tsx",
+            "apps/subkiller/src/app/globals.css",
+            "apps/subkiller/tailwind.config.ts",
+            "apps/subkiller/src/components/SubscriptionCard.tsx"
+          ],
+          "priority": "P1",
+          "estimated_hours": 6
+        }
+      ]
+    },
+    {
+      "name": "Asset Generation",
+      "tasks": [
+        {
+          "id": "assets-1",
+          "title": "Create Nano Banana image generation utility",
+          "description": "Implement a shared utility for generating images using Google's Nano Banana API (Gemini 2.5 Flash Image). Include retry logic, rate limiting handling, and multiple output formats.",
+          "acceptance_criteria": [
+            "packages/ui/src/lib/nano-banana.ts created",
+            "generateImage() function with prompt, aspectRatio, model options",
+            "editImage() function for modifying existing images",
+            "Retry logic with exponential backoff",
+            "Rate limit tracking to avoid 429 errors",
+            "Support for saving to file or returning base64"
+          ],
+          "files_to_modify": [
+            "packages/ui/src/lib/nano-banana.ts",
+            "packages/ui/src/index.ts"
+          ],
+          "priority": "P2",
+          "estimated_hours": 4
+        },
+        {
+          "id": "assets-2",
+          "title": "Generate app logos and brand illustrations",
+          "description": "Use Nano Banana to generate unique logos and illustrations for all 5 apps. Store in public/images/ directories. Ensure transparent/removable backgrounds.",
+          "acceptance_criteria": [
+            "Logo for each app (512x512 PNG)",
+            "Empty state illustration for each app (400x400)",
+            "Success/celebration illustration for each app",
+            "Category icons for Pledictions (128x128)",
+            "All assets saved to respective public/images/ folders"
+          ],
+          "files_to_modify": [
+            "apps/plasma-venmo/public/images/logo.png",
+            "apps/plasma-predictions/public/images/logo.png",
+            "apps/bill-split/public/images/logo.png",
+            "apps/plasma-stream/public/images/logo.png",
+            "apps/subkiller/public/images/logo.png"
+          ],
+          "priority": "P2",
+          "estimated_hours": 4
+        },
+        {
+          "id": "assets-3",
+          "title": "Create deterministic avatar generation system",
+          "description": "Build a system to generate unique avatars for users based on their wallet address. Use Nano Banana with deterministic prompts so the same address always gets the same avatar.",
+          "acceptance_criteria": [
+            "generateAvatar(walletAddress) function",
+            "Deterministic: same address = same avatar",
+            "Gradient color selection based on address hash",
+            "Avatars are circular-safe composition",
+            "Cache avatars to avoid regeneration",
+            "Fallback to gradient initials if generation fails"
+          ],
+          "files_to_modify": [
+            "packages/ui/src/lib/avatar-generator.ts",
+            "packages/ui/src/components/Avatar.tsx"
+          ],
+          "priority": "P3",
+          "estimated_hours": 3
+        }
+      ]
+    },
+    {
+      "name": "Animations",
+      "tasks": [
+        {
+          "id": "anim-1",
+          "title": "Add CSS animation library to UI package",
+          "description": "Create a comprehensive CSS animation library with reusable keyframes and utility classes for all apps. Include float, pulse, stream-flow, coin-drop animations.",
+          "acceptance_criteria": [
+            "packages/ui/src/styles/animations.css created",
+            "Float animation for cards and icons",
+            "Pulse-glow for CTA buttons",
+            "Stream-flow for StreamPay progress",
+            "Coin-drop for savings counters",
+            "CSS custom properties for brand colors",
+            "Tailwind plugin for animation utilities"
+          ],
+          "files_to_modify": [
+            "packages/ui/src/styles/animations.css",
+            "packages/ui/tailwind.config.ts"
+          ],
+          "priority": "P2",
+          "estimated_hours": 3
+        },
+        {
+          "id": "anim-2",
+          "title": "Add Lottie animations for common states",
+          "description": "Integrate Lottie for complex animations that can't be done with CSS. Use free animations from LottieFiles for success, loading, and empty states.",
+          "acceptance_criteria": [
+            "lottie-react package added to UI",
+            "Success checkmark animation",
+            "Loading spinner animation",
+            "Empty state animations per context",
+            "Transaction confirmation animation",
+            "LottiePlayer component with lazy loading"
+          ],
+          "files_to_modify": [
+            "packages/ui/package.json",
+            "packages/ui/src/components/LottiePlayer.tsx",
+            "packages/ui/public/animations/"
+          ],
+          "priority": "P3",
+          "estimated_hours": 3
+        }
+      ]
+    },
+    {
+      "name": "Testing & Polish",
+      "tasks": [
+        {
+          "id": "test-1",
+          "title": "End-to-end flow testing for all apps",
+          "description": "Create comprehensive E2E tests to verify all major flows work correctly. Use Playwright. Test on mobile viewport sizes.",
+          "acceptance_criteria": [
+            "Plenmo: Login -> Send money -> Verify in history",
+            "Pledictions: Login -> Place bet -> Check balance",
+            "Splitzy: Create bill -> Add participants -> Generate links",
+            "StreamPay: Create stream -> View dashboard -> Withdraw",
+            "SubKiller: See setup message OR scan emails",
+            "All tests pass on 375px viewport (iPhone SE)"
+          ],
+          "files_to_modify": [
+            "apps/plasma-venmo/tests/e2e/send-flow.spec.ts",
+            "apps/plasma-predictions/tests/e2e/bet-flow.spec.ts",
+            "apps/bill-split/tests/e2e/bill-flow.spec.ts",
+            "apps/plasma-stream/tests/e2e/stream-flow.spec.ts"
+          ],
+          "priority": "P1",
+          "estimated_hours": 6
+        }
+      ]
+    }
+  ],
+  "total_estimated_hours": 74,
+  "environment_requirements": {
+    "GEMINI_API_KEY": "Required for Nano Banana image generation. Get from https://aistudio.google.com/apikey",
+    "GOOGLE_CLIENT_ID": "Required for SubKiller Gmail scanning. Get from https://console.cloud.google.com/",
+    "GOOGLE_CLIENT_SECRET": "Required for SubKiller Gmail scanning",
+    "PLASMA_RELAYER_SECRET": "Optional - needed for production gasless transactions"
+  }
+}
