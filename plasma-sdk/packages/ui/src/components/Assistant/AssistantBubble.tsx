@@ -166,8 +166,10 @@ export function AssistantBubble({
             onChange={(e) => onInputChange(e.target.value)}
             placeholder="Ask me anything..."
             aria-label="Message to Plenny"
-            className="flex-1 py-2 px-3 text-sm rounded-xl border border-white/15 bg-black/30 text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+            className="flex-1 py-2 px-3 text-sm rounded-xl border border-white/15 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
             style={{
+              background: 'rgba(0, 0, 0, 0.4)',
+              color: '#ffffff',
               boxShadow: 'inset 2px 2px 4px rgba(0, 0, 0, 0.2)',
               minHeight: '40px',
               fontSize: '14px',
