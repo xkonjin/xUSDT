@@ -91,10 +91,11 @@ describe('BridgeDepositModal', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('shows default chain (ETH)', () => {
+  it('shows default chain (Ethereum)', () => {
     render(<BridgeDepositModal recipientAddress={recipientAddress} onClose={mockOnClose} />);
     
-    expect(screen.getByText('ETH')).toBeInTheDocument();
+    // Check for chain selector button with ETH shortname
+    expect(screen.getByRole('button', { name: /select chain, currently eth/i })).toBeInTheDocument();
   });
 
   it('shows placeholder when no amount', () => {
