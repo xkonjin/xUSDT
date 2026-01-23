@@ -1,11 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "v0/package.json", "use": "@vercel/next" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "v0/$1" }
-  ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd plasma-sdk && npm install && npx turbo build --filter=@plasma-pay/venmo",
+  "outputDirectory": "plasma-sdk/apps/plasma-venmo/.next",
+  "installCommand": "npm install --prefix plasma-sdk",
+  "framework": null
 }
-
-
