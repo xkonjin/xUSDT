@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Check, Loader2, AlertCircle, ArrowRight, Wallet, LogIn } from "lucide-react";
 import { usePlasmaWallet, useUSDT0Balance, useFundWallet } from "@plasma-pay/privy-auth";
+import { getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
 import { usePredictionStore } from "@/lib/store";
 import { usePlaceBet } from "@/hooks/useBets";
 import { useDemoStore, formatDemoBalance } from "@/lib/demo-store";
@@ -191,8 +192,12 @@ export function BettingModal() {
       }
     } catch (error: unknown) {
       setStep("error");
-      const message = error instanceof Error ? error.message : "Transaction failed";
-      setErrorMsg(message);
+      const { message, recovery } = getErrorDetails(error, {
+        operation: 'bet_placement',
+        amount: parsedAmount,
+        balance: balanceNum,
+      });
+      setErrorMsg(recovery ? `${message} ${recovery}` : message);
     }
   };
 
@@ -347,12 +352,12 @@ export function BettingModal() {
               </div>
 
               {/* Quick Amounts */}
-              <div className="flex gap-2 mb-5 overflow-x-auto pb-1 hide-scrollbar">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-5">
                 {QUICK_AMOUNTS.map((amt) => (
                   <button
                     key={amt}
                     onClick={() => setAmount(amt.toString())}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                    className={`px-3 py-2.5 rounded-xl text-sm font-semibold transition text-center ${
                       parsedAmount === amt
                         ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
                         : "bg-white/5 text-white/60 border border-transparent hover:bg-white/10"

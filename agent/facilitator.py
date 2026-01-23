@@ -118,7 +118,8 @@ class PaymentFacilitator:
                 self.router = self.w3_eth.eth.contract(
                     address=Web3.to_checksum_address(settings.ROUTER_ADDRESS), abi=ROUTER_ABI
                 )
-        except Exception:
+        except (ValueError, InvalidAddress) as e:
+            logger.warning("Failed to initialize router contract: %s", e)
             self.router = None
         # Construct both ABI variants for compatibility
         self.usdt0_bytes: Contract = self.w3_plasma.eth.contract(
@@ -160,7 +161,8 @@ class PaymentFacilitator:
                 self.channel = self.w3_plasma.eth.contract(
                     address=Web3.to_checksum_address(settings.CHANNEL_ADDRESS), abi=channel_abi
                 )
-            except Exception:
+            except (ValueError, InvalidAddress) as e:
+                logger.warning("Failed to initialize channel contract: %s", e)
                 self.channel = None
 
     def _wait_for_receipt(self, w3: Web3, tx_hash: str, confirmations: int = 1) -> Dict[str, Any]:
@@ -348,7 +350,14 @@ class PaymentFacilitator:
             receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
+        except (ContractLogicError, InvalidAddress) as e:
+            logger.warning("Plasma pay-and-mint settlement failed: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+        except (TimeExhausted, TransactionNotFound) as e:
+            logger.warning("Plasma pay-and-mint tx timeout/not found: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=f"tx_timeout: {e}", receipt=None)
         except Exception as e:
+            logger.exception("Unexpected error in Plasma pay-and-mint settlement")
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
     def settle_plasma_channel(self, receipts: list[dict], signatures: list[str], channel_address: str | None = None) -> SettlementResult:
@@ -400,7 +409,14 @@ class PaymentFacilitator:
             receipt = self._wait_for_receipt(self.w3_plasma, tx_hash, confirmations=1)
             status = receipt.get("status", 0) == 1
             return SettlementResult(success=status, tx_hash=tx_hash, error=None if status else "reverted", receipt=receipt)
-        except Exception as e:  # noqa: BLE001
+        except (ContractLogicError, InvalidAddress) as e:
+            logger.warning("Channel settlement failed: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
+        except (TimeExhausted, TransactionNotFound) as e:
+            logger.warning("Channel tx timeout/not found: %s", e)
+            return SettlementResult(success=False, tx_hash=None, error=f"tx_timeout: {e}", receipt=None)
+        except Exception as e:
+            logger.exception("Unexpected error in channel settlement")
             return SettlementResult(success=False, tx_hash=None, error=str(e), receipt=None)
 
     # -------------------------------------------------------------------------
@@ -547,6 +563,7 @@ class PaymentFacilitator:
             )
 
         except requests.exceptions.Timeout:
+            logger.warning("Gasless API request timed out")
             return SettlementResult(
                 success=False,
                 tx_hash=None,
@@ -554,13 +571,15 @@ class PaymentFacilitator:
                 receipt=None,
             )
         except requests.exceptions.RequestException as e:
+            logger.warning("Gasless API connection error: %s", e)
             return SettlementResult(
                 success=False,
                 tx_hash=None,
                 error=f"Gasless API connection error: {str(e)}",
                 receipt=None,
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
+            logger.exception("Unexpected error in gasless API settlement")
             return SettlementResult(
                 success=False,
                 tx_hash=None,

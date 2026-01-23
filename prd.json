@@ -1,0 +1,121 @@
+{
+  "name": "xUSDT Security & Quality Fixes",
+  "description": "Fix remaining security audit findings and code quality issues",
+  "version": "1.0.0",
+  "phases": [
+    {
+      "name": "Security & Critical Fixes (P0)",
+      "tasks": [
+        {
+          "id": "US-001",
+          "title": "Fix broad exception catches in facilitator",
+          "description": "Replace broad except Exception catches with specific exception types in agent/facilitator.py. Issue #223",
+          "acceptance_criteria": [
+            "Replace except Exception with specific web3 exceptions",
+            "Add proper logging for unexpected errors",
+            "Typecheck passes"
+          ],
+          "priority": "P0",
+          "files_to_modify": ["agent/facilitator.py"]
+        },
+        {
+          "id": "US-003",
+          "title": "Fix nonce cache unbounded growth",
+          "description": "Implement more aggressive cleanup in gasless relay handler nonce cache. Issue #229",
+          "acceptance_criteria": [
+            "Add periodic cleanup every 100 insertions",
+            "Reduce max cache size threshold",
+            "Typecheck passes"
+          ],
+          "priority": "P0",
+          "files_to_modify": ["agent/persistence.py"]
+        },
+        {
+          "id": "US-004",
+          "title": "Add rate limiting to merchant endpoints",
+          "description": "Verify rate limiting middleware is applied to /pay, /premium, /router/relay_total endpoints. Issue #212",
+          "acceptance_criteria": [
+            "Install slowapi or implement simple rate limiter",
+            "Apply 10/minute limit to /pay endpoint",
+            "Apply 30/minute limit to /premium endpoint",
+            "Apply 5/minute limit to /router/relay_total endpoint",
+            "Typecheck passes"
+          ],
+          "priority": "P0",
+          "files_to_modify": ["agent/merchant_service.py"],
+          "status": "VERIFICATION_NEEDED",
+          "notes": "Rate limiting appears already implemented. Verify all endpoints are covered."
+        }
+      ]
+    },
+    {
+      "name": "Code Quality & Duplication (P1)",
+      "tasks": [
+        {
+          "id": "US-002",
+          "title": "Fix duplicate splitSignature function",
+          "description": "Remove duplicate splitSignature from plasma-venmo and use @plasma-pay/core. Issue #221",
+          "acceptance_criteria": [
+            "Import splitSignature from @plasma-pay/core in crypto.ts",
+            "Remove duplicate implementation from send.ts",
+            "Typecheck passes"
+          ],
+          "priority": "P1",
+          "files_to_modify": ["plasma-sdk/apps/plasma-venmo/src/lib/crypto.ts", "plasma-sdk/apps/plasma-venmo/src/lib/send.ts"]
+        }
+      ]
+    },
+    {
+      "name": "Testing (P1)",
+      "tasks": [
+        {
+          "id": "US-005",
+          "title": "Add smart contract admin function tests",
+          "description": "Add tests for setFeeCollector and setPlatformFeeBps in PlasmaPaymentRouter. Issue #217",
+          "acceptance_criteria": [
+            "Test setFeeCollector updates collector address",
+            "Test setPlatformFeeBps updates fee",
+            "Test onlyOwner modifier prevents unauthorized calls",
+            "Test edge cases (zero address, max bps)",
+            "Tests pass"
+          ],
+          "priority": "P1",
+          "files_to_modify": ["test/test_admin_functions.ts", "contracts/PlasmaPaymentRouter.sol"]
+        }
+      ]
+    },
+    {
+      "name": "UI/UX Fixes (P2)",
+      "tasks": [
+        {
+          "id": "US-006",
+          "title": "Fix mobile responsive quick amount buttons",
+          "description": "Add flex-wrap and responsive grid to quick amount buttons in payment forms. Issue #225",
+          "acceptance_criteria": [
+            "Update SendMoneyForm.tsx with flex-wrap",
+            "Update BettingModal.tsx with responsive grid",
+            "Buttons wrap properly on narrow screens",
+            "Typecheck passes"
+          ],
+          "priority": "P2",
+          "files_to_modify": ["plasma-sdk/apps/plasma-venmo/src/components/SendMoneyForm.tsx", "plasma-sdk/apps/plasma-predictions/src/components/BettingModal.tsx"]
+        },
+        {
+          "id": "US-007",
+          "title": "Add accessibility attributes to form inputs",
+          "description": "Add aria-label and aria-describedby to form inputs across apps. Issue #218",
+          "acceptance_criteria": [
+            "Add aria-invalid and aria-describedby to SendMoneyForm",
+            "Add id/htmlFor associations in bill-split forms",
+            "Add aria-label to icon-only buttons",
+            "Typecheck passes"
+          ],
+          "priority": "P2",
+          "files_to_modify": ["plasma-sdk/apps/plasma-venmo/src/components/SendMoneyForm.tsx", "plasma-sdk/apps/bill-split/src/components/*"]
+        }
+      ]
+    }
+  ],
+  "total_tasks": 7,
+  "estimated_hours": 15
+}
