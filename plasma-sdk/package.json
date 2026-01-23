@@ -8,6 +8,9 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "build:packages": "turbo build --filter='./packages/*'",
+    "build:venmo": "turbo build --filter=@plasma-pay/venmo",
+    "vercel-build": "npm run build:packages && npm run build:venmo",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "clean": "turbo clean",
