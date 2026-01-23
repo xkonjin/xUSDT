@@ -15,6 +15,7 @@ export const metadata = {
   title: 'Plenmo - Pay Anyone Instantly',
   description: 'Send and receive money instantly with zero fees. Simple, secure, and lightning fast payments powered by Plasma.',
   keywords: ['payments', 'money transfer', 'send money', 'instant payments', 'zero fees'],
+  manifest: '/manifest.json',
   openGraph: {
     title: 'Plenmo - Pay Anyone Instantly',
     description: 'Send and receive money instantly with zero fees.',
@@ -27,15 +28,23 @@ export const metadata = {
   },
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#1DB954',
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <meta name="theme-color" content="#1DB954" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="bg-[rgb(10,10,15)] min-h-dvh font-body antialiased">
         <Providers>

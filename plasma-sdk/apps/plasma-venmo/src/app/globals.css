@@ -154,11 +154,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .clay-button:active {
-    transform: translateY(2px);
+    transform: translateY(2px) scale(0.98);
     box-shadow: 
-      2px 2px 4px rgba(0, 0, 0, 0.3),
-      -1px -1px 3px rgba(255, 255, 255, 0.08),
-      inset 2px 2px 4px rgba(0, 0, 0, 0.2);
+      inset 3px 3px 6px rgba(0, 0, 0, 0.3),
+      inset -2px -2px 4px rgba(255, 255, 255, 0.05);
   }
 
   .clay-button:disabled {
@@ -278,11 +277,11 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid rgba(29, 185, 84, 0.3);
   }
 
-  /* Amount Display - Large Cash App style */
+  /* Amount Display - Large Cash App style with fluid typography */
   .clay-amount {
     font-family: var(--font-space-grotesk);
     font-weight: 700;
-    font-size: 48px;
+    font-size: clamp(32px, 8vw, 48px);
     line-height: 1;
     background: linear-gradient(
       135deg,
@@ -295,7 +294,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .clay-amount-xl {
-    font-size: 72px;
+    font-size: clamp(48px, 12vw, 72px);
   }
 
   /* Legacy glass classes - map to clay for backward compatibility */
@@ -447,11 +446,18 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 30px rgba(0, 212, 255, 0.25);
   }
 
-  /* Contact Grid */
+  /* Contact Grid - Responsive */
   .contact-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
     gap: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .contact-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
   }
 
   .contact-item {
@@ -489,11 +495,12 @@ h1, h2, h3, h4, h5, h6 {
     background: rgba(255, 255, 255, 0.06);
   }
 
-  /* Bottom Action Bar */
+  /* Bottom Action Bar with safe area support */
   .clay-action-bar {
     display: flex;
     gap: 12px;
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     background: linear-gradient(
       145deg,
       rgba(26, 26, 46, 0.95) 0%,
@@ -689,6 +696,16 @@ h1, h2, h3, h4, h5, h6 {
   .touch-target {
     min-height: 44px;
     min-width: 44px;
+  }
+  
+  /* Ensure all interactive elements meet touch target minimum */
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
+  
+  /* Exception for inline elements */
+  a:not([class]) {
+    min-height: auto;
   }
   
   .font-heading {

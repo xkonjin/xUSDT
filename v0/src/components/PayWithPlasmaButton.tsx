@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { buildTransferWithAuthorization, fetchTokenNameAndVersion, splitSignature } from "../app/lib/eip3009";
 import { waitForReceipt } from "../app/lib/rpc";
+import { getUserFriendlyError } from "../lib/error-messages";
 import Field from "./ui/Field";
 import Button from "./ui/Button";
 
@@ -193,7 +194,7 @@ export default function PayWithPlasmaButton({ defaultAmount = "0.10" }: Props) {
         }
       }
     } catch (e: unknown) {
-      const msg = typeof e === "object" && e && "message" in e ? String((e as { message?: unknown }).message) : String(e);
+      const msg = getUserFriendlyError(e);
       setStatus(msg);
     } finally {
       setBusy(false);
