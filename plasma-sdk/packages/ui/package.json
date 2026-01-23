@@ -26,8 +26,10 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@rive-app/react-canvas": "^4.25.3",
+    "clsx": "^2.1.0",
     "framer-motion": "^12.26.1",
     "lucide-react": "^0.468.0",
+    "tailwind-merge": "^2.2.0",
     "wawa-lipsync": "^0.0.2",
     "zustand": "^5.0.10"
   },
