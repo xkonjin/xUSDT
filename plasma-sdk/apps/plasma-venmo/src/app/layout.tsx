@@ -10,6 +10,9 @@ import { ReactNode } from 'react';
 import './globals.css';
 import { Providers } from './providers';
 import { ToastProvider } from '@/components/ui/Toast';
+import { InstallPWABanner } from '@/components/InstallPWABanner';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'Plenmo - Pay Anyone Instantly',
@@ -41,8 +44,43 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Providers>
           <ToastProvider>
             {children}
+            <InstallPWABanner />
+            <OfflineIndicator />
           </ToastProvider>
         </Providers>
+
+        {/* PWA Registration Script */}
+        <Script id="pwa-register" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker
+                  .register('/sw.js')
+                  .then((registration) => {
+                    console.log('Service Worker registered:', registration.scope);
+                    setInterval(() => {
+                      registration.update();
+                    }, 60 * 60 * 1000);
+                  })
+                  .catch((error) => {
+                    console.error('Service Worker registration failed:', error);
+                  });
+              });
+            }
+
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+              e.preventDefault();
+              deferredPrompt = e;
+              window.dispatchEvent(new Event('pwa-installable'));
+            });
+
+            window.addEventListener('appinstalled', () => {
+              deferredPrompt = null;
+              console.log('PWA installed');
+            });
+          `}
+        </Script>
       </body>
     </html>
   );
