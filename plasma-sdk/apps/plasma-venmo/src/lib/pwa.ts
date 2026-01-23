@@ -12,7 +12,7 @@ export function registerServiceWorker() {
       .register('/sw.js')
       .then((registration) => {
         console.log('Service Worker registered:', registration.scope);
-        
+
         // Check for updates periodically
         setInterval(() => {
           registration.update();
@@ -36,46 +36,19 @@ export function unregisterServiceWorker() {
   });
 }
 
-// Install prompt handling
-let deferredPrompt: any = null;
-
-export function setupInstallPrompt() {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevent the mini-infobar from appearing
-    e.preventDefault();
-    // Stash the event so it can be triggered later
-    deferredPrompt = e;
-    // Update UI to show install button
-    window.dispatchEvent(new Event('pwa-installable'));
-  });
-
-  window.addEventListener('appinstalled', () => {
-    // Clear the deferredPrompt
-    deferredPrompt = null;
-    // Track installation
-    console.log('PWA installed');
-  });
-}
-
+// Install prompt handling - using global function from layout
 export async function promptInstall() {
-  if (!deferredPrompt) {
+  if (typeof window === 'undefined') {
     return false;
   }
 
-  // Show the install prompt
-  deferredPrompt.prompt();
-  
-  // Wait for the user to respond to the prompt
-  const { outcome } = await deferredPrompt.userChoice;
-  
-  // Clear the deferredPrompt
-  deferredPrompt = null;
-  
-  return outcome === 'accepted';
+  // Use the global function exposed in layout
+  const globalWindow = window as any;
+  if (typeof globalWindow.triggerPWAInstall === 'function') {
+    return globalWindow.triggerPWAInstall();
+  }
+
+  return false;
 }
 
 export function isInstalled() {
