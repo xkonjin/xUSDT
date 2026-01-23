@@ -17,12 +17,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@plasma-pay/aggregator": "*",
-    "@plasma-pay/core": "*",
-    "@plasma-pay/db": "*",
-    "@plasma-pay/gasless": "*",
-    "@plasma-pay/privy-auth": "*",
-    "@plasma-pay/ui": "*",
+
     "@privy-io/react-auth": "^1.92.0",
     "@privy-io/server-auth": "^1.14.0",
     "clsx": "^2.1.0",
