@@ -22,7 +22,7 @@ import {
   useFundWallet,
   useConnectExternalWallet,
 } from "@plasma-pay/privy-auth";
-import { getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
+import { PaymentProgress, type PaymentStatus, getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
 import { parseUnits, formatUnits } from "viem";
 import Link from "next/link";
 import {
@@ -93,6 +93,11 @@ export default function BillPayPage({
   const [copied, setCopied] = useState(false);
   const [fundingInProgress, setFundingInProgress] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  
+  // Payment progress state
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+  const [paymentTxHash, setPaymentTxHash] = useState<string | undefined>();
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Calculate if user has sufficient balance (handle NaN edge case)
   const numericBalance = balanceFormatted ? parseFloat(balanceFormatted) : 0;
@@ -189,6 +194,8 @@ export default function BillPayPage({
 
     setPaying(true);
     setError(null);
+    setPaymentError(null);
+    setPaymentStatus('signing');
 
     try {
       // Parse amount
@@ -207,6 +214,9 @@ export default function BillPayPage({
         tokenAddress: USDT0_ADDRESS,
       });
 
+      // Update to submitting state
+      setPaymentStatus('submitting');
+      
       // Sign
       const signature = await wallet.signTypedData(typedData);
       const { v, r, s } = splitSignature(signature);
@@ -234,28 +244,45 @@ export default function BillPayPage({
         throw new Error(result.error || 'Payment failed');
       }
 
-      setSuccess(result.txHash);
-      setPayData(prev => prev ? {
-        ...prev,
-        participant: { ...prev.participant, paid: true, txHash: result.txHash },
-      } : null);
+      // Move to confirming state
+      setPaymentStatus('confirming');
+      setPaymentTxHash(result.txHash);
+      
+      // After a brief confirmation period, mark as complete
+      setTimeout(() => {
+        setPaymentStatus('complete');
+        setSuccess(result.txHash);
+        setPayData(prev => prev ? {
+          ...prev,
+          participant: { ...prev.participant, paid: true, txHash: result.txHash },
+        } : null);
+      }, 1000);
     } catch (err) {
-      const { message, recovery, category } = getErrorDetails(err, {
-        operation: 'payment',
-        amount: payData.participant.share,
-        balance: safeBalance,
-      });
-
-      setError(message);
-
-      // Show funding options for insufficient balance errors
-      if (category === 'insufficient_balance') {
         setShowFundingOptions(true);
         refreshBalance();
       }
     } finally {
       setPaying(false);
     }
+  }
+
+  // Helper to get payment error messages
+  function getPaymentErrorMessage(errorMsg: string, requiredAmount: number, currentBalance: number): string {
+    if (errorMsg.includes('exceeds balance') || errorMsg.includes('insufficient') || errorMsg.includes('ERC20')) {
+      return `Your wallet doesn't have enough USDT0 to complete this payment. You need $${(requiredAmount - currentBalance).toFixed(2)} more.`;
+    } else if (errorMsg.includes('rejected') || errorMsg.includes('denied')) {
+      return 'Transaction was cancelled. Please try again.';
+    } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    return `Payment failed: ${errorMsg}`;
+  }
+
+  // Retry payment
+  function handleRetryPayment() {
+    setPaymentError(null);
+    setPaymentStatus('idle');
+    handlePay();
   }
 
   // Handle funding wallet with loading state and error handling
@@ -291,7 +318,7 @@ export default function BillPayPage({
   }
 
   // Retry payment after funding
-  function handleRetryPayment() {
+  function handleRetryAfterFunding() {
     setShowFundingOptions(false);
     setError(null);
     refreshBalance();
@@ -501,7 +528,7 @@ export default function BillPayPage({
                     <p className="text-white/70 text-sm font-medium">Choose how to add funds:</p>
                     {showFundingOptions && !hasInsufficientFunds && (
                       <button
-                        onClick={handleRetryPayment}
+                        onClick={handleRetryAfterFunding}
                         className="text-cyan-400 text-sm hover:underline"
                       >
                         Back to payment
@@ -580,31 +607,53 @@ export default function BillPayPage({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <button
-                    onClick={handlePay}
-                    disabled={paying || balanceLoading}
-                    className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-lg"
-                  >
-                    {paying ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Confirming payment...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-5 h-5" />
-                        Pay ${payData.participant.share.toFixed(2)}
-                      </>
-                    )}
-                  </button>
+                  {paymentStatus !== 'idle' ? (
+                    // Show PaymentProgress when payment is in progress
+                    <PaymentProgress
+                      status={paymentStatus}
+                      txHash={paymentTxHash}
+                      error={paymentError || undefined}
+                      retryable={true}
+                      onRetry={handleRetryPayment}
+                      onClose={() => {
+                        if (paymentStatus === 'complete' || paymentStatus === 'error') {
+                          setPaymentStatus('idle');
+                          setPaymentError(null);
+                          setPaymentTxHash(undefined);
+                        }
+                      }}
+                      recipient={payData.billTitle}
+                      amount={payData.participant.share.toFixed(2)}
+                    />
+                  ) : (
+                    <button
+                      onClick={handlePay}
+                      disabled={paying || balanceLoading}
+                      className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 py-4 text-lg"
+                    >
+                      {paying ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Confirming payment...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-5 h-5" />
+                          Pay ${payData.participant.share.toFixed(2)}
+                        </>
+                      )}
+                    </button>
+                  )}
                   
                   {/* Optional: Add more funds button */}
-                  <button
-                    onClick={() => setShowFundingOptions(true)}
-                    className="w-full text-white/40 hover:text-white/60 text-xs py-1 transition-colors"
-                  >
-                    Need to add more funds?
-                  </button>
+                  {paymentStatus === 'idle' && (
+                    <button
+                      onClick={() => setShowFundingOptions(true)}
+                      className="w-full text-white/40 hover:text-white/60 text-xs py-1 transition-colors"
+                    >
+                      Need to add more funds?
+                    </button>
+                  )}
                 </div>
               )}
             </>

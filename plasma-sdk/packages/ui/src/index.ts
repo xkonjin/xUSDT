@@ -64,6 +64,9 @@ export type { PaymentConfirmModalProps } from "./components/PaymentConfirmModal"
 export { ProgressSteps, ScanProgress } from "./components/ProgressSteps";
 export type { Step, ProgressStepsProps, ScanProgressProps } from "./components/ProgressSteps";
 
+export { PaymentProgress } from "./components/PaymentProgress";
+export type { PaymentProgressProps, PaymentStatus } from "./components/PaymentProgress";
+
 // Viral/Sharing components
 export { ShareSheet } from "./components/ShareSheet";
 export type { ShareSheetProps, ShareChannel } from "./components/ShareSheet";

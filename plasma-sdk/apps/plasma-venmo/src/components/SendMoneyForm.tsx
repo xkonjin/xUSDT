@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
-import { useAssistantReaction, getUserFriendlyError } from "@plasma-pay/ui";
+import { useAssistantReaction, getUserFriendlyError, PaymentProgress, type PaymentStatus } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
@@ -28,6 +28,10 @@ function ConfirmationModal({
   loading,
   recipient,
   amount,
+  paymentStatus,
+  paymentError,
+  paymentTxHash,
+  onRetry,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -35,9 +39,38 @@ function ConfirmationModal({
   loading: boolean;
   recipient: string;
   amount: string;
+  paymentStatus: PaymentStatus;
+  paymentError: string | null;
+  paymentTxHash: string | undefined;
+  onRetry: () => void;
 }) {
   if (!isOpen) return null;
 
+  // If we're in progress or completed, show PaymentProgress
+  if (loading || paymentStatus !== 'idle') {
+    return (
+      <ModalPortal
+        isOpen={isOpen}
+        onClose={onClose}
+        closeOnBackdrop={paymentStatus === 'error'}
+        zIndex={110}
+        wrapperClassName="max-w-md"
+      >
+        <PaymentProgress
+          status={paymentStatus}
+          txHash={paymentTxHash}
+          error={paymentError || undefined}
+          retryable={true}
+          onRetry={onRetry}
+          onClose={onClose}
+          recipient={recipient}
+          amount={amount}
+        />
+      </ModalPortal>
+    );
+  }
+
+  // Otherwise show the confirmation modal
   return (
     <ModalPortal
       isOpen={isOpen}
@@ -83,14 +116,8 @@ function ConfirmationModal({
             disabled={loading}
             className="flex-1 py-3 px-4 rounded-2xl btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Send
-              </>
-            )}
+            <Send className="w-4 h-4" />
+            Send
           </button>
         </div>
       </div>
@@ -202,6 +229,11 @@ export function SendMoneyForm({
   // Ref to prevent double-submit race condition
   const isSubmittingRef = useRef(false);
 
+  // Payment progress state
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentTxHash, setPaymentTxHash] = useState<string | undefined>();
+
   const handleSelectContact = (contact: Contact) => {
     if (contact.contactAddress) {
       setRecipient(contact.contactAddress);
@@ -262,50 +294,55 @@ export function SendMoneyForm({
 
     setLoading(true);
     setError(null);
+    setPaymentError(null);
+    setPaymentStatus('signing');
     assistantLoading();
 
     try {
+      // Update to submitting state
+      setPaymentStatus('submitting');
+      
       const result = await sendMoney(wallet, {
         recipientIdentifier: recipient,
         amount,
       });
 
       if (result.success) {
-        setShowConfirm(false);
-        setSuccessTxHash(result.txHash);
-        setSuccessClaimUrl(result.claimUrl);
-        setShowSuccess(true);
+        // Move to confirming state
+        setPaymentStatus('confirming');
+        setPaymentTxHash(result.txHash);
         
-        playSound('success');
-        hapticFeedback('medium');
-        assistantSuccess(`Payment of $${amount} sent!`);
-        
-        if (onPaymentSuccess && /^0x[a-fA-F0-9]{40}$/.test(recipient)) {
-          onPaymentSuccess(recipient);
-        }
+        // After a brief confirmation period, mark as complete
+        setTimeout(() => {
+          setPaymentStatus('complete');
+          setShowConfirm(false);
+          setSuccessTxHash(result.txHash);
+          setSuccessClaimUrl(result.claimUrl);
+          setShowSuccess(true);
+          
+          playSound('success');
+          hapticFeedback('medium');
+          assistantSuccess(`Payment of $${amount} sent!`);
+          
+          if (onPaymentSuccess && /^0x[a-fA-F0-9]{40}$/.test(recipient)) {
+            onPaymentSuccess(recipient);
+          }
+        }, 1000);
       } else {
         playSound('error');
         hapticFeedback('light');
-        const friendlyError = getUserFriendlyError(result.error || "Something went wrong", {
-          operation: 'payment',
-          amount,
-          balance,
-        });
-        setError(friendlyError);
-        assistantError("Payment failed. Let me help you fix this!");
-      }
-    } catch (err) {
-      const friendlyError = getUserFriendlyError(err, {
-        operation: 'payment',
-        amount,
-        balance,
-      });
-      setError(friendlyError);
       assistantError("Something went wrong. Your funds are safe!");
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
     }
+  };
+
+  const handleRetry = () => {
+    // Reset payment state and retry
+    setPaymentError(null);
+    setPaymentStatus('idle');
+    handleConfirmSend();
   };
 
   const handleSuccessClose = () => {
@@ -315,6 +352,9 @@ export function SendMoneyForm({
     setAmount("");
     setSuccessTxHash(undefined);
     setSuccessClaimUrl(undefined);
+    setPaymentStatus('idle');
+    setPaymentError(null);
+    setPaymentTxHash(undefined);
     onSuccess?.();
   };
 
@@ -479,11 +519,19 @@ export function SendMoneyForm({
 
       <ConfirmationModal
         isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
+        onClose={() => {
+          if (!loading && paymentStatus === 'idle') {
+            setShowConfirm(false);
+          }
+        }}
         onConfirm={handleConfirmSend}
         loading={loading}
         recipient={recipientName || recipient}
         amount={amount}
+        paymentStatus={paymentStatus}
+        paymentError={paymentError}
+        paymentTxHash={paymentTxHash}
+        onRetry={handleRetry}
       />
 
       <SuccessOverlay
