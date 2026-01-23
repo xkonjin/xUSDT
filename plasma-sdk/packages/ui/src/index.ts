@@ -2,6 +2,15 @@
 export { ErrorBoundary } from "./ErrorBoundary";
 export type { ErrorBoundaryProps } from "./ErrorBoundary";
 
+// Error handling utilities
+export {
+  getUserFriendlyError,
+  getErrorDetails,
+  isRecoverableError,
+  isUserCausedError,
+} from "./lib/user-errors";
+export type { ErrorContext } from "./lib/user-errors";
+
 export { Button } from "./components/Button";
 export type { ButtonProps } from "./components/Button";
 

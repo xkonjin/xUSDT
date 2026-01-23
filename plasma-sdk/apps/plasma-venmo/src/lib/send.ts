@@ -250,4 +250,4 @@ async function createClaimForUnregisteredRecipient(
   };
 }
 
-// Note: splitSignature is now imported from './crypto' to avoid duplication
+// Note: splitSignature is imported from './crypto' which re-exports from @plasma-pay/core

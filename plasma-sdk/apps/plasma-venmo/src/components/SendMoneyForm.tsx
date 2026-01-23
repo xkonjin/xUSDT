@@ -3,10 +3,9 @@
 import { useState, useRef } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
-import { useAssistantReaction } from "@plasma-pay/ui";
+import { useAssistantReaction, getUserFriendlyError } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
-import { parseUserFriendlyError } from "@/lib/validation";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
 import { ModalPortal } from "./ui/ModalPortal";
@@ -287,14 +286,20 @@ export function SendMoneyForm({
       } else {
         playSound('error');
         hapticFeedback('light');
-        const rawError = result.error || "Something went wrong";
-        const friendlyError = parseUserFriendlyError(rawError, { amount, balance });
+        const friendlyError = getUserFriendlyError(result.error || "Something went wrong", {
+          operation: 'payment',
+          amount,
+          balance,
+        });
         setError(friendlyError);
         assistantError("Payment failed. Let me help you fix this!");
       }
     } catch (err) {
-      const rawError = err instanceof Error ? err.message : "Unknown error";
-      const friendlyError = parseUserFriendlyError(rawError, { amount, balance });
+      const friendlyError = getUserFriendlyError(err, {
+        operation: 'payment',
+        amount,
+        balance,
+      });
       setError(friendlyError);
       assistantError("Something went wrong. Your funds are safe!");
     } finally {
@@ -342,12 +347,14 @@ export function SendMoneyForm({
           <div className="relative">
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
             <input
+              id="recipient-input"
               type="text"
               value={recipientName || recipient}
               onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
               aria-label="Recipient email, phone, or wallet address"
               aria-invalid={recipient && !isValidRecipient && !recipientName ? 'true' : 'false'}
+              aria-describedby={recipient && !isValidRecipient && !recipientName ? 'recipient-error' : undefined}
               className="clay-input w-full pl-12"
               disabled={loading}
             />
@@ -359,7 +366,7 @@ export function SendMoneyForm({
             <p className="text-plenmo-500 text-xs mt-2">Sending to {recipientName}</p>
           )}
           {recipient && !isValidRecipient && !recipientName && (
-            <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
+            <p id="recipient-error" className="text-amber-400 text-xs mt-2 flex items-center gap-1" role="alert">
               <AlertCircle className="w-3 h-3" />
               Enter a valid email, phone, or wallet address
             </p>
@@ -367,12 +374,13 @@ export function SendMoneyForm({
         </div>
 
         <div>
-          <label className="block text-white/60 text-sm mb-2 font-medium">
+          <label htmlFor="amount-input" className="block text-white/60 text-sm mb-2 font-medium">
             How much?
           </label>
           <div className="relative">
             <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" />
             <input
+              id="amount-input"
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -380,6 +388,8 @@ export function SendMoneyForm({
               step="0.01"
               min="0"
               aria-label="Payment amount in USD"
+              aria-invalid={(amountTooSmall || amountTooLarge || insufficientBalance) ? 'true' : 'false'}
+              aria-describedby={(amountTooSmall || amountTooLarge || insufficientBalance) ? 'amount-error' : undefined}
               className="clay-input w-full pl-14 pr-16 text-3xl font-bold"
               disabled={loading}
             />
@@ -388,7 +398,7 @@ export function SendMoneyForm({
             </span>
           </div>
           
-          <div className="grid grid-cols-5 gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-3">
             {[
               { amt: 5, emoji: "☕" },
               { amt: 10, emoji: "🍕" },
@@ -403,7 +413,7 @@ export function SendMoneyForm({
                   setAmount(amt.toString());
                   playSound('tap');
                 }}
-                className={`py-2.5 px-2 rounded-xl text-sm font-semibold transition-all ${
+                className={`py-2.5 px-3 rounded-xl text-sm font-semibold transition-all flex-1 min-w-[72px] flex flex-col items-center justify-center ${
                   amount === amt.toString()
                     ? "bg-plenmo-500 text-black"
                     : "bg-white/10 text-white hover:bg-white/20"
@@ -417,7 +427,7 @@ export function SendMoneyForm({
         </div>
 
         {(insufficientBalance || amountTooSmall || amountTooLarge) && !error && (
-          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl px-4 py-3 text-sm">
+          <div id="amount-error" className="bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl px-4 py-3 text-sm" role="alert">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>

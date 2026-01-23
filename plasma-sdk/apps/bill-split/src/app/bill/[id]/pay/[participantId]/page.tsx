@@ -16,19 +16,20 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  usePlasmaWallet, 
-  useUSDT0Balance, 
+import {
+  usePlasmaWallet,
+  useUSDT0Balance,
   useFundWallet,
   useConnectExternalWallet,
 } from "@plasma-pay/privy-auth";
+import { getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
 import { parseUnits, formatUnits } from "viem";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  Loader2, 
-  AlertCircle, 
+import {
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
   ExternalLink,
   Wallet,
   CreditCard,
@@ -239,19 +240,18 @@ export default function BillPayPage({
         participant: { ...prev.participant, paid: true, txHash: result.txHash },
       } : null);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Payment failed';
-      // Check for common balance-related errors and provide user-friendly messages
-      if (errorMsg.includes('exceeds balance') || errorMsg.includes('insufficient') || errorMsg.includes('ERC20')) {
-        setError('Your wallet doesn\'t have enough USDT0 to complete this payment. Add funds below to continue.');
+      const { message, recovery, category } = getErrorDetails(err, {
+        operation: 'payment',
+        amount: payData.participant.share,
+        balance: safeBalance,
+      });
+
+      setError(message);
+
+      // Show funding options for insufficient balance errors
+      if (category === 'insufficient_balance') {
         setShowFundingOptions(true);
-        // Refresh balance to get latest
         refreshBalance();
-      } else if (errorMsg.includes('rejected') || errorMsg.includes('denied')) {
-        setError('Transaction was cancelled. Click the pay button to try again.');
-      } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
-        setError('Network error. Please check your connection and try again.');
-      } else {
-        setError(`Payment failed: ${errorMsg}`);
       }
     } finally {
       setPaying(false);
@@ -279,9 +279,12 @@ export default function BillPayPage({
       }, 3000);
     } catch (err) {
       setFundingInProgress(false);
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      if (!errorMsg.includes('cancelled') && !errorMsg.includes('closed')) {
-        setError('Failed to open funding. Please try again.');
+      const { message, category } = getErrorDetails(err, {
+        operation: 'funding',
+      });
+      // Only show error if not user cancelled
+      if (category !== 'user_rejected') {
+        setError(message);
       }
       console.error("Funding error:", err);
     }
@@ -412,6 +415,7 @@ export default function BillPayPage({
                         onMouseLeave={() => setShowTooltip(null)}
                         className="text-white/70 text-sm font-mono hover:text-cyan-400 transition-colors flex items-center gap-1.5"
                         title="Click to copy full address"
+                        aria-label="Copy wallet address"
                       >
                         {shortenAddress(wallet?.address || '')}
                         {copied ? (
@@ -435,6 +439,8 @@ export default function BillPayPage({
                     disabled={balanceLoading}
                     className="p-1.5 rounded-lg hover:bg-white/10 transition-colors group"
                     title="Refresh balance"
+                    aria-label="Refresh wallet balance"
+                    aria-live="polite"
                   >
                     <RefreshCw className={`w-4 h-4 text-white/40 group-hover:text-white/70 ${balanceLoading ? 'animate-spin' : ''}`} />
                   </button>
