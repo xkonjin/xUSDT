@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use edr_evm::HaltReason;
+use edr_chain_spec::EvmHaltReason;
 use napi_derive::napi;
 
 #[napi]
@@ -51,38 +51,38 @@ impl fmt::Display for ExitCode {
 }
 
 #[allow(clippy::fallible_impl_from)] // naively ported for now
-impl From<edr_solidity::exit_code::ExitCode> for ExitCode {
-    fn from(code: edr_solidity::exit_code::ExitCode) -> Self {
+impl From<edr_solidity::exit_code::ExitCode<EvmHaltReason>> for ExitCode {
+    fn from(code: edr_solidity::exit_code::ExitCode<EvmHaltReason>) -> Self {
         use edr_solidity::exit_code::ExitCode;
 
         match code {
             ExitCode::Success => Self::SUCCESS,
             ExitCode::Revert => Self::REVERT,
-            ExitCode::Halt(HaltReason::OutOfGas(_)) => Self::OUT_OF_GAS,
-            ExitCode::Halt(HaltReason::OpcodeNotFound | HaltReason::InvalidFEOpcode
+            ExitCode::Halt(EvmHaltReason::OutOfGas(_)) => Self::OUT_OF_GAS,
+            ExitCode::Halt(EvmHaltReason::OpcodeNotFound | EvmHaltReason::InvalidFEOpcode
               // Returned when an opcode is not implemented for the hardfork
-              | HaltReason::NotActivated) => Self::INVALID_OPCODE,
-            ExitCode::Halt(HaltReason::StackUnderflow) => Self::STACK_UNDERFLOW,
-            ExitCode::Halt(HaltReason::CreateContractSizeLimit) => Self::CODESIZE_EXCEEDS_MAXIMUM,
-            ExitCode::Halt(HaltReason::CreateCollision) => Self::CREATE_COLLISION,
-            ExitCode::Halt(_) => Self::UNKNOWN_HALT_REASON,
+              | EvmHaltReason::NotActivated) => Self::INVALID_OPCODE,
+            ExitCode::Halt(EvmHaltReason::StackUnderflow) => Self::STACK_UNDERFLOW,
+            ExitCode::Halt(EvmHaltReason::CreateContractSizeLimit) => Self::CODESIZE_EXCEEDS_MAXIMUM,
+            ExitCode::Halt(EvmHaltReason::CreateCollision) => Self::CREATE_COLLISION,
+            _ => Self::UNKNOWN_HALT_REASON,
         }
     }
 }
 
 #[napi]
 impl Exit {
-    #[napi(getter)]
+    #[napi(catch_unwind, getter)]
     pub fn kind(&self) -> ExitCode {
         self.0
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn is_error(&self) -> bool {
         !matches!(self.0, ExitCode::SUCCESS)
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn get_reason(&self) -> String {
         self.0.to_string()
     }

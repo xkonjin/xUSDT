@@ -1,7 +1,8 @@
-use edr_evm::trace::AfterMessage;
+use edr_chain_spec::EvmHaltReason;
+use edr_tracing::AfterMessage;
 use napi::{
-    bindgen_prelude::{BigInt, Buffer, Either3},
-    Either, Env, JsBuffer, JsBufferValue,
+    bindgen_prelude::{BigInt, Either3, Uint8Array},
+    Either,
 };
 use napi_derive::napi;
 
@@ -16,27 +17,24 @@ pub enum SuccessReason {
     Return,
     /// The opcode `SELFDESTRUCT` was called
     SelfDestruct,
-    EofReturnContract,
 }
 
-impl From<edr_evm::SuccessReason> for SuccessReason {
-    fn from(eval: edr_evm::SuccessReason) -> Self {
+impl From<edr_chain_spec_evm::result::SuccessReason> for SuccessReason {
+    fn from(eval: edr_chain_spec_evm::result::SuccessReason) -> Self {
         match eval {
-            edr_evm::SuccessReason::Stop => Self::Stop,
-            edr_evm::SuccessReason::Return => Self::Return,
-            edr_evm::SuccessReason::SelfDestruct => Self::SelfDestruct,
-            edr_evm::SuccessReason::EofReturnContract => Self::EofReturnContract,
+            edr_chain_spec_evm::result::SuccessReason::Stop => Self::Stop,
+            edr_chain_spec_evm::result::SuccessReason::Return => Self::Return,
+            edr_chain_spec_evm::result::SuccessReason::SelfDestruct => Self::SelfDestruct,
         }
     }
 }
 
-impl From<SuccessReason> for edr_evm::SuccessReason {
+impl From<SuccessReason> for edr_chain_spec_evm::result::SuccessReason {
     fn from(value: SuccessReason) -> Self {
         match value {
             SuccessReason::Stop => Self::Stop,
             SuccessReason::Return => Self::Return,
             SuccessReason::SelfDestruct => Self::SelfDestruct,
-            SuccessReason::EofReturnContract => Self::EofReturnContract,
         }
     }
 }
@@ -44,15 +42,15 @@ impl From<SuccessReason> for edr_evm::SuccessReason {
 #[napi(object)]
 pub struct CallOutput {
     /// Return value
-    pub return_value: JsBuffer,
+    pub return_value: Uint8Array,
 }
 
 #[napi(object)]
 pub struct CreateOutput {
     /// Return value
-    pub return_value: JsBuffer,
+    pub return_value: Uint8Array,
     /// Optionally, a 160-bit address
-    pub address: Option<Buffer>,
+    pub address: Option<Uint8Array>,
 }
 
 /// The result when the EVM terminates successfully.
@@ -76,7 +74,7 @@ pub struct RevertResult {
     /// The amount of gas used
     pub gas_used: BigInt,
     /// The transaction output
-    pub output: JsBuffer,
+    pub output: Uint8Array,
 }
 
 /// Indicates that the EVM has experienced an exceptional halt. This causes
@@ -100,77 +98,36 @@ pub enum ExceptionalHalt {
     CreateContractStartingWithEF,
     /// EIP-3860: Limit and meter initcode. Initcode size limit exceeded.
     CreateInitCodeSizeLimit,
-    /// Aux data overflow, new aux data is larger tha u16 max size.
-    EofAuxDataOverflow,
-    /// Aud data is smaller then already present data size.
-    EofAuxDataTooSmall,
-    /// EOF Subroutine stack overflow
-    EOFFunctionStackOverflow,
-    /// Check for target address validity is only done inside subcall.
-    InvalidEXTCALLTarget,
 }
 
-impl From<edr_evm::HaltReason> for ExceptionalHalt {
-    fn from(halt: edr_evm::HaltReason) -> Self {
+impl From<EvmHaltReason> for ExceptionalHalt {
+    fn from(halt: EvmHaltReason) -> Self {
         match halt {
-            edr_evm::HaltReason::OutOfGas(..) => ExceptionalHalt::OutOfGas,
-            edr_evm::HaltReason::OpcodeNotFound => ExceptionalHalt::OpcodeNotFound,
-            edr_evm::HaltReason::InvalidFEOpcode => ExceptionalHalt::InvalidFEOpcode,
-            edr_evm::HaltReason::InvalidJump => ExceptionalHalt::InvalidJump,
-            edr_evm::HaltReason::NotActivated => ExceptionalHalt::NotActivated,
-            edr_evm::HaltReason::StackUnderflow => ExceptionalHalt::StackUnderflow,
-            edr_evm::HaltReason::StackOverflow => ExceptionalHalt::StackOverflow,
-            edr_evm::HaltReason::OutOfOffset => ExceptionalHalt::OutOfOffset,
-            edr_evm::HaltReason::CreateCollision => ExceptionalHalt::CreateCollision,
-            edr_evm::HaltReason::PrecompileError => ExceptionalHalt::PrecompileError,
-            edr_evm::HaltReason::NonceOverflow => ExceptionalHalt::NonceOverflow,
-            edr_evm::HaltReason::CreateContractSizeLimit => {
-                ExceptionalHalt::CreateContractSizeLimit
+            EvmHaltReason::OutOfGas(..) => ExceptionalHalt::OutOfGas,
+            EvmHaltReason::OpcodeNotFound => ExceptionalHalt::OpcodeNotFound,
+            EvmHaltReason::InvalidFEOpcode => ExceptionalHalt::InvalidFEOpcode,
+            EvmHaltReason::InvalidJump => ExceptionalHalt::InvalidJump,
+            EvmHaltReason::NotActivated => ExceptionalHalt::NotActivated,
+            EvmHaltReason::StackUnderflow => ExceptionalHalt::StackUnderflow,
+            EvmHaltReason::StackOverflow => ExceptionalHalt::StackOverflow,
+            EvmHaltReason::OutOfOffset => ExceptionalHalt::OutOfOffset,
+            EvmHaltReason::CreateCollision => ExceptionalHalt::CreateCollision,
+            EvmHaltReason::PrecompileError | EvmHaltReason::PrecompileErrorWithContext(_) => {
+                ExceptionalHalt::PrecompileError
             }
-            edr_evm::HaltReason::CreateContractStartingWithEF => {
+            EvmHaltReason::NonceOverflow => ExceptionalHalt::NonceOverflow,
+            EvmHaltReason::CreateContractSizeLimit => ExceptionalHalt::CreateContractSizeLimit,
+            EvmHaltReason::CreateContractStartingWithEF => {
                 ExceptionalHalt::CreateContractStartingWithEF
             }
-            edr_evm::HaltReason::CreateInitCodeSizeLimit => {
-                ExceptionalHalt::CreateInitCodeSizeLimit
-            }
-            edr_evm::HaltReason::EofAuxDataOverflow => ExceptionalHalt::EofAuxDataOverflow,
-            edr_evm::HaltReason::EofAuxDataTooSmall => ExceptionalHalt::EofAuxDataTooSmall,
-            edr_evm::HaltReason::EOFFunctionStackOverflow => {
-                ExceptionalHalt::EOFFunctionStackOverflow
-            }
-            edr_evm::HaltReason::InvalidEXTCALLTarget => ExceptionalHalt::InvalidEXTCALLTarget,
-            edr_evm::HaltReason::OverflowPayment
-            | edr_evm::HaltReason::StateChangeDuringStaticCall
-            | edr_evm::HaltReason::CallNotAllowedInsideStatic
-            | edr_evm::HaltReason::OutOfFunds
-            | edr_evm::HaltReason::CallTooDeep => {
+            EvmHaltReason::CreateInitCodeSizeLimit => ExceptionalHalt::CreateInitCodeSizeLimit,
+            EvmHaltReason::OverflowPayment
+            | EvmHaltReason::StateChangeDuringStaticCall
+            | EvmHaltReason::CallNotAllowedInsideStatic
+            | EvmHaltReason::OutOfFunds
+            | EvmHaltReason::CallTooDeep => {
                 unreachable!("Internal halts that can be only found inside Inspector: {halt:?}")
             }
-        }
-    }
-}
-
-impl From<ExceptionalHalt> for edr_evm::HaltReason {
-    fn from(value: ExceptionalHalt) -> Self {
-        match value {
-            ExceptionalHalt::OutOfGas => Self::OutOfGas(edr_evm::OutOfGasError::Basic),
-            ExceptionalHalt::OpcodeNotFound => Self::OpcodeNotFound,
-            ExceptionalHalt::InvalidFEOpcode => Self::InvalidFEOpcode,
-            ExceptionalHalt::InvalidJump => Self::InvalidJump,
-            ExceptionalHalt::NotActivated => Self::NotActivated,
-            ExceptionalHalt::StackUnderflow => Self::StackUnderflow,
-            ExceptionalHalt::StackOverflow => Self::StackOverflow,
-            ExceptionalHalt::OutOfOffset => Self::OutOfOffset,
-            ExceptionalHalt::CreateCollision => Self::CreateCollision,
-            ExceptionalHalt::PrecompileError => Self::PrecompileError,
-            ExceptionalHalt::NonceOverflow => Self::NonceOverflow,
-            ExceptionalHalt::CreateContractSizeLimit => Self::CreateContractSizeLimit,
-            ExceptionalHalt::CreateContractStartingWithEF => Self::CreateContractStartingWithEF,
-            ExceptionalHalt::CreateInitCodeSizeLimit => Self::CreateInitCodeSizeLimit,
-            ExceptionalHalt::EofAuxDataOverflow => Self::EofAuxDataOverflow,
-            ExceptionalHalt::EofAuxDataTooSmall => Self::EofAuxDataTooSmall,
-            ExceptionalHalt::EOFFunctionStackOverflow => Self::EOFFunctionStackOverflow,
-            ExceptionalHalt::InvalidEXTCALLTarget => Self::InvalidEXTCALLTarget,
         }
     }
 }
@@ -191,28 +148,25 @@ pub struct ExecutionResult {
     /// The transaction result
     pub result: Either3<SuccessResult, RevertResult, HaltResult>,
     /// Optional contract address if the transaction created a new contract.
-    pub contract_address: Option<Buffer>,
+    pub contract_address: Option<Uint8Array>,
 }
 
-impl ExecutionResult {
-    pub fn new(env: &Env, message: &AfterMessage) -> napi::Result<Self> {
+impl From<&AfterMessage<EvmHaltReason>> for ExecutionResult {
+    fn from(value: &AfterMessage<EvmHaltReason>) -> Self {
         let AfterMessage {
             execution_result,
             contract_address,
-        } = message;
+        } = value;
 
         let result = match execution_result {
-            edr_evm::ExecutionResult::Success {
+            edr_chain_spec_evm::result::ExecutionResult::Success {
                 reason,
                 gas_used,
                 gas_refunded,
                 logs,
                 output,
             } => {
-                let logs = logs
-                    .iter()
-                    .map(|log| ExecutionLog::new(env, log))
-                    .collect::<napi::Result<_>>()?;
+                let logs = logs.iter().map(ExecutionLog::from).collect();
 
                 Either3::A(SuccessResult {
                     reason: SuccessReason::from(*reason),
@@ -220,47 +174,43 @@ impl ExecutionResult {
                     gas_refunded: BigInt::from(*gas_refunded),
                     logs,
                     output: match output {
-                        edr_evm::Output::Call(return_value) => {
-                            let return_value = env
-                                .create_buffer_with_data(return_value.to_vec())
-                                .map(JsBufferValue::into_raw)?;
+                        edr_chain_spec_evm::result::Output::Call(return_value) => {
+                            let return_value = Uint8Array::with_data_copied(return_value);
 
                             Either::A(CallOutput { return_value })
                         }
-                        edr_evm::Output::Create(return_value, address) => {
-                            let return_value = env
-                                .create_buffer_with_data(return_value.to_vec())
-                                .map(JsBufferValue::into_raw)?;
+                        edr_chain_spec_evm::result::Output::Create(return_value, address) => {
+                            let return_value = Uint8Array::with_data_copied(return_value);
 
                             Either::B(CreateOutput {
                                 return_value,
-                                address: address.map(|address| Buffer::from(address.as_slice())),
+                                address: address.as_ref().map(Uint8Array::with_data_copied),
                             })
                         }
                     },
                 })
             }
-            edr_evm::ExecutionResult::Revert { gas_used, output } => {
-                let output = env
-                    .create_buffer_with_data(output.to_vec())
-                    .map(JsBufferValue::into_raw)?;
+            edr_chain_spec_evm::result::ExecutionResult::Revert { gas_used, output } => {
+                let output = Uint8Array::with_data_copied(output);
 
                 Either3::B(RevertResult {
                     gas_used: BigInt::from(*gas_used),
                     output,
                 })
             }
-            edr_evm::ExecutionResult::Halt { reason, gas_used } => Either3::C(HaltResult {
-                reason: ExceptionalHalt::from(*reason),
-                gas_used: BigInt::from(*gas_used),
-            }),
+            edr_chain_spec_evm::result::ExecutionResult::Halt { reason, gas_used } => {
+                Either3::C(HaltResult {
+                    reason: ExceptionalHalt::from(reason.clone()),
+                    gas_used: BigInt::from(*gas_used),
+                })
+            }
         };
 
-        let contract_address = contract_address.map(|address| Buffer::from(address.as_slice()));
+        let contract_address = contract_address.as_ref().map(Uint8Array::with_data_copied);
 
-        Ok(Self {
+        Self {
             result,
             contract_address,
-        })
+        }
     }
 }

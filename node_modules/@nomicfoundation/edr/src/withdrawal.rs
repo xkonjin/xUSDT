@@ -1,8 +1,8 @@
-use edr_eth::Address;
-use napi::bindgen_prelude::{BigInt, Buffer};
+use edr_primitives::Address;
+use napi::bindgen_prelude::{BigInt, Uint8Array};
 use napi_derive::napi;
 
-use crate::cast::TryCast;
+use crate::cast::TryCast as _;
 
 #[napi(object)]
 pub struct Withdrawal {
@@ -11,26 +11,26 @@ pub struct Withdrawal {
     /// The index of the validator that generated the withdrawal
     pub validator_index: BigInt,
     /// The recipient address for withdrawal value
-    pub address: Buffer,
+    pub address: Uint8Array,
     /// The value contained in withdrawal
     pub amount: BigInt,
 }
 
-impl From<edr_eth::withdrawal::Withdrawal> for Withdrawal {
-    fn from(withdrawal: edr_eth::withdrawal::Withdrawal) -> Self {
+impl From<edr_block_header::Withdrawal> for Withdrawal {
+    fn from(withdrawal: edr_block_header::Withdrawal) -> Self {
         Self {
             index: BigInt::from(withdrawal.index),
             validator_index: BigInt::from(withdrawal.validator_index),
-            address: Buffer::from(withdrawal.address.as_slice()),
+            address: Uint8Array::with_data_copied(withdrawal.address),
             amount: BigInt {
                 sign_bit: false,
-                words: withdrawal.amount.as_limbs().to_vec(),
+                words: vec![withdrawal.amount],
             },
         }
     }
 }
 
-impl TryFrom<Withdrawal> for edr_eth::withdrawal::Withdrawal {
+impl TryFrom<Withdrawal> for edr_block_header::Withdrawal {
     type Error = napi::Error;
 
     fn try_from(value: Withdrawal) -> Result<Self, Self::Error> {

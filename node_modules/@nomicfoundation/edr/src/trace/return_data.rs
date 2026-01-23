@@ -20,65 +20,77 @@ pub struct ReturnData {
 
 #[napi]
 impl ReturnData {
-    #[napi(constructor)]
+    #[napi(catch_unwind, constructor)]
     pub fn new(value: Uint8Array) -> Self {
-        let selector = if value.len() >= 4 {
-            Some(value[0..4].try_into().unwrap())
-        } else {
-            None
-        };
+        let selector = value
+            .get(0..4)
+            .map(|selector| selector.try_into().expect("selector is 4 bytes"));
 
         Self { value, selector }
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 
     pub fn matches_selector(&self, selector: impl AsRef<[u8]>) -> bool {
         self.selector
-            .map_or(false, |value| value == selector.as_ref())
+            .is_some_and(|value| value == selector.as_ref())
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn is_error_return_data(&self) -> bool {
         self.selector == Some(Error::SELECTOR)
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn is_panic_return_data(&self) -> bool {
         self.selector == Some(Panic::SELECTOR)
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn decode_error(&self) -> napi::Result<String> {
         if self.is_empty() {
             return Ok(String::new());
         }
 
-        let result = Error::abi_decode(&self.value[..], false).map_err(|_err| {
+        if !self.is_error_return_data() {
+            return Err(napi::Error::new(
+                napi::Status::InvalidArg,
+                "VM Exception while processing transaction: Expected return data to be a Error(string)",
+            ));
+        }
+
+        let result = Error::abi_decode(&self.value[..]).map_err(|_err| {
             napi::Error::new(
                 napi::Status::InvalidArg,
-                "Expected return data to be a Error(string) and contain a valid string",
+                "VM Exception while processing transaction: Expected return data to contain a valid string",
             )
         })?;
 
-        Ok(result._0)
+        Ok(result.0)
     }
 
-    #[napi]
+    #[napi(catch_unwind)]
     pub fn decode_panic(&self) -> napi::Result<BigInt> {
-        let result = Panic::abi_decode(&self.value[..], false).map_err(|_err| {
+        if !self.is_panic_return_data() {
+            return Err(napi::Error::new(
+                napi::Status::InvalidArg,
+                "VM Exception while processing transaction: Expected return data to be a Panic(uint256)",
+            ));
+        }
+
+        let result = Panic::abi_decode(&self.value[..]).map_err(|_err| {
             napi::Error::new(
                 napi::Status::InvalidArg,
-                "Expected return data to be a Error(string) and contain a valid string",
+                "VM Exception while processing transaction: Expected return data to contain a valid uint256",
             )
         })?;
 
         Ok(BigInt {
             sign_bit: false,
-            words: result._0.as_limbs().to_vec(),
+            words: result.0.as_limbs().to_vec(),
         })
     }
 }
