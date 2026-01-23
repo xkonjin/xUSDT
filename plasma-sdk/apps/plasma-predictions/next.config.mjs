@@ -1,3 +1,9 @@
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
@@ -26,6 +32,17 @@ const nextConfig = {
         hostname: 'polymarket-static.s3.us-east-2.amazonaws.com',
       },
     ],
+    formats: ['image/avif', 'image/webp'],
+  },
+  // Performance optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
   async headers() {
     return [
@@ -63,4 +80,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withAnalyzer(nextConfig);

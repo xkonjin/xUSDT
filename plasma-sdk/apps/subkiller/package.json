@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@plasma-pay/core": "*",
@@ -32,6 +33,7 @@
     "tailwind-merge": "^2.2.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.2.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

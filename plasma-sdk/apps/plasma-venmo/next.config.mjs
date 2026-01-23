@@ -4,6 +4,12 @@
  * Includes performance optimizations
  */
 
+import withBundleAnalyzer from '@next/bundle-analyzer';
+
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
@@ -38,7 +44,7 @@ const nextConfig = {
 
   // Experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react'],
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
 
   // Headers for security and caching
@@ -69,4 +75,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withAnalyzer(nextConfig);
