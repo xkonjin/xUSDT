@@ -88,6 +88,9 @@ a {
 .xui-field-trailing { opacity: 0.8; font-size: 12px; }
 .xui-input { width: 100%; border: 1px solid var(--xui-border); background: color-mix(in oklab, var(--xui-bg) 95%, transparent); color: var(--xui-fg); border-radius: 12px; padding: 10px 12px; outline: none; }
 .xui-input:focus { border-color: color-mix(in oklab, var(--xui-primary) 60%, var(--xui-border)); box-shadow: 0 0 0 4px color-mix(in oklab, var(--xui-primary) 20%, transparent); }
+.xui-input-error { border-color: #ef4444; }
+.xui-input-error:focus { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+.xui-field-error { color: #ef4444; font-size: 12px; margin-top: 4px; }
 
 .xui-hero { display: grid; gap: 18px; align-items: center; padding: 48px 0 10px; text-align: center; }
 .xui-hero h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
