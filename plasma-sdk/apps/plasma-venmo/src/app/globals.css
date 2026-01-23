@@ -714,3 +714,181 @@ h1, h2, h3, h4, h5, h6 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ========================================
+   DESIGN SYSTEM IMPORTS
+   ======================================== */
+
+@import '../styles/tokens.css';
+@import '../styles/clay-components.css';
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/* Animation utilities */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up var(--transition-slow) ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down var(--transition-slow) ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in var(--transition-base) ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Focus visible styles */
+.focus-clay:focus-visible {
+  outline: none;
+  box-shadow: 
+    var(--shadow-clay-md),
+    0 0 0 3px rgba(139, 92, 246, 0.3);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 15, 35, 0.5);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.5), rgba(124, 58, 237, 0.5));
+  border-radius: var(--radius-full);
+  border: 2px solid rgba(15, 15, 35, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.7), rgba(124, 58, 237, 0.7));
+}
+
+/* Selection styles */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: var(--color-text-primary);
+}
+
+/* Loading spinner */
+.clay-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(139, 92, 246, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Glassmorphism variant */
+.glass-card {
+  background: rgba(26, 26, 46, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Responsive container */
+.container-clay {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .container-clay {
+    padding: 0 var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-clay {
+    padding: 0 var(--space-8);
+  }
+}
+
+/* Touch feedback */
+@media (hover: none) {
+  .clay-button:active {
+    transform: scale(0.98);
+  }
+  
+  .clay-card:active {
+    transform: scale(0.99);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .clay-card,
+  .clay-button,
+  .clay-input {
+    border-width: 2px;
+  }
+}
