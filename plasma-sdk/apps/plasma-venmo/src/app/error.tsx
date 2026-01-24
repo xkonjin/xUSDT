@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
 import { AlertCircle, Home } from 'lucide-react';
 
 /**
@@ -49,22 +48,20 @@ export default function GlobalError({
 
         {/* Recovery Options */}
         <div className="flex flex-col gap-3">
-          <Button
+          <button
             onClick={reset}
-            variant="primary"
-            className="w-full"
+            className="clay-button w-full"
           >
             Try Again
-          </Button>
+          </button>
 
-          <Button
+          <button
             onClick={() => (window.location.href = '/')}
-            variant="secondary"
-            className="w-full"
+            className="clay-button w-full !bg-white/10 !text-white"
           >
             <Home className="w-4 h-4 mr-2" />
             Go Home
-          </Button>
+          </button>
         </div>
 
         {/* Help Link */}
