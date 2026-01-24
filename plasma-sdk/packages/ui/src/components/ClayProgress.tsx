@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import React, { forwardRef } from "react";
 import { cn } from "../lib/utils";
 
 export interface ClayProgressProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -164,4 +164,4 @@ export const ClayProgressSteps = forwardRef<HTMLDivElement, ClayProgressStepsPro
 
 ClayProgressSteps.displayName = "ClayProgressSteps";
 
-export { ClayProgress, ClayProgressSteps };
+export { ClayProgress };

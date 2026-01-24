@@ -258,9 +258,11 @@ export default function BillPayPage({
         } : null);
       }, 1000);
     } catch (err) {
-        setShowFundingOptions(true);
-        refreshBalance();
-      }
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
+      setPaymentError(getPaymentErrorMessage(errorMsg, requiredAmount, safeBalance));
+      setPaymentStatus('error');
+      setShowFundingOptions(true);
+      refreshBalance();
     } finally {
       setPaying(false);
     }

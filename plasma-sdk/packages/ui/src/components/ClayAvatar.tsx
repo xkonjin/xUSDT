@@ -166,4 +166,4 @@ export const ClayAvatarGroup = ({
 
 ClayAvatarGroup.displayName = "ClayAvatarGroup";
 
-export { ClayAvatar, ClayAvatarGroup };
+

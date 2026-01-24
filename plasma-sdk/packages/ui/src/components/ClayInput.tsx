@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import { cn } from "../lib/utils";
 
 export interface ClayInputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   error?: string;
   hint?: string;
