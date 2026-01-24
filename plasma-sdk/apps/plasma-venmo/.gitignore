@@ -1,4 +1,13 @@
+# Vercel
 .vercel
+
+# Environment files (NEVER COMMIT THESE!)
+.env
 .env.local
-.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Credentials
 .credentials.md

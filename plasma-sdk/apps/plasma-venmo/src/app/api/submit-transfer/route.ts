@@ -4,12 +4,15 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 import { getValidatedRelayerKey } from '@/lib/validation';
+import { withRateLimit, getClientIP, getRouteType } from '@/lib/rate-limiter-redis';
 
 // Server-side amount limits (in USDT0 with 6 decimals)
 const MIN_AMOUNT = parseUnits('0.01', 6); // $0.01 minimum
 const MAX_AMOUNT = parseUnits('10000', 6); // $10,000 maximum
 
-const isMockMode = process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
+// PRODUCTION MODE: Mock mode is disabled for production
+// All payments are real on Plasma Chain
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 const TRANSFER_WITH_AUTH_ABI = [
   {
@@ -33,8 +36,34 @@ const TRANSFER_WITH_AUTH_ABI = [
 
 export async function POST(request: Request) {
   try {
-    // Handle mock mode first before any other checks
-    if (isMockMode) {
+    // Rate limiting check (Redis-based for production)
+    const ip = getClientIP(request);
+    const routeType = getRouteType('/api/submit-transfer');
+
+    // Try Redis rate limiter first, fallback to permissive if unavailable
+    try {
+      // Dynamic import to avoid build issues if @vercel/kv not installed
+      const rateLimitModule = await import('@/lib/rate-limiter-redis');
+      const { allowed, response: rateLimitResponse } = await rateLimitModule.withRateLimit(request, 'payment');
+
+      if (!allowed && rateLimitResponse) {
+        return rateLimitResponse;
+      }
+    } catch (rateLimitError) {
+      console.warn('[submit-transfer] Redis rate limiter unavailable, proceeding:', rateLimitError);
+      // Fallback: Continue without rate limiting (graceful degradation)
+    }
+
+    // PRODUCTION VALIDATION: Ensure we're not in mock mode
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+      console.error('[submit-transfer] CRITICAL: Mock mode enabled in production!');
+      if (IS_PRODUCTION) {
+        return NextResponse.json(
+          { error: 'Payment service configuration error. Please contact support.' },
+          { status: 500 }
+        );
+      }
+      // Only allow mock mode in development
       return NextResponse.json({
         success: true,
         txHash: `0xmock${Date.now().toString(16)}`,
