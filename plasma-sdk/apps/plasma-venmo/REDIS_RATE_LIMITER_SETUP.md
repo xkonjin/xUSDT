@@ -2,44 +2,61 @@
 
 ## Overview
 
-The Plenmo app now supports Redis-based rate limiting using Vercel KV, which works across multiple serverless function instances.
+The Plenmo app now supports Redis-based rate limiting using Upstash Redis, which works across multiple serverless function instances.
 
 ## Installation
 
-### 1. Install Vercel KV Package
+### 1. Install Upstash Redis Package
 
 ```bash
 cd plasma-sdk/apps/plasma-venmo
-npm install @vercel/kv
+npm install @upstash/redis
 ```
 
-### 2. Create Vercel KV Database
+### 2. Create Upstash Redis Database
 
-**Via Vercel Dashboard:**
+**Option A: Via Vercel Dashboard (Recommended)**
 1. Go to https://vercel.com/jins-projects-d67d72af
 2. Select project: `plasma-venmo`
-3. Go to: Storage → Create Database → KV Redis
+3. Go to: Storage → Create Database → Redis (Upstash)
 4. Choose region: US East (or closest to users)
 5. Click Create
 
-**Via CLI:**
+**Option B: Via Upstash Dashboard**
+1. Go to: https://upstash.com/dashboard
+2. Click: Create Database
+3. Choose: Global (Multi-Region)
+4. Database Name: `plenmo-redis`
+5. Region: Global
+6. Click: Create
+
+**Option C: Via CLI**
 ```bash
-vercel kv create
+# Install Upstash CLI
+npm install -g @upstash/cli
+
+# Login
+upstash login
+
+# Create database
+upstash redis create plenmo-redis
 ```
 
 ### 3. Add Environment Variables
 
-Vercel KV will automatically add these variables to your project:
+After creating the database, Upstash will provide connection details.
 
+**Add these to Vercel Environment Variables:**
 ```bash
-KV_REST_API_URL=...
-KV_REST_API_TOKEN=...
-KV_URL=... (optional, for Redis client)
+UPSTASH_REDIS_REST_URL=https://...upstash.io
+UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-You can find these in:
+**Where to add:**
 - Vercel Dashboard → Settings → Environment Variables
-- Or: Storage → Your KV Database → .env.local
+- Or: Storage → Your Redis Database → .env.local
+
+**Note:** Vercel will automatically add these variables when you create the database via Vercel Dashboard.
 
 ## Migration
 
@@ -48,10 +65,7 @@ You can find these in:
 Update API routes to use Redis version:
 
 ```typescript
-// BEFORE:
-import { RateLimiter, getRateLimiter } from '@/lib/rate-limiter';
-
-// AFTER:
+// Import rate limiter
 import { withRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter-redis';
 
 // In your API route:
@@ -68,6 +82,8 @@ export async function POST(request: Request) {
   // Your route logic here
 }
 ```
+
+**Note:** The Redis rate limiter has graceful fallback. If Redis is not configured, it will allow all requests and log a warning.
 
 ### Option B: Use Both (In-Memory Fallback)
 
@@ -154,11 +170,11 @@ Retry-After: 30
 
 ### "KV connection failed"
 
-**Cause:** KV database not created or environment variables not set
+**Cause:** Redis database not created or environment variables not set
 
 **Fix:**
-1. Verify KV database exists in Vercel Dashboard
-2. Check environment variables: `KV_REST_API_URL`, `KV_REST_API_TOKEN`
+1. Verify Redis database exists in Vercel Dashboard
+2. Check environment variables: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 3. Try locally: `vercel env pull`
 
 ### "Rate limit not working across instances"
@@ -198,33 +214,39 @@ done
 ### Monitor Redis Keys
 
 ```bash
-# Connect to KV CLI
-vercel kv ls
+# Via Upstash CLI
+upstash redis ls
 
 # View rate limit keys
-vercel kv get ratelimit:127.0.0.1:payment
+upstash redis get ratelimit:127.0.0.1:payment
+
+# Via Vercel Dashboard
+# Go to: Storage → Your Redis Database → Browser
+# Filter by: ratelimit:*
 ```
 
 ## Performance
 
 ### Redis vs In-Memory
 
-| Metric | In-Memory | Redis (Vercel KV) |
+| Metric | In-Memory | Redis (Upstash) |
 |---------|------------|---------------------|
 | Latency | ~0.1ms | ~10-50ms |
 | Accuracy | 100% | 100% |
-| Scalability | Single instance | Distributed |
-| Cost | Free | Free tier (up to 256K keys) |
+| Scalability | Single instance | Distributed (Global) |
+| Cost | Free | Free tier (10K commands/day) |
 
 ### Cost Optimization
 
-Vercel KV Free Tier:
-- 256K keys
-- 30K requests/day
+Upstash Redis Free Tier:
+- 10K commands/day
+- 256 MB storage
+- Global multi-region replication
 - Sufficient for most production apps
 
 If you exceed limits:
-- Upgrade to KV paid tier ($0.50/month per GB)
+- Upgrade to Redis paid tier (starts at $0.20/month)
+- Higher command limits and larger storage
 - Or implement local cache with Redis backup
 
 ## Security
@@ -246,8 +268,8 @@ Redis-based rate limiting prevents:
 
 ## Next Steps
 
-1. ✅ Install Vercel KV package
-2. ✅ Create KV database
+1. ✅ Install Upstash Redis package
+2. ✅ Create Redis database
 3. ✅ Add environment variables
 4. ✅ Update API routes to use Redis rate limiter
 5. ✅ Deploy to Vercel
@@ -256,4 +278,4 @@ Redis-based rate limiting prevents:
 
 ---
 
-*Redis Rate Limiter Setup Complete*
+*Redis Rate Limiter Setup Complete* ✅

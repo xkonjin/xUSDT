@@ -21,6 +21,8 @@
     "stacktrace-parser": "^0.1.11"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.6"
+    "@openzeppelin/contracts": "^4.9.6",
+    "@upstash/redis": "^1.36.1",
+    "@vercel/kv": "^3.0.0"
   }
 }

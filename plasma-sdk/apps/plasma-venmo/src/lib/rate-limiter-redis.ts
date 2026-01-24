@@ -2,18 +2,31 @@
  * Redis-based Rate Limiter for Vercel
  * VENMO-003: Implement rate limiting middleware (Redis version)
  *
- * Uses Vercel KV (Redis-compatible) for distributed rate limiting
+ * Uses Upstash Redis for distributed rate limiting
  * Works across multiple serverless function instances
  *
  * Installation:
- * npm install @vercel/kv
+ * npm install @upstash/redis
  *
  * Environment Variables:
- * KV_REST_API_URL=...
- * KV_REST_API_TOKEN=...
+ * UPSTASH_REDIS_REST_URL=...
+ * UPSTASH_REDIS_REST_TOKEN=...
  */
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Initialize Redis client with retry logic
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis {
+  if (!redisClient) {
+    redisClient = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL || '',
+      token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+    });
+  }
+  return redisClient;
+}
 
 export interface RateLimitConfig {
   maxRequests: number;
@@ -36,29 +49,43 @@ export async function checkRateLimit(
   config: RateLimitConfig,
   routeType?: string
 ): Promise<RateLimitResult> {
+  // Check if Redis is configured
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!redisUrl || !redisToken) {
+    // Fallback to permissive mode if Redis is not configured
+    console.warn('[rate-limiter-redis] Redis not configured, allowing request');
+    return {
+      allowed: true,
+      remaining: config.maxRequests,
+      limit: config.maxRequests,
+      resetAt: Date.now() + config.windowMs,
+    };
+  }
+
   // Generate unique key for this identifier and route type
   const key = routeType ? `${identifier}:${routeType}` : identifier;
   const redisKey = `ratelimit:${key}`;
   const now = Date.now();
   const resetAt = now + config.windowMs;
 
-  // Use Redis pipeline for atomic operations
-  const pipe = kv.pipeline();
-  pipe.incr(redisKey);
-  pipe.expire(redisKey, Math.ceil(config.windowMs / 1000));
-
   try {
-    const results = (await pipe.exec()) as [
-      [Error | null, number | null],
-      [Error | null, number | null],
-    ];
+    const redis = getRedisClient();
 
-    const currentCount = results[0][1] || 0;
+    // Increment counter
+    const currentCount = (await redis.incr(redisKey)) as number;
+
+    // Set expiry on first request
+    if (currentCount === 1) {
+      await redis.expire(redisKey, Math.ceil(config.windowMs / 1000));
+    }
+
     const remaining = Math.max(0, config.maxRequests - currentCount);
 
     // Check if over limit
     if (currentCount > config.maxRequests) {
-      const ttl = await kv.ttl(redisKey);
+      const ttl = await redis.ttl(redisKey);
       const retryAfter = ttl > 0 ? ttl : config.windowMs / 1000;
 
       return {
