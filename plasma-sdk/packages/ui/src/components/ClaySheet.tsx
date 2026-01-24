@@ -173,4 +173,4 @@ export const ClaySheetFooter = forwardRef<HTMLDivElement, ClaySheetFooterProps>(
 
 ClaySheetFooter.displayName = "ClaySheetFooter";
 
-export { ClaySheet, ClaySheetFooter };
+

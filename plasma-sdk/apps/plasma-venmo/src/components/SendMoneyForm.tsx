@@ -331,7 +331,8 @@ export function SendMoneyForm({
       } else {
         playSound('error');
         hapticFeedback('light');
-      assistantError("Something went wrong. Your funds are safe!");
+        assistantError("Something went wrong. Your funds are safe!");
+      }
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;

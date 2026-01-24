@@ -41,6 +41,7 @@ interface Participant {
   id: string;
   name: string;
   color: typeof PARTICIPANT_COLORS[number];
+  share?: number;
   customAmount?: number;
 }
 

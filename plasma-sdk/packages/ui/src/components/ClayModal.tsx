@@ -155,4 +155,4 @@ export const ClayModalFooter = forwardRef<HTMLDivElement, ClayModalFooterProps>(
 
 ClayModalFooter.displayName = "ClayModalFooter";
 
-export { ClayModal, ClayModalFooter };
+
