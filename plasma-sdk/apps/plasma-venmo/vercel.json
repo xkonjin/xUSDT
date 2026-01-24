@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "installCommand": "npm install --ignore-workspace",
   "devCommand": "npm run dev",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://plasma-venmo.vercel.app",
