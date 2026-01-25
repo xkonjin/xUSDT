@@ -5,6 +5,22 @@
 import type { Address, Hex, Hash } from 'viem';
 
 /**
+ * Fee breakdown for transparency (optional)
+ */
+export interface FeeBreakdown {
+  /** Original requested amount in atomic units */
+  amount: string;
+  /** Protocol fee percent in basis points (e.g., 10 = 0.1%) */
+  percentBps: number;
+  /** Fee from percent only (before any floor), as integer string */
+  percentFee: string;
+  /** Whether a dynamic floor was applied */
+  floorApplied?: boolean;
+  /** Final total fee (max(percentFee, floor)) */
+  totalFee: string;
+}
+
+/**
  * Payment option offered by the server
  */
 export interface X402PaymentOption {
@@ -17,6 +33,16 @@ export interface X402PaymentOption {
   recipient: Address;
   scheme: 'eip3009-transfer-with-auth' | 'eip3009-receive-with-auth' | 'direct-transfer';
   description?: string;
+  
+  // Extended fields for advanced routing (optional)
+  /** Router contract address for Ethereum routing */
+  routerContract?: Address;
+  /** NFT collection address for NFT-based routing */
+  nftCollection?: Address;
+  /** Recommended payment mode */
+  recommendedMode?: 'channel' | 'direct';
+  /** Detailed fee breakdown for transparency */
+  feeBreakdown?: FeeBreakdown;
 }
 
 /**
