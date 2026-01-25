@@ -227,4 +227,109 @@ describe('SendMoneyForm', () => {
       expect(screen.getByText(/10\.00/i)).toBeInTheDocument();
     });
   });
+
+  describe('Balance Validation', () => {
+    it('should show insufficient balance error when amount exceeds balance', async () => {
+      render(<SendMoneyForm {...defaultProps} balance="50.00" />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '100.00' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument();
+        expect(screen.getByText(/50\.00 available/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should disable send button when insufficient balance', async () => {
+      render(<SendMoneyForm {...defaultProps} balance="25.00" />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '50.00' } });
+
+      const sendButton = screen.getByRole('button', { name: /review/i });
+      expect(sendButton).toBeDisabled();
+    });
+
+    it('should enable send button when amount is within balance', async () => {
+      render(<SendMoneyForm {...defaultProps} balance="100.00" />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '50.00' } });
+
+      const sendButton = screen.getByRole('button', { name: /review/i });
+      expect(sendButton).not.toBeDisabled();
+    });
+
+    it('should not show insufficient balance error when amount equals balance', async () => {
+      render(<SendMoneyForm {...defaultProps} balance="100.00" />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '100.00' } });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/insufficient balance/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show fund wallet button when insufficient balance', async () => {
+      const mockOnFundWallet = jest.fn();
+      render(<SendMoneyForm {...defaultProps} balance="10.00" onFundWallet={mockOnFundWallet} />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '50.00' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/add funds/i)).toBeInTheDocument();
+      });
+
+      const fundButton = screen.getByText(/add funds/i);
+      fireEvent.click(fundButton);
+      expect(mockOnFundWallet).toHaveBeenCalled();
+    });
+
+    it('should handle zero balance correctly', async () => {
+      render(<SendMoneyForm {...defaultProps} balance="0.00" />);
+
+      const recipientInput = screen.getByLabelText(/recipient/i);
+      fireEvent.change(recipientInput, {
+        target: { value: 'test@example.com' },
+      });
+
+      const amountInput = screen.getByLabelText(/amount/i);
+      fireEvent.change(amountInput, { target: { value: '10.00' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument();
+      });
+
+      const sendButton = screen.getByRole('button', { name: /review/i });
+      expect(sendButton).toBeDisabled();
+    });
+  });
 });

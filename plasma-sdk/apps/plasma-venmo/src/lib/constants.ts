@@ -12,6 +12,7 @@ export const MAX_MEMO_LENGTH = 200;
 // Transaction messages
 export const AMOUNT_TOO_SMALL = `Minimum amount is $${MIN_AMOUNT.toFixed(2)}`;
 export const AMOUNT_TOO_LARGE = `Maximum amount is $${MAX_AMOUNT.toLocaleString()}`;
+export const INSUFFICIENT_BALANCE = "Insufficient balance";
 export const MEMO_TOO_LONG = `Memo must be ${MAX_MEMO_LENGTH} characters or less`;
 
 // Clipboard fallback message

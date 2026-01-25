@@ -19,8 +19,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@plasma-pay/core": "*",
-    "@plasma-pay/gasless": "*",
+    "@plasma-pay/core": "workspace:*",
+    "@plasma-pay/gasless": "workspace:*",
     "viem": "^2.21.0"
   },
   "devDependencies": {

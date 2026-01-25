@@ -12,9 +12,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@plasma-pay/aggregator": "*",
-    "@plasma-pay/core": "*",
-    "@plasma-pay/db": "*",
+    "@plasma-pay/aggregator": "workspace:*",
+    "@plasma-pay/core": "workspace:*",
+    "@plasma-pay/db": "workspace:*",
     "dotenv": "^16.3.1",
     "grammy": "^1.21.1",
     "nanoid": "^5.0.4",

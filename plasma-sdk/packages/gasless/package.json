@@ -21,7 +21,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@plasma-pay/core": "*",
+    "@plasma-pay/core": "workspace:*",
     "viem": "^2.21.0"
   },
   "devDependencies": {

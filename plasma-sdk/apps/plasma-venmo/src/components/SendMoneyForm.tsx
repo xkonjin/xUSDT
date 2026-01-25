@@ -5,7 +5,7 @@ import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "l
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { useAssistantReaction, getUserFriendlyError, PaymentProgress, type PaymentStatus } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
-import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
+import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE, INSUFFICIENT_BALANCE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
 import { ModalPortal } from "./ui/ModalPortal";
@@ -19,6 +19,8 @@ interface SendMoneyFormProps {
   contacts?: Contact[];
   contactsLoading?: boolean;
   onPaymentSuccess?: (recipientAddress: string) => void;
+  selectedContact?: Contact | null;
+  onClearSelectedContact?: () => void;
 }
 
 function ConfirmationModal({
@@ -217,10 +219,23 @@ export function SendMoneyForm({
   contacts = [],
   contactsLoading = false,
   onPaymentSuccess,
+  selectedContact,
+  onClearSelectedContact,
 }: SendMoneyFormProps) {
   const [recipient, setRecipient] = useState("");
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
+
+  // Auto-fill recipient when selectedContact changes
+  const prevSelectedContactRef = useRef<Contact | null | undefined>(undefined);
+  if (selectedContact && selectedContact !== prevSelectedContactRef.current) {
+    const contactIdentifier = selectedContact.contactAddress || selectedContact.email || selectedContact.phone;
+    if (contactIdentifier) {
+      setRecipient(contactIdentifier);
+      setRecipientName(selectedContact.name);
+    }
+    prevSelectedContactRef.current = selectedContact;
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -252,6 +267,11 @@ export function SendMoneyForm({
     setRecipient(value);
     if (recipientName && value !== recipient) {
       setRecipientName(null);
+      // Clear selected contact when user manually edits the recipient
+      if (onClearSelectedContact) {
+        onClearSelectedContact();
+        prevSelectedContactRef.current = undefined;
+      }
     }
   };
   
@@ -269,7 +289,7 @@ export function SendMoneyForm({
   const getAmountError = (): string | null => {
     if (amountTooSmall) return AMOUNT_TOO_SMALL;
     if (amountTooLarge) return AMOUNT_TOO_LARGE;
-    if (insufficientBalance) return `Insufficient balance. You have $${numericBalance.toFixed(2)}.`;
+    if (insufficientBalance) return `${INSUFFICIENT_BALANCE}. You have $${numericBalance.toFixed(2)}.`;
     return null;
   };
 
@@ -362,7 +382,8 @@ export function SendMoneyForm({
   const isValidRecipient =
     recipient.includes("@") || /^\+?\d{10,}$/.test(recipient) || /^0x[a-fA-F0-9]{40}$/.test(recipient);
   const isValidAmount = parseFloat(amount) > 0;
-  const canSubmit = wallet && isValidRecipient && isValidAmount && !loading;
+  const hasValidationError = insufficientBalance || amountTooSmall || amountTooLarge;
+  const canSubmit = wallet && isValidRecipient && isValidAmount && !loading && !hasValidationError;
 
   return (
     <>

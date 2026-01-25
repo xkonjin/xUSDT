@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
-    "@plasma-pay/analytics": "*",
-    "@plasma-pay/core": "*",
-    "@plasma-pay/share": "*",
+    "@plasma-pay/analytics": "workspace:*",
+    "@plasma-pay/core": "workspace:*",
+    "@plasma-pay/share": "workspace:*",
     "@react-navigation/native": "^6.0.0",
     "expo": "~52.0.0",
     "expo-application": "~6.0.0",

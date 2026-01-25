@@ -21,14 +21,31 @@ export default function HomePage() {
   const { balance, formatted, refresh } = useUSDT0Balance();
   const [activeTab, setActiveTab] = useState<"send" | "request">("send");
   const [showAddContact, setShowAddContact] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<import("@/components/ContactList").Contact | null>(null);
   
   const userEmail = user?.email?.address;
   
   // Fetch real contacts from API
-  const { contacts, recentContacts, loading: contactsLoading, error: contactsError } = useContacts({
+  const { contacts, recentContacts, loading: contactsLoading, error: contactsError, updateLastPayment } = useContacts({
     address: wallet?.address,
     autoFetch: true,
   });
+
+  // Handle sending to a contact
+  const handleSendToContact = (contact: import("@/components/ContactList").Contact) => {
+    setSelectedContact(contact);
+    setActiveTab("send");
+    // Scroll to the send form
+    setTimeout(() => {
+      window.scrollTo({ top: 500, behavior: 'smooth' });
+    }, 100);
+  };
+
+  // Handle successful payment - update contact's lastPayment
+  const handlePaymentSuccess = (recipientAddress: string) => {
+    updateLastPayment(recipientAddress);
+    setSelectedContact(null);
+  };
   
   // Get quick send contacts: favorites first, then recent, limit to 6
   const quickSendContacts = [
@@ -164,11 +181,7 @@ export default function HomePage() {
                 <button 
                   key={contact.id} 
                   className="contact-item"
-                  onClick={() => {
-                    // Pre-fill send form with this contact
-                    setActiveTab("send");
-                    // TODO: Pass contact to SendMoneyForm
-                  }}
+                  onClick={() => handleSendToContact(contact)}
                 >
                   <div className="clay-avatar">
                     {contact.name?.charAt(0).toUpperCase() || contact.email?.charAt(0).toUpperCase() || "?"}
@@ -217,7 +230,12 @@ export default function HomePage() {
           <SendMoneyForm 
             wallet={wallet} 
             balance={formatted || undefined} 
-            onSuccess={refresh} 
+            onSuccess={refresh}
+            contacts={contacts}
+            contactsLoading={contactsLoading}
+            onPaymentSuccess={handlePaymentSuccess}
+            selectedContact={selectedContact}
+            onClearSelectedContact={() => setSelectedContact(null)}
           />
         ) : (
           <RequestMoneyForm walletAddress={wallet?.address} userEmail={userEmail} onSuccess={refresh} />

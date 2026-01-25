@@ -23,6 +23,7 @@ interface ContactListProps {
   onToggleFavorite: (contactId: string, isFavorite: boolean) => void;
   onDelete?: (contactId: string) => void;
   showQuickSend?: boolean;
+  onSendToContact?: (contact: Contact) => void;
   sortBy?: "favorites" | "recent" | "name";
   showRecent?: boolean;
   recentLimit?: number;
@@ -58,6 +59,7 @@ export function ContactList({
   onToggleFavorite,
   onDelete,
   showQuickSend = false,
+  onSendToContact,
   sortBy = "favorites",
   showRecent = false,
   recentLimit = 5,
@@ -249,52 +251,61 @@ export function ContactList({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Favorite button */}
-              <button
-                data-testid="favorite-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFavorite(contact.id, !contact.isFavorite);
-                }}
-                className={`p-2 rounded-xl transition-colors ${
-                  contact.isFavorite
-                    ? "text-yellow-400 hover:bg-yellow-400/10"
-                    : "text-white/30 hover:text-yellow-400 hover:bg-white/5"
-                }`}
-              >
-                <Star
-                  className={`w-5 h-5 ${contact.isFavorite ? "fill-yellow-400" : ""}`}
-                />
-              </button>
-
-              {/* Quick send button */}
-              {showQuickSend && contact.contactAddress && (
+            <div className="flex items-center gap-2">
+              {/* Send to Contact button - always visible when enabled */}
+              {showQuickSend && (contact.contactAddress || contact.email || contact.phone) && (
                 <button
                   data-testid="quick-send-button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectContact(contact);
+                    if (onSendToContact) {
+                      onSendToContact(contact);
+                    } else {
+                      onSelectContact(contact);
+                    }
                   }}
-                  className="p-2 rounded-xl text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/10 transition-colors"
+                  className="px-3 py-1.5 rounded-xl bg-[rgb(0,212,255)]/10 text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/20 transition-colors text-sm font-medium flex items-center gap-1.5"
+                  title={`Send money to ${contact.name}`}
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Send</span>
                 </button>
               )}
-
-              {/* Delete button */}
-              {onDelete && (
+              
+              {/* Secondary actions - visible on hover */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Favorite button */}
                 <button
-                  data-testid="delete-button"
+                  data-testid="favorite-button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete(contact.id);
+                    onToggleFavorite(contact.id, !contact.isFavorite);
                   }}
-                  className="p-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className={`p-2 rounded-xl transition-colors ${
+                    contact.isFavorite
+                      ? "text-yellow-400 hover:bg-yellow-400/10"
+                      : "text-white/30 hover:text-yellow-400 hover:bg-white/5"
+                  }`}
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Star
+                    className={`w-5 h-5 ${contact.isFavorite ? "fill-yellow-400" : ""}`}
+                  />
                 </button>
-              )}
+
+                {/* Delete button */}
+                {onDelete && (
+                  <button
+                    data-testid="delete-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(contact.id);
+                    }}
+                    className="p-2 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}

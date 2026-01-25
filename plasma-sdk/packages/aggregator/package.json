@@ -19,7 +19,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@plasma-pay/core": "*",
+    "@plasma-pay/core": "workspace:*",
     "@lifi/sdk": "^3.4.1",
     "viem": "^2.21.0"
   },
