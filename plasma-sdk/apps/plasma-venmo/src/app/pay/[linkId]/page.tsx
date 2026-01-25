@@ -101,6 +101,10 @@ export default function PayPage({
   // Handle payment submission
   async function handlePay() {
     if (!wallet || !paymentLink || !amount) return;
+    if (insufficientBalance) {
+      setError(`Insufficient balance. You have $${numericBalance.toFixed(2)}.`);
+      return;
+    }
 
     setPaying(true);
     setError(null);
@@ -281,7 +285,10 @@ export default function PayPage({
 
   // Main payment UI
   const isValidAmount = parseFloat(amount) > 0;
-  const canPay = authenticated && wallet && isValidAmount && !paying;
+  const numericBalance = parseFloat(balance || "0");
+  const numericAmount = parseFloat(amount || "0");
+  const insufficientBalance = Boolean(balance) && numericAmount > 0 && numericAmount > numericBalance;
+  const canPay = authenticated && wallet && isValidAmount && !insufficientBalance && !paying;
 
   return (
     <main className="min-h-screen bg-black p-4 relative overflow-hidden">
@@ -423,7 +430,7 @@ export default function PayPage({
             />
             
             {/* Balance warning if logged in with insufficient funds */}
-            {authenticated && balance && parseFloat(balance) < parseFloat(amount || '0') && (
+            {insufficientBalance && (
               <p className="text-amber-400/80 text-xs text-center">
                 Your Plenmo balance (${balance}) is less than ${amount}. Use an external wallet above.
               </p>
@@ -446,4 +453,3 @@ export default function PayPage({
     </main>
   );
 }
-

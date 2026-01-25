@@ -10,6 +10,7 @@ from .config import settings
 from .x402_models import PaymentOption, PaymentRequired, PaymentSubmitted, PaymentCompleted, FeeBreakdown
 from .facilitator import PaymentFacilitator
 from .persistence import get_invoice_store
+from .crypto import random_nonce32
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Only for type hints; runtime import is lazy and optional.
@@ -92,7 +93,7 @@ def build_payment_required(
         decimals=6,
         recipient=settings.MERCHANT_ADDRESS,
         scheme="eip3009-transfer-with-auth",
-        nonce=uuid.uuid4().hex.ljust(64, "0"),  # server-suggested 32-byte hex
+        nonce=random_nonce32(),  # server-suggested 32-byte hex
         deadline=deadline,
         recommendedMode="channel",
         feeBreakdown=FeeBreakdown(
@@ -285,5 +286,4 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
     )
     _store_invoice(submitted.invoiceId, pc)
     return pc
-
 

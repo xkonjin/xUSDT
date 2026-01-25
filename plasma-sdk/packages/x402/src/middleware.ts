@@ -11,7 +11,6 @@ import {
   USDT0_SYMBOL,
   PLASMA_MAINNET_CHAIN_ID,
   getCurrentTimestamp,
-  generateNonce,
 } from '@plasma-pay/core';
 import type {
   X402MiddlewareConfig,
@@ -26,6 +25,10 @@ import { verifyPayment, settlePayment, type FacilitatorConfig } from './facilita
  * Generate a unique invoice ID
  */
 function generateInvoiceId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `inv_${crypto.randomUUID()}`;
+  }
+
   return `inv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
