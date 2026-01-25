@@ -93,10 +93,10 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
 
   if (requestLink) {
     return (
-      <div className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5">
+      <div className="clay-card p-6 md:p-8 space-y-5">
         <h2 className="text-xl font-semibold text-white">Share Your Request</h2>
         
-        <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+        <div className="clay-alert clay-alert-success">
           Request link created for ${amount}
         </div>
 
@@ -108,7 +108,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
           <button
             onClick={copyLink}
             aria-label="Copy payment request link"
-            className="flex-1 btn-secondary flex items-center justify-center gap-2"
+            className="flex-1 clay-button clay-button-ghost flex items-center justify-center gap-2"
           >
             {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
             {copied ? "Copied!" : "Copy Link"}
@@ -116,7 +116,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
           <button
             onClick={shareLink}
             aria-label="Share payment request"
-            className="flex-1 btn-primary flex items-center justify-center gap-2"
+            className="flex-1 clay-button clay-button-primary flex items-center justify-center gap-2"
           >
             <Share2 className="w-5 h-5" />
             Share
@@ -136,7 +136,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
   return (
     <form
       onSubmit={handleSubmit}
-      className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5"
+      className="clay-card p-6 md:p-8 space-y-5"
     >
       <h2 className="text-xl font-semibold text-white">Request Money</h2>
 
@@ -157,7 +157,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
             step="0.01"
             min="0"
             aria-label="Payment request amount in USD"
-            className="input-glass w-full pl-8"
+            className="clay-input w-full pl-8"
             disabled={loading}
           />
         </div>
@@ -174,13 +174,13 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
           onChange={(e) => setMemo(e.target.value)}
           placeholder="Dinner, rent, etc."
           aria-label="Payment memo or description"
-          className="input-glass w-full"
+          className="clay-input w-full"
           disabled={loading}
         />
       </div>
 
       {error && (
-        <div role="alert" className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl px-4 py-3 text-sm backdrop-blur-sm">
+        <div role="alert" className="clay-alert clay-alert-error">
           {error}
         </div>
       )}
@@ -188,7 +188,7 @@ export function RequestMoneyForm({ walletAddress, onSuccess }: RequestMoneyFormP
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+        className="w-full clay-button clay-button-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

@@ -956,7 +956,7 @@ export function BridgeDepositModal({ recipientAddress, onClose, onSuccess }: Bri
             (txState.status !== "idle" && txState.status !== "error") ||
             (!hasSufficientBalance() && hasExternalWallet)
           }
-          className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full clay-button clay-button-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-busy={txState.status !== "idle" && txState.status !== "success" && txState.status !== "error"}
         >
           {getButtonContent()}

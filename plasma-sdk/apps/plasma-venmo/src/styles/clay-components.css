@@ -389,6 +389,130 @@
   left: 26px;
 }
 
+/* Clay Button Sizes */
+.clay-button-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+.clay-button-lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-lg);
+  min-height: 56px;
+}
+
+/* Clay Textarea */
+.clay-textarea {
+  background: linear-gradient(145deg, rgba(15, 15, 35, 0.9), rgba(26, 26, 46, 0.9));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-clay-inset);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-base);
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.clay-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 
+    var(--shadow-clay-inset),
+    0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.clay-textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* Clay Modal */
+.clay-modal {
+  background: linear-gradient(145deg, rgba(26, 26, 46, 0.98), rgba(15, 15, 35, 0.98));
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-clay-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+}
+
+/* Clay List Item */
+.clay-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all var(--transition-base);
+}
+
+.clay-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Clay Link Button */
+.clay-link {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.clay-link:hover {
+  color: var(--color-primary-light);
+  text-decoration: underline;
+}
+
+/* Clay Icon Button */
+.clay-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.clay-icon-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+/* Clay Dropdown Menu */
+.clay-dropdown {
+  background: linear-gradient(145deg, rgba(26, 26, 46, 0.98), rgba(15, 15, 35, 0.98));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-clay-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  padding: var(--space-2);
+  min-width: 180px;
+}
+
+.clay-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.clay-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* Responsive utilities */
 @media (max-width: 640px) {
   .clay-card {

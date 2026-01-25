@@ -141,7 +141,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
               <>
                 <button
                   onClick={openTransak}
-                  className="w-full btn-primary mb-4"
+                  className="w-full clay-button clay-button-primary mb-4"
                 >
                   Open Transak
                   <ExternalLink className="w-4 h-4 ml-2" />

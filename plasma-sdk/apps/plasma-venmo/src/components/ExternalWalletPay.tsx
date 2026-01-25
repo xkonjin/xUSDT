@@ -225,7 +225,7 @@ export function ExternalWalletPayModal({
         <div className="space-y-3">
           <button
             onClick={openInMetaMask}
-            className="w-full btn-primary flex items-center justify-center gap-2"
+            className="w-full clay-button clay-button-primary flex items-center justify-center gap-2"
           >
             <ExternalLink className="w-4 h-4" />
             Open in MetaMask

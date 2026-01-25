@@ -164,7 +164,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   // Loading state
   if (loading) {
     return (
-      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+      <div className="clay-card p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <Link2 className="w-5 h-5 text-plenmo-500" />
           Payment Links
@@ -180,7 +180,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   // Error state
   if (error) {
     return (
-      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+      <div className="clay-card p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <Link2 className="w-5 h-5 text-plenmo-500" />
           Payment Links
@@ -201,7 +201,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   }
 
   return (
-    <div className="liquid-glass rounded-3xl p-6 md:p-8">
+    <div className="clay-card p-6 md:p-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <Link2 className="w-5 h-5 text-plenmo-500" />
@@ -223,7 +223,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
 
       {/* Create form */}
       {showCreateForm && (
-        <div className="liquid-glass-subtle rounded-2xl p-4 mb-4 space-y-3">
+        <div className="clay-card p-4 mb-4 space-y-3">
           <div>
             <label className="block text-white/50 text-xs mb-1">
               Amount (optional - leave empty for any amount)
@@ -237,7 +237,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="input-glass w-full pl-7 text-sm"
+                className="clay-input w-full pl-7 text-sm"
               />
             </div>
           </div>
@@ -251,7 +251,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
               value={newMemo}
               onChange={(e) => setNewMemo(e.target.value)}
               placeholder="What's this payment for?"
-              className="input-glass w-full text-sm"
+              className="clay-input w-full text-sm"
             />
           </div>
 
@@ -265,7 +265,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
               onChange={(e) => setNewExpires(e.target.value)}
               placeholder="Never expires"
               min="1"
-              className="input-glass w-full text-sm"
+              className="clay-input w-full text-sm"
             />
           </div>
 
@@ -279,7 +279,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
             <button
               onClick={createLink}
               disabled={creating}
-              className="flex-1 btn-primary py-2 text-sm flex items-center justify-center gap-2"
+              className="flex-1 clay-button clay-button-primary py-2 text-sm flex items-center justify-center gap-2"
             >
               {creating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -318,7 +318,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
           {links.map((link) => (
             <div
               key={link.id}
-              className={`p-4 liquid-glass-subtle rounded-2xl transition-all duration-200 ${
+              className={`p-4 clay-card transition-all duration-200 ${
                 link.status === "paid" ? "border border-green-500/20" :
                 link.status === "cancelled" || link.status === "expired" ? "opacity-50" : ""
               }`}

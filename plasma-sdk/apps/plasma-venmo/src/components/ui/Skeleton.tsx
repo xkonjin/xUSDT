@@ -19,7 +19,7 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function BalanceSkeleton() {
   return (
-    <div className="liquid-glass-elevated rounded-3xl p-8">
+    <div className="clay-card p-8">
       <div className="flex items-start justify-between mb-2">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-20 rounded-full" />
@@ -35,7 +35,7 @@ export function BalanceSkeleton() {
 
 export function TransactionSkeleton() {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl liquid-glass-subtle">
+    <div className="clay-list-item">
       <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <Skeleton className="h-4 w-32 mb-2" />
@@ -61,7 +61,7 @@ export function TransactionListSkeleton({ count = 3 }: { count?: number }) {
 
 export function RequestSkeleton() {
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl liquid-glass-subtle">
+    <div className="clay-list-item">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-full" />
         <div>
@@ -79,7 +79,7 @@ export function RequestSkeleton() {
 
 export function PaymentLinkSkeleton() {
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl liquid-glass-subtle">
+    <div className="clay-list-item">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-xl" />
         <div>
@@ -97,7 +97,7 @@ export function PaymentLinkSkeleton() {
 
 export function FormSkeleton() {
   return (
-    <div className="liquid-glass rounded-3xl p-6 md:p-8 space-y-5">
+    <div className="clay-card p-6 md:p-8 space-y-5">
       <Skeleton className="h-6 w-32 mb-4" />
       <div>
         <Skeleton className="h-4 w-40 mb-2" />

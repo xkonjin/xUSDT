@@ -114,7 +114,7 @@ function ConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 py-3 px-4 rounded-2xl btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 px-4 rounded-2xl clay-button clay-button-primary disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Send className="w-4 h-4" />
             Send
@@ -200,7 +200,7 @@ function SuccessOverlay({
             </a>
           )}
 
-          <button onClick={onClose} className="btn-primary w-full py-3">
+          <button onClick={onClose} className="clay-button clay-button-primary w-full py-3">
             Done
           </button>
         </div>
@@ -500,7 +500,7 @@ export function SendMoneyForm({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="w-full btn-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full clay-button clay-button-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <Send className="w-5 h-5" />
           {amount && parseFloat(amount) > 0 ? `Review $${parseFloat(amount).toFixed(2)} Payment` : "Review Payment"}

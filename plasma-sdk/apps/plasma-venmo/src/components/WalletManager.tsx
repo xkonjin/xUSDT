@@ -384,7 +384,7 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
             View transaction
             <ExternalLink className="w-3 h-3" />
           </a>
-          <button onClick={onClose} className="w-full btn-primary">
+          <button onClick={onClose} className="w-full clay-button clay-button-primary">
             Done
           </button>
         </div>
@@ -467,7 +467,7 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
         <button
           onClick={handleWithdraw}
           disabled={withdrawing || !toAddress || !amount}
-          className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full clay-button clay-button-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {withdrawing ? (
             <>

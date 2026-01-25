@@ -180,7 +180,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
   // Loading state
   if (loading) {
     return (
-      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+      <div className="clay-card p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <HandCoins className="w-5 h-5 text-plenmo-500" />
           Pending Requests
@@ -196,7 +196,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
   // Error state
   if (error) {
     return (
-      <div className="liquid-glass rounded-3xl p-6 md:p-8">
+      <div className="clay-card p-6 md:p-8">
         <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
           <HandCoins className="w-5 h-5 text-plenmo-500" />
           Pending Requests
@@ -206,7 +206,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
           <p className="text-red-400 text-sm">{error}</p>
           <button
             onClick={fetchRequests}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
+            className="clay-button clay-button-ghost flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -222,18 +222,18 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
   }
 
   return (
-    <div className="liquid-glass rounded-3xl p-6 md:p-8">
+    <div className="clay-card p-6 md:p-8">
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
         <HandCoins className="w-5 h-5 text-plenmo-500" />
         Pending Requests
-        <span className="text-sm bg-[rgb(0,212,255)]/20 text-plenmo-500 px-2 py-0.5 rounded-full">
+        <span className="clay-badge clay-badge-success">
           {requests.length}
         </span>
       </h2>
 
       {/* Action error alert */}
       {actionError && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <div className="mb-4 clay-alert clay-alert-error">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {actionError}
         </div>
@@ -246,7 +246,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
           return (
             <div
               key={request.id}
-              className="p-4 liquid-glass-subtle rounded-2xl hover:bg-white/[0.03] transition-colors"
+              className="clay-list-item"
             >
               <div className="flex items-center gap-4">
                 <Avatar name={requesterName} size="lg" />

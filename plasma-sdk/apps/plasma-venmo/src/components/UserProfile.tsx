@@ -25,7 +25,7 @@ export function UserProfileButton({ user, walletAddress, onLogout }: UserProfile
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 p-1.5 rounded-full liquid-glass-subtle hover:bg-white/10 transition-colors"
+        className="flex items-center gap-2 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
       >
         <Avatar name={displayName} size="sm" />
       </button>

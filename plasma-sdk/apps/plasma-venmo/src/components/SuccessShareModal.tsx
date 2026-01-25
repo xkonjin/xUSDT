@@ -58,7 +58,7 @@ export function SuccessShareModal({
       zIndex={110}
       backdropClassName="bg-black/80 backdrop-blur-sm"
     >
-      <div className="relative w-full max-w-md liquid-glass-elevated rounded-3xl p-8">
+      <div className="relative w-full max-w-md clay-card p-8">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -79,7 +79,7 @@ export function SuccessShareModal({
         </div>
 
         {/* Transaction link */}
-        <div className="liquid-glass-subtle rounded-2xl p-4 mb-6">
+        <div className="bg-white/5 rounded-2xl p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <p className="text-white/50 text-sm mb-1">Transaction</p>
