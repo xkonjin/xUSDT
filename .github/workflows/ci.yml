@@ -32,9 +32,9 @@ jobs:
         env:
           ETH_RPC: https://ethereum.publicnode.com
           PLASMA_RPC: https://rpc.plasma.to
-          MERCHANT_ADDRESS: 0x000000000000000000000000000000000000dEaD
-          RELAYER_PRIVATE_KEY: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-          CLIENT_PRIVATE_KEY: 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          MERCHANT_ADDRESS: '0x000000000000000000000000000000000000dEaD'
+          RELAYER_PRIVATE_KEY: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          CLIENT_PRIVATE_KEY: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
           PREFER_PLASMA: 'true'
           DRY_RUN: 'true'
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
