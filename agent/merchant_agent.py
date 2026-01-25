@@ -168,6 +168,38 @@ def compute_protocol_fee(amount_atomic: int, *, chain: str, mode: str) -> tuple[
     return floor_atomic, True
 
 
+def _extract_payment_data(submitted: PaymentSubmitted):
+    """Extract payment data from both old and new schema formats.
+    
+    Returns:
+        tuple: (chosen_option, signature_v, signature_r, signature_s)
+    """
+    # Handle new unified authorization format (preferred)
+    if hasattr(submitted, 'authorization') and submitted.authorization:
+        auth = submitted.authorization
+        # Create a compatible option object
+        from types import SimpleNamespace
+        opt = SimpleNamespace()
+        opt.network = submitted.chosenOption.network
+        opt.chainId = submitted.chosenOption.chainId
+        opt.token = submitted.chosenOption.token
+        opt.amount = auth.value
+        opt.from_ = auth.from_
+        opt.to = auth.to
+        opt.validAfter = auth.validAfter
+        opt.validBefore = auth.validBefore
+        opt.nonce = auth.nonce
+        opt.deadline = auth.validBefore  # Use validBefore as deadline for compatibility
+        return opt, auth.v, auth.r, auth.s
+    
+    # Handle legacy separate chosenOption + signature format
+    if hasattr(submitted, 'chosenOption') and hasattr(submitted, 'signature'):
+        return submitted.chosenOption, submitted.signature.v, submitted.signature.r, submitted.signature.s
+    
+    # Fallback for unknown format
+    raise ValueError(f"Unable to extract payment data from submission: {type(submitted)}")
+
+
 def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> PaymentCompleted:
     """Basic verification and settlement orchestration.
 
@@ -184,7 +216,8 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
     if existing is not None:
         return existing
 
-    opt = submitted.chosenOption
+    # Extract payment data from either old or new format
+    opt, sig_v, sig_r, sig_s = _extract_payment_data(submitted)
     # Minimal off-chain checks
     if opt.to.lower() != settings.MERCHANT_ADDRESS.lower():
         pc = PaymentCompleted(
@@ -205,9 +238,9 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             to_addr=opt.to,
             amount=int(opt.amount),
             deadline=opt.deadline,
-            v=submitted.signature.v,
-            r=submitted.signature.r,
-            s=submitted.signature.s,
+            v=sig_v,
+            r=sig_r,
+            s=sig_s,
         )
         pc = PaymentCompleted(
             invoiceId=submitted.invoiceId,
@@ -234,9 +267,9 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             valid_after=va,
             valid_before=vb,
             nonce32=str(opt.nonce),
-            v=submitted.signature.v,
-            r=submitted.signature.r,
-            s=submitted.signature.s,
+            v=sig_v,
+            r=sig_r,
+            s=sig_s,
             user_ip=user_ip,
         )
         token_id = None

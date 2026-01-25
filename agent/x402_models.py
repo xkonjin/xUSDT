@@ -1,40 +1,41 @@
 from __future__ import annotations
 
-from typing import List, Optional, Literal, Union
+from typing import List, Optional, Literal, Union, Dict, Any
 from pydantic import BaseModel, Field
 
 
-class PaymentOption(BaseModel):
-    network: Literal["ethereum", "plasma"]
+class X402PaymentOption(BaseModel):
+    """Payment option offered by the server - aligned with TypeScript"""
+    network: str
     chainId: int
-    token: str
+    token: str  # Address
     tokenSymbol: str
-    amount: str  # integer string in atomic units
-    decimals: int
-    recipient: str
-    scheme: Literal[
-        "erc20-gasless-router",  # Ethereum via PaymentRouter
-        "eip3009-transfer-with-auth",  # Plasma via token EIP-3009 (direct pay)
-        "eip3009-receive",  # Plasma via router (receiveWithAuthorization)
-    ]
+    tokenDecimals: int  # Renamed from 'decimals' to match TypeScript
+    amount: str
+    recipient: str  # Address
+    scheme: Literal['eip3009-transfer-with-auth', 'eip3009-receive-with-auth', 'direct-transfer']
+    description: Optional[str] = None
+    
+    # Extended fields from Python implementation (optional for compatibility)
     routerContract: Optional[str] = None  # for ethereum option
-    nonce: Optional[Union[str, int]] = None
-    deadline: int
     nftCollection: Optional[str] = None
-    # Fee and routing hints (optional; ignored by legacy clients)
     recommendedMode: Optional[Literal["channel", "direct"]] = None
     feeBreakdown: Optional["FeeBreakdown"] = None
 
 
-class PaymentRequired(BaseModel):
+class X402PaymentRequired(BaseModel):
+    """Payment Required response (HTTP 402) - aligned with TypeScript"""
     type: Literal["payment-required"] = "payment-required"
+    version: Literal["1.0"] = "1.0"
     invoiceId: str
     timestamp: int
-    paymentOptions: List[PaymentOption]
+    paymentOptions: List[X402PaymentOption]
     description: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None  # Added from TypeScript
 
 
 class FeeBreakdown(BaseModel):
+    """Fee breakdown structure (Python extension)"""
     # Original requested amount in atomic units
     amount: str
     # Protocol fee percent in basis points (e.g., 10 = 0.1%)
@@ -47,49 +48,64 @@ class FeeBreakdown(BaseModel):
     totalFee: str
 
 
+class X402Authorization(BaseModel):
+    """Payment authorization data - matches TypeScript structure"""
+    from_: str = Field(alias="from")  # Address
+    to: str  # Address
+    value: str
+    validAfter: int
+    validBefore: int
+    nonce: str  # Hex
+    v: int
+    r: str  # Hex
+    s: str  # Hex
+
+
+class X402PaymentSubmitted(BaseModel):
+    """Payment submitted by client - aligned with TypeScript"""
+    type: Literal["payment-submitted"] = "payment-submitted"
+    invoiceId: str
+    chosenOption: X402PaymentOption
+    authorization: X402Authorization
+
+
+class X402PaymentCompleted(BaseModel):
+    """Payment completed response - aligned with TypeScript"""
+    type: Literal["payment-completed"] = "payment-completed"
+    invoiceId: str
+    txHash: str  # Hash
+    network: str
+    chainId: int
+    status: Literal["pending", "confirmed", "failed"]
+    timestamp: int
+
+
+# Legacy models for backward compatibility
+PaymentOption = X402PaymentOption
+PaymentRequired = X402PaymentRequired
+PaymentSubmitted = X402PaymentSubmitted  
+PaymentCompleted = X402PaymentCompleted
+
+
 class Signature(BaseModel):
+    """Legacy signature model for backward compatibility"""
     v: int
     r: str
     s: str
 
 
 class ChosenOption(BaseModel):
-    network: Literal["ethereum", "plasma"]
+    """Legacy chosen option model for backward compatibility"""
+    network: str
     chainId: int
     token: str
     amount: str
     from_: str = Field(alias="from")
-    to: str  # for Plasma-direct: token to; for router path: router address
-    # EIP-712 (router) or EIP-3009 (token) fields
-    nonce: Union[str, int]
-    deadline: int
-    # Plasma (EIP-3009) explicit bounds
+    to: str
+    nonce: str
+    deadline: Optional[int] = None
     validAfter: Optional[int] = None
     validBefore: Optional[int] = None
-    # Router NFT path
     toNFT: Optional[str] = None
-    # For plasma EIP-3009, validAfter/validBefore naming is common; use deadline for simplicity
-
-
-class PaymentSubmitted(BaseModel):
-    type: Literal["payment-submitted"] = "payment-submitted"
-    invoiceId: str
-    chosenOption: ChosenOption
-    signature: Signature
-    scheme: Literal[
-        "erc20-gasless-router",
-        "eip3009-transfer-with-auth",
-        "eip3009-receive",
-    ]
-
-
-class PaymentCompleted(BaseModel):
-    type: Literal["payment-completed"] = "payment-completed"
-    invoiceId: str
-    txHash: str
-    network: Literal["ethereum", "plasma"]
-    status: Literal["confirmed", "failed"]
-    receipt: Optional[dict] = None
-    tokenId: Optional[int] = None
 
 
