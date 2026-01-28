@@ -1,21 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ethers } from 'ethers';
+import { createPublicClient, http, isAddress, formatUnits, type Address } from 'viem';
+import { defineChain } from 'viem';
 
 /**
  * Balance API Route
  * Returns USDT0 balance for a given address
  */
 
-const USDT0_ADDRESS = process.env.NEXT_PUBLIC_USDT0_ADDRESS;
+const USDT0_ADDRESS = process.env.NEXT_PUBLIC_USDT0_ADDRESS as Address | undefined;
 const PLASMA_RPC = process.env.NEXT_PUBLIC_PLASMA_RPC;
+
+// Define Plasma chain
+const plasmaChain = defineChain({
+  id: 9745,
+  name: 'Plasma',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ETH',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: [PLASMA_RPC || 'https://rpc.plasma.to'],
+    },
+  },
+});
 
 // ERC20 ABI for balanceOf
 const ERC20_ABI = [
-  'function balanceOf(address account) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-  'function name() view returns (string)',
-];
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    name: 'decimals',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint8' }],
+  },
+  {
+    name: 'symbol',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'string' }],
+  },
+  {
+    name: 'name',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'string' }],
+  },
+] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate address
-    if (!ethers.isAddress(address)) {
+    if (!isAddress(address)) {
       return NextResponse.json(
         { error: 'Invalid address format' },
         { status: 400 }
@@ -46,20 +87,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Initialize provider
-    const provider = new ethers.JsonRpcProvider(PLASMA_RPC);
+    // Initialize client
+    const client = createPublicClient({
+      chain: plasmaChain,
+      transport: http(PLASMA_RPC),
+    });
 
-    // Initialize USDT0 contract
-    const usdt0 = new ethers.Contract(USDT0_ADDRESS, ERC20_ABI, provider);
-
-    // Get balance
-    const balance = await usdt0.balanceOf(address);
-    const decimals = await usdt0.decimals();
-    const symbol = await usdt0.symbol();
-    const name = await usdt0.name();
+    // Get balance and token info
+    const [balance, decimals, symbol, name] = await Promise.all([
+      client.readContract({
+        address: USDT0_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as Address],
+      }),
+      client.readContract({
+        address: USDT0_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'decimals',
+      }),
+      client.readContract({
+        address: USDT0_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'symbol',
+      }),
+      client.readContract({
+        address: USDT0_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: 'name',
+      }),
+    ]);
 
     // Format balance
-    const formattedBalance = ethers.formatUnits(balance, decimals);
+    const formattedBalance = formatUnits(balance, decimals);
 
     return NextResponse.json({
       address,

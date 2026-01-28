@@ -1,32 +1,32 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type FunctionDeclaration, SchemaType } from '@google/generative-ai';
 
 // Server-side only - no NEXT_PUBLIC prefix
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
 // Function declarations for Gemini function calling
-const functionDeclarations = [
+const functionDeclarations: FunctionDeclaration[] = [
   {
     name: 'check_balance',
     description: 'Get the current USDC balance for the connected wallet',
     parameters: {
-      type: 'OBJECT' as const,
+      type: SchemaType.OBJECT,
       properties: {},
-      required: [] as string[],
+      required: [],
     },
   },
   {
     name: 'send_money',
     description: 'Send USDC to a recipient. Requires user confirmation before executing.',
     parameters: {
-      type: 'OBJECT' as const,
+      type: SchemaType.OBJECT,
       properties: {
         recipient: {
-          type: 'STRING' as const,
+          type: SchemaType.STRING,
           description: 'Email address or wallet address of the recipient',
         },
         amount: {
-          type: 'NUMBER' as const,
+          type: SchemaType.NUMBER,
           description: 'Amount in USD to send (e.g., 20 for $20)',
         },
       },
@@ -37,32 +37,32 @@ const functionDeclarations = [
     name: 'create_payment_link',
     description: 'Create a payment request link that can be shared with others',
     parameters: {
-      type: 'OBJECT' as const,
+      type: SchemaType.OBJECT,
       properties: {
         amount: {
-          type: 'NUMBER' as const,
+          type: SchemaType.NUMBER,
           description: 'Optional: Amount in USD to request',
         },
         memo: {
-          type: 'STRING' as const,
+          type: SchemaType.STRING,
           description: 'Optional: Note or description for the payment request',
         },
       },
-      required: [] as string[],
+      required: [],
     },
   },
   {
     name: 'get_transactions',
     description: 'Get recent transaction history',
     parameters: {
-      type: 'OBJECT' as const,
+      type: SchemaType.OBJECT,
       properties: {
         limit: {
-          type: 'NUMBER' as const,
+          type: SchemaType.NUMBER,
           description: 'Number of transactions to return (default: 5, max: 20)',
         },
       },
-      required: [] as string[],
+      required: [],
     },
   },
 ];

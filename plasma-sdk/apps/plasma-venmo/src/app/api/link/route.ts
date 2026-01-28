@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ethers } from 'ethers';
+import { isAddress, parseUnits } from 'viem';
+import crypto from 'crypto';
 
 /**
  * Payment Link API Route
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate recipient address
-    if (!ethers.isAddress(recipient)) {
+    if (!isAddress(recipient)) {
       return NextResponse.json(
         { error: 'Invalid recipient address' },
         { status: 400 }
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Validate amount
     try {
-      const amountBN = ethers.parseUnits(amount, 6);
+      const amountBN = parseUnits(amount, 6);
       if (amountBN <= 0n) {
         throw new Error('Amount must be positive');
       }
@@ -67,8 +68,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique link ID
-    const linkId = ethers.hexlify(ethers.randomBytes(16)).slice(2);
+    // Generate unique link ID using crypto
+    const linkId = crypto.randomBytes(16).toString('hex');
 
     // Calculate expiration
     const createdAt = Date.now();
