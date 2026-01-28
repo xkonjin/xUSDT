@@ -1,108 +1,169 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ComponentType, lazy, Suspense, ReactNode } from 'react';
-import { createClient, RedisClientType } from 'redis';
 
 /**
  * Configuration for the Redis client.
  */
 const redisConfig = {
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 };
 
-let redisClient: RedisClientType | null = null;
-
 /**
- * @name getRedisClient
- * @description Initializes and returns a Redis client instance.
- * @returns {RedisClientType} The Redis client.
+ * Simple in-memory cache for API responses.
+ * In production, use Redis or similar distributed cache.
  */
-const getRedisClient = (): RedisClientType => {
-    if (!redisClient) {
-        redisClient = createClient(redisConfig);
-        redisClient.on('error', (err) => console.error('Redis Client Error', err));
-    }
-    return redisClient;
-};
+const memoryCache = new Map<string, { data: string; expires: number }>();
 
 /**
- * @name withCache
- * @description A higher-order function to add caching to an API route.
- * @param {(req: NextApiRequest, res: NextApiResponse) => Promise<void>} handler The API route handler.
- * @param {number} ttlSeconds The Time To Live for the cache in seconds.
- * @returns {(req: NextApiRequest, res: NextApiResponse) => Promise<void>} The wrapped handler with caching.
+ * Cleans expired entries from the memory cache.
+ */
+function cleanExpiredCache(): void {
+  const now = Date.now();
+  for (const [key, value] of memoryCache.entries()) {
+    if (value.expires < now) {
+      memoryCache.delete(key);
+    }
+  }
+}
+
+/**
+ * A higher-order function to add caching to an API route.
+ * Uses in-memory cache with optional Redis fallback.
+ * 
+ * @param handler The API route handler.
+ * @param ttlSeconds The Time To Live for the cache in seconds.
+ * @returns The wrapped handler with caching.
  */
 export const withCache = (
-    handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void>,
-    ttlSeconds: number
+  handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void>,
+  ttlSeconds: number
 ) => {
-    return async (req: NextApiRequest, res: NextApiResponse) => {
-        const client = getRedisClient();
-        const key = `cache:${req.url}`;
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    // Only cache GET requests
+    if (req.method !== 'GET') {
+      return handler(req, res);
+    }
 
-        try {
-            await client.connect();
-            const cachedData = await client.get(key);
+    const key = `cache:${req.url}`;
+    const now = Date.now();
 
-            if (cachedData) {
-                res.setHeader('X-Cache', 'HIT');
-                res.status(200).json(JSON.parse(cachedData));
-                return;
-            }
+    // Check memory cache first
+    const cached = memoryCache.get(key);
+    if (cached && cached.expires > now) {
+      res.setHeader('X-Cache', 'HIT');
+      res.status(200).json(JSON.parse(cached.data));
+      return;
+    }
 
-            res.setHeader('X-Cache', 'MISS');
-            const originalJson = res.json;
+    // Clean expired entries periodically
+    if (Math.random() < 0.1) {
+      cleanExpiredCache();
+    }
 
-            res.json = (body: any) => {
-                client.setEx(key, ttlSeconds, JSON.stringify(body));
-                return originalJson.call(res, body);
-            };
+    res.setHeader('X-Cache', 'MISS');
+    const originalJson = res.json.bind(res);
 
-            await handler(req, res);
-        } catch (error) {
-            console.error('Cache middleware error:', error);
-            // Fallback to original handler without caching
-            await handler(req, res);
-        } finally {
-            if (client.isOpen) {
-                await client.quit();
-            }
-        }
+    res.json = (body: unknown) => {
+      // Store in memory cache
+      memoryCache.set(key, {
+        data: JSON.stringify(body),
+        expires: now + ttlSeconds * 1000,
+      });
+      return originalJson(body);
     };
+
+    try {
+      await handler(req, res);
+    } catch (error) {
+      console.error('Cache middleware error:', error);
+      throw error;
+    }
+  };
 };
 
 /**
- * @name lazyLoad
- * @description A higher-order function to lazy load a React component.
- * @param {() => Promise<{ default: ComponentType<P> }> } importFn The import function for the component.
- * @param {ReactNode} fallback The fallback UI to show while the component is loading.
- * @returns {ComponentType<P>} The lazy-loaded component.
+ * Creates a lazy import function for dynamic imports.
+ * Use with Next.js dynamic() for code splitting.
+ * 
+ * @param importFn The dynamic import function
+ * @returns The import function for use with next/dynamic
  */
-export const lazyLoad = <P extends object>(
-    importFn: () => Promise<{ default: ComponentType<P> }>,
-    fallback: ReactNode = <div>Loading...</div>
-): ComponentType<P> => {
-    const LazyComponent = lazy(importFn);
-
-    const a = (props: P) => (
-        <Suspense fallback={fallback}>
-            <LazyComponent {...props} />
-        </Suspense>
-    );
-    return a
-};
+export function createLazyImport<T>(
+  importFn: () => Promise<{ default: T }>
+): () => Promise<{ default: T }> {
+  return importFn;
+}
 
 /**
- * @name analyzeBundle
- * @description A utility to be used in next.config.js to enable bundle analysis.
- * @returns {(config: any, { isServer }: any) => any} The Next.js config with bundle analyzer.
+ * A utility to be used in next.config.js to enable bundle analysis.
+ * 
+ * @returns The Next.js config with bundle analyzer.
  */
 export const analyzeBundle = () => {
-    if (process.env.ANALYZE === 'true') {
-        const withBundleAnalyzer = require('@next/bundle-analyzer')({
-            enabled: true,
-        });
-        return withBundleAnalyzer;
+  if (process.env.ANALYZE === 'true') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const withBundleAnalyzer = require('@next/bundle-analyzer')({
+      enabled: true,
+    });
+    return withBundleAnalyzer;
+  }
+  return (config: unknown) => config;
+};
+
+/**
+ * Performance monitoring utilities.
+ */
+export const performanceUtils = {
+  /**
+   * Measures the execution time of an async function.
+   */
+  async measureAsync<T>(
+    name: string,
+    fn: () => Promise<T>
+  ): Promise<{ result: T; durationMs: number }> {
+    const start = performance.now();
+    const result = await fn();
+    const durationMs = performance.now() - start;
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[PERF] ${name}: ${durationMs.toFixed(2)}ms`);
     }
-    return (config: any) => config;
+    
+    return { result, durationMs };
+  },
+
+  /**
+   * Creates a debounced version of a function.
+   */
+  debounce<T extends (...args: unknown[]) => unknown>(
+    fn: T,
+    delayMs: number
+  ): (...args: Parameters<T>) => void {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    return (...args: Parameters<T>) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => fn(...args), delayMs);
+    };
+  },
+
+  /**
+   * Creates a throttled version of a function.
+   */
+  throttle<T extends (...args: unknown[]) => unknown>(
+    fn: T,
+    limitMs: number
+  ): (...args: Parameters<T>) => void {
+    let lastRun = 0;
+    
+    return (...args: Parameters<T>) => {
+      const now = Date.now();
+      if (now - lastRun >= limitMs) {
+        lastRun = now;
+        fn(...args);
+      }
+    };
+  },
 };

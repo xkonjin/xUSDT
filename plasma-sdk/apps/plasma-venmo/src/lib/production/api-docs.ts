@@ -1,4 +1,3 @@
-'''
 import swaggerJsdoc from 'swagger-jsdoc';
 
 /**
@@ -67,7 +66,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
  *       type: http
  *       scheme: bearer
  *       bearerFormat: JWT
- *       description: "Privy-based JWT for authentication. The token should be included in the Authorization header as '''Bearer <token>'''."
+ *       description: "Privy-based JWT for authentication. The token should be included in the Authorization header as Bearer token."
  */
 
 const options: swaggerJsdoc.Options = {
@@ -85,7 +84,7 @@ const options: swaggerJsdoc.Options = {
       },
     ],
   },
-  apis: ['./src/pages/api/**/*.ts', './api-docs.ts'], // Path to the API docs and API routes
+  apis: ['./src/pages/api/**/*.ts', './api-docs.ts'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
@@ -201,4 +200,3 @@ const swaggerSpec = swaggerJsdoc(options);
  */
 
 export default swaggerSpec;
-'''
