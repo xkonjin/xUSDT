@@ -96,7 +96,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
   const accessToken = authHeader.split(' ')[1];
   
   try {
-    const claims = await privy.verifyAccessToken(accessToken);
+    const claims = await privy.verifyAuthToken(accessToken);
     return {
       success: true,
       context: {
