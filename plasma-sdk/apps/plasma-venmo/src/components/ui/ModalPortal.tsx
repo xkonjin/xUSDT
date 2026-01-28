@@ -6,9 +6,11 @@ import { createPortal } from "react-dom";
 interface ModalPortalProps {
   children: ReactNode;
   isOpen: boolean;
+  onClose?: () => void;
+  zIndex?: number;
 }
 
-export function ModalPortal({ children, isOpen }: ModalPortalProps) {
+export function ModalPortal({ children, isOpen, onClose, zIndex = 50 }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -16,11 +18,32 @@ export function ModalPortal({ children, isOpen }: ModalPortalProps) {
     return () => setMounted(false);
   }, []);
 
+  // Handle escape key to close modal
+  useEffect(() => {
+    if (!isOpen || !onClose) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div 
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex }}
+    >
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div className="relative z-10">{children}</div>
     </div>,
     document.body
