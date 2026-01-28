@@ -302,7 +302,7 @@ export async function alertTransactionFailed(params: {
   captureMessage(
     `Transaction failed: ${params.error}`,
     severity === 'critical' || severity === 'high' ? 'error' : 'warning',
-    context as Record<string, unknown>
+    context as unknown as Record<string, unknown>
   );
   
   // Send alerts in parallel
