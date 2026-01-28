@@ -85,9 +85,130 @@ function paymentFlowReducer(state: PaymentFlowState, action: PaymentFlowAction):
 
 // --- HELPER & CHILD COMPONENTS ---
 
-// Memoized for performance, preventing re-renders when parent state changes.
-const MemoizedConfirmationModal = memo(function ConfirmationModal(...) { /* ... existing modal code ... */ });
-const MemoizedSuccessOverlay = memo(function SuccessOverlay(...) { /* ... existing modal code ... */ });
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+  recipient: string;
+  amount: string;
+  paymentStatus: PaymentStatus;
+  paymentError: string | null;
+  paymentTxHash?: string;
+  onRetry: () => void;
+}
+
+const MemoizedConfirmationModal = memo(function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  loading,
+  recipient,
+  amount,
+  paymentStatus,
+  paymentError,
+  onRetry,
+}: ConfirmationModalProps) {
+  if (!isOpen) return null;
+  
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="clay-card p-6 max-w-md w-full space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Confirm Payment</h3>
+            <button onClick={onClose} className="text-white/60 hover:text-white" aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {paymentStatus === 'error' && paymentError ? (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">
+              {paymentError}
+              <button onClick={onRetry} className="block mt-2 text-xs underline">Try again</button>
+            </div>
+          ) : (
+            <>
+              <div className="text-center py-4">
+                <p className="text-white/60 text-sm">Sending to</p>
+                <p className="text-white font-medium truncate">{recipient}</p>
+                <p className="text-3xl font-bold text-plenmo-500 mt-2">${parseFloat(amount).toFixed(2)}</p>
+              </div>
+              
+              {(paymentStatus === 'signing' || paymentStatus === 'submitting') && (
+                <PaymentProgress status={paymentStatus} />
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  disabled={loading}
+                  className="flex-1 clay-button py-3 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onConfirm}
+                  disabled={loading}
+                  className="flex-1 clay-button clay-button-primary py-3 disabled:opacity-50"
+                >
+                  {loading ? 'Processing...' : 'Confirm'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </ModalPortal>
+  );
+});
+
+interface SuccessOverlayProps {
+  isVisible: boolean;
+  amount: string;
+  recipient: string;
+  txHash?: string;
+  claimUrl?: string;
+  onClose: () => void;
+}
+
+const MemoizedSuccessOverlay = memo(function SuccessOverlay({
+  isVisible,
+  amount,
+  recipient,
+  txHash,
+  claimUrl,
+  onClose,
+}: SuccessOverlayProps) {
+  if (!isVisible) return null;
+  
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="clay-card p-8 max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle className="w-8 h-8 text-green-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-white">Payment Sent!</h3>
+          <p className="text-white/60">
+            ${parseFloat(amount).toFixed(2)} sent to {recipient}
+          </p>
+          {claimUrl && (
+            <a href={claimUrl} target="_blank" rel="noopener noreferrer" className="text-plenmo-500 text-sm underline block">
+              Share claim link
+            </a>
+          )}
+          {txHash && (
+            <p className="text-white/40 text-xs truncate">TX: {txHash}</p>
+          )}
+          <button onClick={onClose} className="clay-button clay-button-primary w-full py-3 mt-4">
+            Done
+          </button>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+});
 
 const AmountInput = ({ amount, setAmount, balance, onFundWallet, disabled }) => {
   const numericBalance = parseFloat(balance || "0");
