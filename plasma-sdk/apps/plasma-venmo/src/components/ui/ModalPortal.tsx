@@ -8,9 +8,10 @@ interface ModalPortalProps {
   isOpen: boolean;
   onClose?: () => void;
   zIndex?: number;
+  wrapperClassName?: string;
 }
 
-export function ModalPortal({ children, isOpen, onClose, zIndex = 50 }: ModalPortalProps) {
+export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function ModalPortal({ children, isOpen, onClose, zIndex = 50 }: ModalPor
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10">{children}</div>
+      <div className={`relative z-10 ${wrapperClassName || ''}`}>{children}</div>
     </div>,
     document.body
   );
