@@ -1,0 +1,10 @@
+# Ignore root-level files not needed for plasma-venmo deployment
+agent/
+contracts/
+tests/
+.venv/
+*.py
+*.sol
+hardhat.config.js
+.cursor/
+node_modules/
