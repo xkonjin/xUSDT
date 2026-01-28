@@ -11,9 +11,10 @@ interface ModalPortalProps {
   wrapperClassName?: string;
   closeOnBackdrop?: boolean;
   backdropClassName?: string;
+  containerClassName?: string;
 }
 
-export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName, closeOnBackdrop = true, backdropClassName }: ModalPortalProps) {
+export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName, closeOnBackdrop = true, backdropClassName, containerClassName }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperCla
 
   return createPortal(
     <div 
-      className="fixed inset-0 flex items-center justify-center"
+      className={`fixed inset-0 flex items-center justify-center ${containerClassName || ''}`}
       style={{ zIndex }}
     >
       <div 
