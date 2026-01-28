@@ -395,7 +395,7 @@ export function ImprovedSendMoneyForm({
               onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
               aria-label="Recipient email, phone, or wallet address"
-              aria-invalid={recipient && !isValidRecipient && !recipientName}
+              aria-invalid={!!(recipient && !isValidRecipient && !recipientName)}
               aria-describedby={recipient && !isValidRecipient && !recipientName ? 'recipient-error' : undefined}
               className="clay-input w-full pl-12"
               disabled={status !== 'idle'}
