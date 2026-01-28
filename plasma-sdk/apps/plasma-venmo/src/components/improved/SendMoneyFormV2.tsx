@@ -210,7 +210,15 @@ const MemoizedSuccessOverlay = memo(function SuccessOverlay({
   );
 });
 
-const AmountInput = ({ amount, setAmount, balance, onFundWallet, disabled }) => {
+interface AmountInputProps {
+  amount: string;
+  setAmount: (value: string) => void;
+  balance?: string;
+  onFundWallet?: () => void;
+  disabled?: boolean;
+}
+
+const AmountInput = ({ amount, setAmount, balance, onFundWallet, disabled }: AmountInputProps) => {
   const numericBalance = parseFloat(balance || "0");
   const numericAmount = parseFloat(amount || "0");
   const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
