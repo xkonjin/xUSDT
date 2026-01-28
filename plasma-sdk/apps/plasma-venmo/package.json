@@ -22,6 +22,7 @@
     "@plasma-pay/db": "workspace:*",
     "@plasma-pay/gasless": "workspace:*",
     "@plasma-pay/privy-auth": "workspace:*",
+    "@plasma-pay/share": "workspace:*",
     "@plasma-pay/ui": "workspace:*",
     "@google/generative-ai": "^0.24.1",
     "@privy-io/react-auth": "^1.92.0",

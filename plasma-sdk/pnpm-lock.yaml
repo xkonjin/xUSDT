@@ -462,6 +462,9 @@ importers:
       '@plasma-pay/privy-auth':
         specifier: workspace:*
         version: link:../../packages/privy-auth
+      '@plasma-pay/share':
+        specifier: workspace:*
+        version: link:../../packages/share
       '@plasma-pay/ui':
         specifier: workspace:*
         version: link:../../packages/ui
