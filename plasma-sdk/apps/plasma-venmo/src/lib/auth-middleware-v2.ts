@@ -1,4 +1,4 @@
-_// src/middleware/auth.ts_
+// src/middleware/auth.ts
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 import { getIronSession } from 'iron-session';
 import { sessionOptions } from '@/lib/session';
