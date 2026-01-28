@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "pnpm turbo build --filter=@plasma-pay/venmo",
   "outputDirectory": ".next",
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "pnpm install",
   "devCommand": "pnpm dev",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://plenmo.vercel.app",
