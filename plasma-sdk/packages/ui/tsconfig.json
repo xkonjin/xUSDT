@@ -11,8 +11,8 @@
     "jsx": "react-jsx",
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["react", "react-dom"],
-    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"]
+    "types": [],
+    "typeRoots": []
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]

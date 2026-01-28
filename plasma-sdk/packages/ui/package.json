@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --external react",
+    "build": "tsup src/index.ts --format cjs,esm --dts --external react --external next/image --external next",
     "dev": "tsup src/index.ts --format cjs,esm --dts --external react --watch",
     "test": "jest",
     "test:coverage": "jest --coverage"
