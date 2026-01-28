@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run type check before commit
+cd plasma-sdk && pnpm turbo build --filter=@plasma-pay/venmo --dry-run=json > /dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+  echo "Build check failed. Please fix errors before committing."
+  exit 1
+fi
+
+echo "Pre-commit checks passed"
