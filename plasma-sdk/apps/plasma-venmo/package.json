@@ -28,6 +28,7 @@
     "@privy-io/react-auth": "^1.92.0",
     "@privy-io/server-auth": "^1.14.0",
     "@sentry/nextjs": "^8.0.0",
+    "@upstash/redis": "^1.34.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.460.0",
     "next": "14.2.0",
