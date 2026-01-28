@@ -1,14 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 /**
- * Configuration for the Redis client.
- */
-const redisConfig = {
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-};
-
-/**
  * Simple in-memory cache for API responses.
  * In production, use Redis or similar distributed cache.
  */
@@ -93,22 +85,6 @@ export function createLazyImport<T>(
 ): () => Promise<{ default: T }> {
   return importFn;
 }
-
-/**
- * A utility to be used in next.config.js to enable bundle analysis.
- * 
- * @returns The Next.js config with bundle analyzer.
- */
-export const analyzeBundle = () => {
-  if (process.env.ANALYZE === 'true') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const withBundleAnalyzer = require('@next/bundle-analyzer')({
-      enabled: true,
-    });
-    return withBundleAnalyzer;
-  }
-  return (config: unknown) => config;
-};
 
 /**
  * Performance monitoring utilities.
