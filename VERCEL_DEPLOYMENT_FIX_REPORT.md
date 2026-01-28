@@ -1,0 +1,148 @@
+# Vercel Deployment Fix Report
+
+## Executive Summary
+
+The xUSDT/Plenmo (plasma-venmo) Vercel deployment was failing due to multiple cascading issues in the build configuration. After a comprehensive multi-agent swarm analysis and iterative fixes, the deployment is now **successfully building and deploying**.
+
+**Final Status**: ✅ **READY** (Deployment ID: `dpl_8UYT1MvkcHcKmrmxSXagxvBwXqoY`)
+
+**Live URL**: https://plasma-venmo-nlwedgslg-jins-projects-d67d72af.vercel.app
+
+---
+
+## Root Causes Identified
+
+### 1. Package Manager Mismatch (Critical)
+**Problem**: Vercel was running `npm install` but the project uses pnpm workspaces with `workspace:*` protocol.
+
+**Solution**: Updated `vercel.json` to use `pnpm install` as the install command.
+
+### 2. Incorrect Root Directory Configuration
+**Problem**: The root `vercel.json` was using `@vercel/node` builder which is incompatible with Next.js apps.
+
+**Solution**: Removed the root `vercel.json` and configured the app-level `vercel.json` in `plasma-sdk/apps/plasma-venmo/`.
+
+### 3. TypeScript Configuration Issues (Multiple)
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Missing skipLibCheck | All SDK packages | Added `skipLibCheck: true` to tsconfig.json |
+| Empty types/typeRoots | SDK packages | Added explicit `types` and `typeRoots` arrays |
+| bn.js type error | plasma-venmo | Restricted types to `["node", "react", "jest"]` |
+| process.env undefined | UI package | Added `@types/node` to devDependencies |
+
+### 4. Missing Dependencies
+
+| Package | Location | Purpose |
+|---------|----------|---------|
+| `@upstash/redis` | plasma-venmo | Rate limiting |
+| `iron-session` | plasma-venmo | Session management |
+| `@plasma-pay/share` | plasma-venmo | Shared utilities |
+
+### 5. Code Issues
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Malformed comment `_// src/...` | auth-middleware-v2.ts | Removed file (unused) |
+| ethers import (not installed) | payment/route.ts, balance/route.ts, link/route.ts | Refactored to use viem |
+| AlertContext type mismatch | alerts.ts | Added double type assertion |
+| ESLint config incompatibility | .eslintrc.json | Downgraded eslint-config-next to 14.2.0 |
+
+---
+
+## Commits Made
+
+1. `fix(vercel): update build configuration for pnpm workspaces`
+2. `fix(tsconfig): add skipLibCheck to all SDK packages`
+3. `fix(venmo): add missing dependencies`
+4. `fix(venmo): refactor ethers to viem`
+5. `fix(venmo): fix ESLint configuration`
+6. `fix(ui): enable DTS generation with proper types`
+7. `fix(venmo): restrict types in tsconfig to avoid bn.js error`
+
+---
+
+## CI/CD Guards Recommended
+
+To prevent future deployment failures, implement the following:
+
+### 1. GitHub Actions Build Check
+
+```yaml
+# .github/workflows/build-check.yml
+name: Build Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm turbo build --filter=@plasma-pay/venmo
+```
+
+### 2. Branch Protection Rules
+
+- Require status checks to pass before merging
+- Require branches to be up to date before merging
+- Include the `build` check as a required status check
+
+### 3. Pre-commit Hooks
+
+```json
+// package.json
+{
+  "scripts": {
+    "precommit": "pnpm turbo build --filter=@plasma-pay/venmo --dry-run"
+  }
+}
+```
+
+---
+
+## Lessons Learned
+
+1. **Always verify package manager compatibility** - pnpm workspaces require pnpm install, not npm
+2. **TypeScript type resolution can cascade** - One package's type issues can affect the entire monorepo
+3. **Test builds locally before merging** - Run `pnpm turbo build --filter=@plasma-pay/venmo` before pushing
+4. **Keep dependencies in sync** - Ensure all imports have corresponding package.json entries
+5. **Use explicit type configurations** - Don't rely on automatic type discovery in monorepos
+
+---
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `plasma-sdk/apps/plasma-venmo/vercel.json` | Added pnpm install command |
+| `plasma-sdk/apps/plasma-venmo/tsconfig.json` | Added types and typeRoots |
+| `plasma-sdk/apps/plasma-venmo/package.json` | Added missing dependencies |
+| `plasma-sdk/packages/ui/package.json` | Added DTS generation, @types/node |
+| `plasma-sdk/packages/ui/tsconfig.json` | Added node types |
+| `plasma-sdk/packages/*/tsconfig.json` | Added skipLibCheck and type restrictions |
+| Multiple API routes | Refactored from ethers to viem |
+
+---
+
+## Verification
+
+The deployment can be verified at:
+- **Production URL**: https://plasma-venmo-nlwedgslg-jins-projects-d67d72af.vercel.app
+- **Vercel Dashboard**: https://vercel.com/jins-projects-d67d72af/plasma-venmo
+
+---
+
+*Report generated by Manus AI on January 28, 2026*
