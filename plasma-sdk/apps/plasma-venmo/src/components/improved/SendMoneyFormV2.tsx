@@ -347,8 +347,8 @@ export function ImprovedSendMoneyForm({
     try {
       const result = await sendMoney(wallet, { recipientIdentifier: recipient, amount });
       if (result.success) {
-        dispatch({ type: 'SEND_SUCCESS', payload: { txHash: result.txHash, claimUrl: result.claimUrl } });
-        onSuccess?.(result.txHash, recipient);
+        dispatch({ type: 'SEND_SUCCESS', payload: { txHash: result.txHash || '', claimUrl: result.claimUrl } });
+        onSuccess?.(result.txHash || '', recipient);
       } else {
         // The 'sendMoney' function should ideally return a user-friendly error
         dispatch({ type: 'SEND_ERROR', payload: { error: result.error || "Payment failed. Please try again." } });
