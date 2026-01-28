@@ -1,22 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ethers } from 'ethers';
+import { 
+  createPublicClient, 
+  createWalletClient, 
+  http, 
+  parseUnits, 
+  parseEther,
+  isAddress,
+  type Address,
+  type Hex
+} from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { defineChain } from 'viem';
 
 /**
  * Payment API Route
  * Handles payment processing with EIP-3009 authorization
  */
 
-const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY;
+const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY as Hex | undefined;
 const MERCHANT_ADDRESS = process.env.MERCHANT_ADDRESS;
-const USDT0_ADDRESS = process.env.NEXT_PUBLIC_USDT0_ADDRESS;
+const USDT0_ADDRESS = process.env.NEXT_PUBLIC_USDT0_ADDRESS as Address | undefined;
 const PLASMA_RPC = process.env.NEXT_PUBLIC_PLASMA_RPC;
 const API_AUTH_SECRET = process.env.API_AUTH_SECRET;
 
+// Define Plasma chain
+const plasmaChain = defineChain({
+  id: 9745,
+  name: 'Plasma',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'ETH',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: [PLASMA_RPC || 'https://rpc.plasma.to'],
+    },
+  },
+});
+
 // EIP-3009 ABI
 const EIP3009_ABI = [
-  'function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external',
-  'function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external',
-];
+  {
+    name: 'transferWithAuthorization',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+  {
+    name: 'receiveWithAuthorization',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+] as const;
 
 interface PaymentRequest {
   from: string;
@@ -66,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate addresses
-    if (!ethers.isAddress(from) || !ethers.isAddress(to)) {
+    if (!isAddress(from) || !isAddress(to)) {
       return NextResponse.json(
         { error: 'Invalid address format' },
         { status: 400 }
@@ -74,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate amount
-    const amountBN = ethers.parseUnits(amount, 6); // USDT has 6 decimals
+    const amountBN = parseUnits(amount, 6); // USDT has 6 decimals
     if (amountBN <= 0n) {
       return NextResponse.json(
         { error: 'Invalid amount' },
@@ -90,16 +149,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize provider and signer
-    const provider = new ethers.JsonRpcProvider(PLASMA_RPC);
-    const relayer = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
+    // Initialize clients
+    const publicClient = createPublicClient({
+      chain: plasmaChain,
+      transport: http(PLASMA_RPC),
+    });
 
-    // Initialize USDT0 contract
-    const usdt0 = new ethers.Contract(USDT0_ADDRESS, EIP3009_ABI, relayer);
+    const account = privateKeyToAccount(RELAYER_PRIVATE_KEY);
+    const walletClient = createWalletClient({
+      account,
+      chain: plasmaChain,
+      transport: http(PLASMA_RPC),
+    });
 
     // Check relayer balance for gas
-    const relayerBalance = await provider.getBalance(relayer.address);
-    const minGasBalance = ethers.parseEther('0.001'); // Minimum 0.001 ETH for gas
+    const relayerBalance = await publicClient.getBalance({ address: account.address });
+    const minGasBalance = parseEther('0.001'); // Minimum 0.001 ETH for gas
     
     if (relayerBalance < minGasBalance) {
       return NextResponse.json(
@@ -109,40 +174,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Execute the transaction
-    let tx;
-    if (method === 'receive') {
-      tx = await usdt0.receiveWithAuthorization(
-        from,
-        to,
+    const functionName = method === 'receive' ? 'receiveWithAuthorization' : 'transferWithAuthorization';
+    
+    const hash = await walletClient.writeContract({
+      address: USDT0_ADDRESS,
+      abi: EIP3009_ABI,
+      functionName,
+      args: [
+        from as Address,
+        to as Address,
         amountBN,
-        validAfter,
-        validBefore,
-        nonce,
+        BigInt(validAfter),
+        BigInt(validBefore),
+        nonce as Hex,
         signature.v,
-        signature.r,
-        signature.s
-      );
-    } else {
-      tx = await usdt0.transferWithAuthorization(
-        from,
-        to,
-        amountBN,
-        validAfter,
-        validBefore,
-        nonce,
-        signature.v,
-        signature.r,
-        signature.s
-      );
-    }
+        signature.r as Hex,
+        signature.s as Hex,
+      ],
+    });
 
     // Wait for confirmation
-    const receipt = await tx.wait();
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
     return NextResponse.json({
       success: true,
-      transactionHash: receipt.hash,
-      blockNumber: receipt.blockNumber,
+      transactionHash: receipt.transactionHash,
+      blockNumber: Number(receipt.blockNumber),
       gasUsed: receipt.gasUsed.toString(),
       from,
       to,
@@ -152,14 +209,14 @@ export async function POST(request: NextRequest) {
     console.error('Payment processing error:', error);
 
     // Handle specific errors
-    if (error.code === 'INSUFFICIENT_FUNDS') {
+    if (error.message?.includes('insufficient funds')) {
       return NextResponse.json(
         { error: 'Insufficient balance' },
         { status: 400 }
       );
     }
 
-    if (error.code === 'NONCE_EXPIRED') {
+    if (error.message?.includes('nonce') || error.message?.includes('expired')) {
       return NextResponse.json(
         { error: 'Authorization expired' },
         { status: 400 }
