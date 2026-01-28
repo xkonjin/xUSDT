@@ -4,9 +4,11 @@
  * FundWallet Component
  * 
  * Allows users to fund their embedded wallet via:
- * 1. Transak on-ramp (fiat to crypto)
- * 2. External wallet transfer (MetaMask, etc.)
- * 3. Direct deposit address copy
+ * 1. ZKP2P on-ramp (Venmo, Zelle, Revolut - trustless P2P)
+ * 2. Bridge any token from other chains
+ * 3. Transak on-ramp (fiat to crypto via card)
+ * 4. External wallet transfer (MetaMask, etc.)
+ * 5. Direct deposit address copy
  */
 
 import { useState } from "react";
@@ -20,10 +22,13 @@ import {
   X,
   ArrowDownLeft,
   ArrowRightLeft,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { ModalPortal } from "./ui/ModalPortal";
 import { BridgeDepositModal } from "./BridgeDeposit";
+import { ZKP2POnrampV2 } from "./onramp/ZKP2POnrampV2";
 
 interface FundWalletProps {
   walletAddress: string | undefined;
@@ -75,7 +80,7 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
       <button
         onClick={() => setShowModal(true)}
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-plenmo-500/20 to-plenmo-600/20 text-plenmo-500 hover:from-plenmo-500/30 hover:to-plenmo-600/30 transition-all duration-200 text-sm font-medium"
-        data-avatar-tip="Add funds using card, external wallet, or copy your address."
+        data-avatar-tip="Add funds using Venmo, card, external wallet, or copy your address."
       >
         <Plus className="w-4 h-4" />
         Add Funds
@@ -93,7 +98,7 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
 
 export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   const [copied, setCopied] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"card" | "wallet" | "bridge" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"zkp2p" | "card" | "wallet" | "bridge" | null>(null);
 
   if (!walletAddress) return null;
 
@@ -108,7 +113,22 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
     window.open(url, "_blank", "width=450,height=700");
   };
 
-  // If method selected, show that view
+  // ZKP2P On-ramp view
+  if (selectedMethod === "zkp2p") {
+    return (
+      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
+        <ZKP2POnrampV2
+          recipientAddress={walletAddress}
+          onClose={() => setSelectedMethod(null)}
+          onSuccess={() => {
+            // Optionally close modal or show success
+          }}
+        />
+      </ModalPortal>
+    );
+  }
+
+  // Card payment view
   if (selectedMethod === "card") {
     return (
       <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
@@ -166,42 +186,18 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
                   </p>
                 </div>
                 
-                {/* Alternative: Copy Address */}
+                {/* Alternative: Use ZKP2P */}
                 <p className="text-white/50 text-xs text-center">
-                  For now, receive a transfer from a friend:
+                  For now, use Venmo or Zelle:
                 </p>
                 
-                <div className="bg-white/5 rounded-2xl p-4">
-                  <p className="text-white/40 text-xs mb-2">Your Plenmo Address</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <code className="text-white text-sm font-mono break-all">
-                      {walletAddress}
-                    </code>
-                    <button
-                      onClick={copyAddress}
-                      className="flex-shrink-0 p-2 rounded-lg hover:bg-white/10 transition-colors"
-                    >
-                      {copied ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-white/50" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                {/* QR Code */}
-                <div className="bg-white rounded-2xl p-4 flex flex-col items-center">
-                  <QRCodeSVG 
-                    value={walletAddress} 
-                    size={160} 
-                    level="M"
-                    includeMargin={false}
-                  />
-                  <p className="text-gray-600 text-xs mt-2">
-                    Scan to get address
-                  </p>
-                </div>
+                <button
+                  onClick={() => setSelectedMethod("zkp2p")}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-plenmo-500 to-plenmo-600 text-white font-semibold hover:opacity-90 transition-all"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Pay with Venmo/Zelle
+                </button>
               </div>
             )}
           </div>
@@ -210,6 +206,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
     );
   }
 
+  // External wallet view
   if (selectedMethod === "wallet") {
     return (
       <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
@@ -281,7 +278,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   // Main selection view
   return (
     <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
-      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-w-md w-full">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Add Funds</h3>
           <button 
@@ -293,22 +290,48 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         </div>
 
         <p className="text-white/50 text-sm mb-6">
-          Choose how you&apos;d like to add funds:
+          Choose how you'd like to add funds:
         </p>
 
-        {/* Option 1: Bridge Any Token (Featured) */}
+        {/* Option 1: ZKP2P On-ramp (Featured) */}
+        <button
+          onClick={() => setSelectedMethod("zkp2p")}
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-plenmo-500/10 to-plenmo-600/10 hover:from-plenmo-500/20 hover:to-plenmo-600/20 transition-all mb-3 text-left border border-plenmo-500/30 relative overflow-hidden group"
+        >
+          {/* Animated gradient border effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-plenmo-500/0 via-plenmo-500/10 to-plenmo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0 relative">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 relative">
+            <div className="flex items-center gap-2">
+              <h4 className="text-white font-semibold">Pay with Venmo/Zelle</h4>
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-plenmo-500/30 text-plenmo-400 rounded-full animate-pulse">
+                INSTANT
+              </span>
+            </div>
+            <p className="text-white/50 text-sm">60 second on-ramp via ZKP2P</p>
+          </div>
+          <div className="flex items-center gap-1 text-plenmo-500">
+            <Zap className="w-4 h-4" />
+            <span className="text-white/30">→</span>
+          </div>
+        </button>
+
+        {/* Option 2: Bridge Any Token */}
         <button
           onClick={() => setSelectedMethod("bridge")}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-plenmo-500/10 to-plenmo-600/10 hover:from-plenmo-500/20 hover:to-plenmo-600/20 transition-all mb-3 text-left border border-plenmo-500/20"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all mb-3 text-left border border-white/10 hover:border-white/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
             <ArrowRightLeft className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h4 className="text-white font-semibold">Bridge Any Token</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-plenmo-500/20 text-plenmo-500 rounded-full">
-                NEW
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-500/20 text-purple-400 rounded-full">
+                MULTI-CHAIN
               </span>
             </div>
             <p className="text-white/50 text-sm">Convert ETH, USDC from any chain</p>
@@ -316,10 +339,10 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <span className="text-white/30">→</span>
         </button>
 
-        {/* Option 2: Buy with Card */}
+        {/* Option 3: Buy with Card */}
         <button
           onClick={() => setSelectedMethod("card")}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left border border-white/10 hover:border-white/20"
         >
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
             <CreditCard className="w-6 h-6 text-white" />
@@ -331,12 +354,12 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <span className="text-white/30">→</span>
         </button>
 
-        {/* Option 3: Transfer from Wallet */}
+        {/* Option 4: Transfer from Wallet */}
         <button
           onClick={() => setSelectedMethod("wallet")}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left border border-white/10 hover:border-white/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0">
             <Wallet className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
@@ -346,10 +369,10 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <span className="text-white/30">→</span>
         </button>
 
-        {/* Option 4: Receive from Friend */}
+        {/* Option 5: Receive from Friend */}
         <button
           onClick={copyAddress}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left"
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left border border-white/10 hover:border-white/20"
         >
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
             <ArrowDownLeft className="w-6 h-6 text-white" />
