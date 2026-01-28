@@ -6,19 +6,36 @@
  */
 
 // API Authentication and Security
-export { withApiAuth } from './api-auth';
+export {
+  withAuth,
+  verifyAuth,
+  verifyCsrf,
+  generateCsrfToken,
+  createAuthResponse,
+  createErrorResponse
+} from './api-auth';
 
 // Structured Logging
-export { default as logger } from './logger';
+export { default as logger, createRequestLogger, generateRequestId } from './logger';
 
 // Environment Validation
 export { validateEnv, requiredEnvVars } from './env-validation';
 
 // Database Utilities
-export { withDbConnection, optimizedQuery } from './db-utils';
+export {
+  prisma,
+  withRetry,
+  withTimeout,
+  optimizedQuery,
+  disconnectFromDB,
+  checkDbHealth
+} from './db-utils';
 
 // Performance Utilities
 export { withCache, lazyLoad } from './performance';
 
 // Audit Logging
 export { auditLog, AuditAction } from './audit-log';
+
+// API Documentation
+export { apiDocs, documentEndpoint } from './api-docs';
