@@ -327,7 +327,7 @@ export function ZKP2POnrampV2({
                   <div>
                     <p className="font-semibold text-white text-sm">Zero fees, instant transfer</p>
                     <p className="text-white/60 text-sm mt-0.5">
-                      You'll receive ~{CURRENCY_SYMBOLS[currency]}{amount || '0'} in USDC
+                      You&apos;ll receive ~{CURRENCY_SYMBOLS[currency]}{amount || '0'} in USDC
                     </p>
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export function ZKP2POnrampV2({
             >
               {/* Amount Summary */}
               <div className="bg-white/5 rounded-2xl p-4 mb-5 border border-white/10">
-                <p className="text-white/50 text-sm">You're adding</p>
+                <p className="text-white/50 text-sm">You&apos;re adding</p>
                 <p className="text-2xl font-bold text-white">
                   {CURRENCY_SYMBOLS[currency]}{amount} {currency}
                 </p>
@@ -488,7 +488,7 @@ export function ZKP2POnrampV2({
               <div className="mt-4 flex items-start gap-2 text-left">
                 <AlertCircle className="w-4 h-4 text-white/40 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-white/40">
-                  You'll be redirected to ZKP2P to complete your purchase. 
+                  You&apos;ll be redirected to ZKP2P to complete your purchase. 
                   Funds will be sent directly to your Plenmo wallet.
                 </p>
               </div>

@@ -290,7 +290,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         </div>
 
         <p className="text-white/50 text-sm mb-6">
-          Choose how you'd like to add funds:
+          Choose how you&apos;d like to add funds:
         </p>
 
         {/* Option 1: ZKP2P On-ramp (Featured) */}
