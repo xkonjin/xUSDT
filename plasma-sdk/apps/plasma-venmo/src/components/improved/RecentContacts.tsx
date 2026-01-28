@@ -8,6 +8,7 @@ interface RecentContactsProps {
   contacts: Contact[];
   onSelect: (contact: Contact) => void;
   loading?: boolean;
+  limit?: number;
 }
 
 export function ContactSkeleton() {
@@ -22,7 +23,8 @@ export function ContactSkeleton() {
 export const RecentContacts = memo(function RecentContacts({ 
   contacts, 
   onSelect,
-  loading = false 
+  loading = false,
+  limit = 10
 }: RecentContactsProps) {
   if (loading) {
     return (
@@ -44,7 +46,7 @@ export const RecentContacts = memo(function RecentContacts({
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-      {contacts.slice(0, 10).map((contact) => (
+      {contacts.slice(0, limit).map((contact) => (
         <button
           key={contact.id}
           onClick={() => onSelect(contact)}
