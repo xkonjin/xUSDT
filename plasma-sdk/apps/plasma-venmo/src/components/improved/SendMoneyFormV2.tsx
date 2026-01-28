@@ -112,8 +112,8 @@ const MemoizedConfirmationModal = memo(function ConfirmationModal({
   if (!isOpen) return null;
   
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalPortal isOpen={isOpen} onClose={onClose}>
+      <div className="bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="clay-card p-6 max-w-md w-full space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Confirm Payment</h3>
@@ -183,8 +183,8 @@ const MemoizedSuccessOverlay = memo(function SuccessOverlay({
   if (!isVisible) return null;
   
   return (
-    <ModalPortal>
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ModalPortal isOpen={isVisible} onClose={onClose}>
+      <div className="bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="clay-card p-8 max-w-md w-full text-center space-y-4">
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-green-400" />
