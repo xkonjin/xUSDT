@@ -5,14 +5,16 @@
   "description": "Shared UI components for Plasma apps",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --external react --external next/image --external next",
+    "build": "tsup src/index.ts --format cjs,esm --dts --external react --external next/image --external next",
     "dev": "tsup src/index.ts --format cjs,esm --dts --external react --watch",
     "test": "jest",
     "test:coverage": "jest --coverage"
