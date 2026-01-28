@@ -9,9 +9,10 @@ interface ModalPortalProps {
   onClose?: () => void;
   zIndex?: number;
   wrapperClassName?: string;
+  closeOnBackdrop?: boolean;
 }
 
-export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName }: ModalPortalProps) {
+export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName, closeOnBackdrop = true }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperCla
     >
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-        onClick={onClose}
+        onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
       <div className={`relative z-10 ${wrapperClassName || ''}`}>{children}</div>
