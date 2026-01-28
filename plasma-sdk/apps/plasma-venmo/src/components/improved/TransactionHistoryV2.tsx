@@ -14,9 +14,9 @@ import {
   ChevronDown 
 } from "lucide-react";
 import type { Address } from "viem";
-import { TransactionListSkeleton } from "./ui/Skeleton";
-import { EmptyState } from "./ui/EmptyState";
-import { Avatar } from "./ui/Avatar";
+import { TransactionListSkeleton } from "../ui/Skeleton";
+import { EmptyState } from "../ui/EmptyState";
+import { Avatar } from "../ui/Avatar";
 import { formatRelativeTime } from "@/lib/utils";
 
 const PAGE_SIZE = 15;
