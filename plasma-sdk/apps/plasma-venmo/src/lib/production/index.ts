@@ -32,7 +32,7 @@ export {
 } from './db-utils';
 
 // Performance Utilities
-export { withCache, lazyLoad } from './performance';
+export { withCache, createLazyImport, performanceUtils } from './performance';
 
 // Audit Logging
 export { auditLog, AuditAction } from './audit-log';
