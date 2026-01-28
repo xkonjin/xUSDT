@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "cd ../../packages/db && pnpm prisma generate && cd ../../apps/plasma-venmo && pnpm turbo build --filter=@plasma-pay/venmo",
+  "buildCommand": "cd ../../packages/db && pnpm prisma generate && cd ../../apps/plasma-venmo && rm -rf .turbo && pnpm turbo build --filter=@plasma-pay/venmo --force",
   "outputDirectory": ".next",
   "installCommand": "pnpm install",
   "devCommand": "pnpm dev",
