@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownLeft, History, ExternalLink, Clock, Loader2, AlertCircle, RefreshCw, ChevronDown } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, History, ExternalLink, Clock, Loader2, AlertCircle, RefreshCw, ChevronDown, Filter } from "lucide-react";
 import type { Address } from "viem";
 import { TransactionListSkeleton } from "./ui/Skeleton";
 import { EmptyState } from "./ui/EmptyState";
@@ -30,6 +30,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState<"all" | "sent" | "received">("all");
 
   const fetchHistory = async (pageNum: number, append = false) => {
     if (!address) {
@@ -82,13 +83,21 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     }
   };
 
+  // Filter transactions
+  const filteredTransactions = transactions.filter(tx => {
+    if (filter === "all") return true;
+    return tx.type === filter;
+  });
+
   if (loading) {
     return (
-      <div className="clay-card p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-plenmo-500" />
-          Recent Activity
-        </h2>
+      <div className="clay-card p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
+            <History className="w-5 h-5 text-plenmo-500" />
+            Recent Activity
+          </h2>
+        </div>
         <TransactionListSkeleton count={3} />
       </div>
     );
@@ -97,17 +106,21 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   // Error state
   if (error && transactions.length === 0) {
     return (
-      <div className="clay-card p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-plenmo-500" />
-          Recent Activity
-        </h2>
-        <div className="flex flex-col items-center gap-3 py-4">
-          <AlertCircle className="w-8 h-8 text-red-400" />
-          <p className="text-red-400 text-sm">{error}</p>
+      <div className="clay-card p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
+            <History className="w-5 h-5 text-plenmo-500" />
+            Recent Activity
+          </h2>
+        </div>
+        <div className="flex flex-col items-center gap-4 py-8">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center">
+            <AlertCircle className="w-7 h-7 text-red-400" />
+          </div>
+          <p className="text-red-400 text-sm text-center">{error}</p>
           <button
             onClick={() => fetchHistory(0)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -119,11 +132,13 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
 
   if (transactions.length === 0) {
     return (
-      <div className="clay-card p-6 md:p-8">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-plenmo-500" />
-          Recent Activity
-        </h2>
+      <div className="clay-card p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
+            <History className="w-5 h-5 text-plenmo-500" />
+            Recent Activity
+          </h2>
+        </div>
         <EmptyState
           icon={Clock}
           title="No transactions yet"
@@ -134,66 +149,97 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   }
 
   return (
-    <div className="clay-card p-6 md:p-8">
-      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-        <History className="w-5 h-5 text-plenmo-500" />
-        Recent Activity
-      </h2>
-      <div className="space-y-3">
-        {transactions.map((tx) => (
-          <button
-            key={tx.id}
-            type="button"
-            className="flex items-center gap-4 p-4 clay-list-item hover:bg-white/[0.08] transition-all duration-200 cursor-pointer group w-full text-left"
-            onClick={() =>
-              window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
-            }
-            aria-label={`View ${tx.type === "sent" ? "sent" : "received"} transaction of $${tx.amount} ${tx.type === "sent" ? "to" : "from"} ${tx.counterparty}`}
-          >
-            <div className="relative">
-              <Avatar name={tx.counterparty} size="lg" />
-              <div
-                className={`absolute -bottom-1 -right-1 p-1 rounded-full ${
-                  tx.type === "sent"
-                    ? "bg-red-500"
-                    : "bg-green-500"
-                }`}
-              >
-                {tx.type === "sent" ? (
-                  <ArrowUpRight className="w-3 h-3 text-white" />
-                ) : (
-                  <ArrowDownLeft className="w-3 h-3 text-white" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-white truncate group-hover:text-white/90 transition-colors">
-                {tx.type === "sent" ? "Sent to" : "Received from"}{" "}
-                <span className="text-white/70">{tx.counterparty}</span>
-              </div>
-              <div className="text-white/40 text-sm flex items-center gap-2">
-                <span>{formatRelativeTime(new Date(tx.timestamp * 1000))}</span>
-                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-
-            <div
-              className={`font-semibold text-lg ${
-                tx.type === "sent" ? "text-red-400" : "text-green-400"
+    <div className="clay-card p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
+          <History className="w-5 h-5 text-plenmo-500" />
+          Recent Activity
+        </h2>
+        
+        {/* Filter buttons */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
+          {[
+            { value: "all", label: "All" },
+            { value: "sent", label: "Sent" },
+            { value: "received", label: "Received" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setFilter(option.value as typeof filter)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                filter === option.value
+                  ? "bg-plenmo-500 text-black"
+                  : "text-white/50 hover:text-white/70 hover:bg-white/5"
               }`}
             >
-              {tx.type === "sent" ? "-" : "+"}${tx.amount}
-            </div>
-          </button>
-        ))}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        {filteredTransactions.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-white/40 text-sm">No {filter} transactions</p>
+          </div>
+        ) : (
+          filteredTransactions.map((tx, index) => (
+            <button
+              key={tx.id}
+              type="button"
+              className="flex items-center gap-4 p-4 clay-list-item hover:bg-white/[0.06] transition-all duration-200 cursor-pointer group w-full text-left animate-fade-in"
+              style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() =>
+                window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
+              }
+              aria-label={`View ${tx.type === "sent" ? "sent" : "received"} transaction of $${tx.amount} ${tx.type === "sent" ? "to" : "from"} ${tx.counterparty}`}
+            >
+              <div className="relative">
+                <Avatar name={tx.counterparty} size="lg" />
+                <div
+                  className={`absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full shadow-lg ${
+                    tx.type === "sent"
+                      ? "bg-gradient-to-br from-red-400 to-red-500"
+                      : "bg-gradient-to-br from-green-400 to-green-500"
+                  }`}
+                >
+                  {tx.type === "sent" ? (
+                    <ArrowUpRight className="w-2.5 h-2.5 text-white" />
+                  ) : (
+                    <ArrowDownLeft className="w-2.5 h-2.5 text-white" />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-white truncate group-hover:text-white/90 transition-colors text-sm">
+                  {tx.type === "sent" ? "Sent to" : "Received from"}{" "}
+                  <span className="text-white/60">{tx.counterparty}</span>
+                </div>
+                <div className="text-white/40 text-xs flex items-center gap-2 mt-0.5">
+                  <span>{formatRelativeTime(new Date(tx.timestamp * 1000))}</span>
+                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              <div
+                className={`font-bold text-base ${
+                  tx.type === "sent" ? "text-red-400" : "text-green-400"
+                }`}
+              >
+                {tx.type === "sent" ? "-" : "+"}${tx.amount}
+              </div>
+            </button>
+          ))
+        )}
 
         {/* Load More Button */}
-        {hasMore && (
+        {hasMore && filter === "all" && (
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="w-full mt-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full mt-3 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 border border-white/5 hover:border-white/10"
           >
             {loadingMore ? (
               <>
@@ -210,9 +256,9 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
         )}
 
         {/* Total count */}
-        {transactions.length > 0 && (
-          <p className="text-center text-white/30 text-xs mt-3">
-            Showing {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+        {filteredTransactions.length > 0 && (
+          <p className="text-center text-white/30 text-xs mt-4 pt-2 border-t border-white/5">
+            Showing {filteredTransactions.length} of {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
           </p>
         )}
       </div>
