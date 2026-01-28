@@ -31,7 +31,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <AssistantProvider
         apiKey={process.env.NEXT_PUBLIC_GEMINI_API_KEY}
         enabled={true}
-        onNavigate={(page) => router.push(page)}
+        onNavigate={(page: string) => router.push(page)}
       >
         {children}
       </AssistantProvider>
