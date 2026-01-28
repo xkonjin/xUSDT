@@ -5,23 +5,22 @@
   "description": "Shared UI components for Plasma apps",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --external react --external next/image --external next",
+    "build": "tsup src/index.ts --format cjs,esm --external react --external next/image --external next",
     "dev": "tsup src/index.ts --format cjs,esm --dts --external react --watch",
     "test": "jest",
     "test:coverage": "jest --coverage"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "next": ">=14.0.0"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -42,6 +41,7 @@
     "@types/react-dom": "^18.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "next": "^14.2.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "ts-jest": "^29.1.0",
