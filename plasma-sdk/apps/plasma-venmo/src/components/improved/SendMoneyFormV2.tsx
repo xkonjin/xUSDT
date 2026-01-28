@@ -10,8 +10,8 @@ import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE, INSUFFICIENT_BALANCE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts, ContactSkeleton } from "./RecentContacts"; // Assuming a skeleton is available
-import { ModalPortal } from "./ui/ModalPortal";
-import type { Contact } from "./ContactList";
+import { ModalPortal } from "../ui/ModalPortal";
+import type { Contact } from "../ContactList";
 
 // --- TYPE DEFINITIONS ---
 interface SendMoneyFormProps {
