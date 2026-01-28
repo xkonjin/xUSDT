@@ -10,9 +10,10 @@ interface ModalPortalProps {
   zIndex?: number;
   wrapperClassName?: string;
   closeOnBackdrop?: boolean;
+  backdropClassName?: string;
 }
 
-export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName, closeOnBackdrop = true }: ModalPortalProps) {
+export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperClassName, closeOnBackdrop = true, backdropClassName }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function ModalPortal({ children, isOpen, onClose, zIndex = 50, wrapperCla
       style={{ zIndex }}
     >
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${backdropClassName || ''}`}
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
