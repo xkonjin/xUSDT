@@ -138,7 +138,67 @@ export async function POST(
       );
     }
 
-    // Fetch payment link
+    // Use optimistic locking to prevent duplicate payments
+    // First, try to atomically update status from 'active' to 'processing'
+    const updateResult = await prisma.paymentLink.updateMany({
+      where: { 
+        id,
+        status: 'active', // Only update if still active
+      },
+      data: { 
+        status: 'processing',
+        updatedAt: new Date(),
+      },
+    });
+
+    // If no rows updated, the link was already being processed or paid
+    if (updateResult.count === 0) {
+      const existingLink = await prisma.paymentLink.findUnique({
+        where: { id },
+      });
+
+      if (!existingLink) {
+        return NextResponse.json(
+          { error: 'Payment link not found' },
+          { status: 404 }
+        );
+      }
+
+      if (existingLink.status === 'paid') {
+        return NextResponse.json(
+          { error: 'This payment link has already been paid' },
+          { status: 400 }
+        );
+      }
+
+      if (existingLink.status === 'processing') {
+        return NextResponse.json(
+          { error: 'Payment is already being processed. Please wait.' },
+          { status: 409 }
+        );
+      }
+
+      if (existingLink.status === 'expired') {
+        return NextResponse.json(
+          { error: 'Payment link has expired' },
+          { status: 400 }
+        );
+      }
+
+      if (existingLink.status === 'cancelled') {
+        return NextResponse.json(
+          { error: 'Payment link has been cancelled' },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: `Payment link is ${existingLink.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the full payment link data
     const paymentLink = await prisma.paymentLink.findUnique({
       where: { id },
     });
@@ -147,14 +207,6 @@ export async function POST(
       return NextResponse.json(
         { error: 'Payment link not found' },
         { status: 404 }
-      );
-    }
-
-    // Check link status
-    if (paymentLink.status !== 'active') {
-      return NextResponse.json(
-        { error: `Payment link is ${paymentLink.status}` },
-        { status: 400 }
       );
     }
 
@@ -265,6 +317,19 @@ export async function POST(
     });
   } catch (error) {
     console.error('Pay link error:', error);
+    
+    // Reset status back to 'active' if payment failed
+    // This allows the user to retry the payment
+    try {
+      const { id } = await context.params;
+      await prisma.paymentLink.update({
+        where: { id },
+        data: { status: 'active' },
+      });
+    } catch (resetError) {
+      console.error('Failed to reset payment link status:', resetError);
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Payment failed' },
       { status: 500 }

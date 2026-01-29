@@ -83,6 +83,10 @@ export async function sendMoney(
   const { v, r, s } = splitSignature(signature);
 
   // Step 4: Submit transfer with retry
+  // Generate a unique idempotency key based on the nonce and timestamp
+  // This ensures retries use the same key but different transactions get different keys
+  const idempotencyKey = `${params.nonce}-${Date.now()}`;
+  
   try {
     const result = await withRetry(
       async () => {
@@ -99,6 +103,7 @@ export async function sendMoney(
             v,
             r,
             s,
+            idempotencyKey,
           }),
         });
 

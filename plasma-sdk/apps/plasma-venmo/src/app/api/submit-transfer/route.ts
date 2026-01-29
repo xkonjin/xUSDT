@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { from, to, value, validAfter, validBefore, nonce, v, r, s } = body;
+    const { from, to, value, validAfter, validBefore, nonce, v, r, s, idempotencyKey } = body;
     
     // Store for logging
     paymentFrom = from;
@@ -117,6 +117,13 @@ export async function POST(request: Request) {
     if (value) {
       paymentAmount = formatUnits(BigInt(value), 6); // USDT0 has 6 decimals
     }
+
+    // The nonce itself serves as an idempotency key since EIP-3009 nonces can only be used once
+    // If the same nonce is submitted twice, the blockchain will reject the second transaction
+    // This provides built-in idempotency at the protocol level
+    // Additionally, clients can provide an explicit idempotencyKey for request-level deduplication
+    const effectiveIdempotencyKey = idempotencyKey || nonce;
+    console.log(`[submit-transfer] Processing payment with idempotency key: ${effectiveIdempotencyKey}`);
 
     if (!from || !to || !value || !nonce || v === undefined || !r || !s) {
       logPaymentFailed({

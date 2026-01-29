@@ -129,7 +129,67 @@ export async function POST(
       );
     }
 
-    // Fetch payment request
+    // Use optimistic locking to prevent duplicate payments
+    // First, try to atomically update status from 'pending' to 'processing'
+    const updateResult = await prisma.paymentRequest.updateMany({
+      where: { 
+        id,
+        status: 'pending', // Only update if still pending
+      },
+      data: { 
+        status: 'processing',
+        updatedAt: new Date(),
+      },
+    });
+
+    // If no rows updated, the request was already being processed or paid
+    if (updateResult.count === 0) {
+      const existingRequest = await prisma.paymentRequest.findUnique({
+        where: { id },
+      });
+
+      if (!existingRequest) {
+        return NextResponse.json(
+          { error: 'Payment request not found' },
+          { status: 404 }
+        );
+      }
+
+      if (existingRequest.status === 'paid') {
+        return NextResponse.json(
+          { error: 'This payment request has already been paid' },
+          { status: 400 }
+        );
+      }
+
+      if (existingRequest.status === 'processing') {
+        return NextResponse.json(
+          { error: 'Payment is already being processed. Please wait.' },
+          { status: 409 }
+        );
+      }
+
+      if (existingRequest.status === 'expired') {
+        return NextResponse.json(
+          { error: 'Payment request has expired' },
+          { status: 400 }
+        );
+      }
+
+      if (existingRequest.status === 'declined') {
+        return NextResponse.json(
+          { error: 'Payment request has been declined' },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: `Payment request is ${existingRequest.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the full payment request data
     const paymentRequest = await prisma.paymentRequest.findUnique({
       where: { id },
     });
@@ -138,14 +198,6 @@ export async function POST(
       return NextResponse.json(
         { error: 'Payment request not found' },
         { status: 404 }
-      );
-    }
-
-    // Check status
-    if (paymentRequest.status !== 'pending') {
-      return NextResponse.json(
-        { error: `Payment request is ${paymentRequest.status}` },
-        { status: 400 }
       );
     }
 
@@ -271,6 +323,19 @@ export async function POST(
     });
   } catch (error) {
     console.error('Pay request error:', error);
+    
+    // Reset status back to 'pending' if payment failed
+    // This allows the user to retry the payment
+    try {
+      const { id } = await context.params;
+      await prisma.paymentRequest.update({
+        where: { id },
+        data: { status: 'pending' },
+      });
+    } catch (resetError) {
+      console.error('Failed to reset payment request status:', resetError);
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Payment failed' },
       { status: 500 }
