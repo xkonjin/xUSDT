@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { SendMoneyForm } from "@/components/SendMoneyForm";
 import { RequestMoneyForm } from "@/components/RequestMoneyForm";
@@ -11,19 +11,26 @@ import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
-import { Send, HandCoins, RefreshCw, Shield, Zap, QrCode, ArrowDownLeft, UserPlus, Sparkles, TrendingUp, Eye, EyeOff } from "lucide-react";
+import { Send, HandCoins, RefreshCw, Shield, Zap, QrCode, ArrowDownLeft, UserPlus, Sparkles, TrendingUp, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { SocialFeed } from "@/components/SocialFeed";
 import { SentRequests } from "@/components/SentRequests";
 import { useContacts } from "@/hooks/useContacts";
+import type { Contact } from "@/components/ContactList";
+
+// Constants
+const QUICK_SEND_LIMIT = 6;
 
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } = usePlasmaWallet();
-  const { balance, formatted, refresh } = useUSDT0Balance();
+  const { balance, formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
   const [activeTab, setActiveTab] = useState<"send" | "request">("send");
   const [showAddContact, setShowAddContact] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<import("@/components/ContactList").Contact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Refs for scroll targets
+  const formSectionRef = useRef<HTMLDivElement>(null);
   
   const userEmail = user?.email?.address;
   
@@ -33,33 +40,58 @@ export default function HomePage() {
     autoFetch: true,
   });
 
+  // Scroll to form section
+  const scrollToForm = useCallback(() => {
+    formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   // Handle sending to a contact
-  const handleSendToContact = (contact: import("@/components/ContactList").Contact) => {
+  const handleSendToContact = useCallback((contact: Contact) => {
     setSelectedContact(contact);
     setActiveTab("send");
-    setTimeout(() => {
-      window.scrollTo({ top: 500, behavior: 'smooth' });
-    }, 100);
-  };
+    // Use requestAnimationFrame for smoother scroll timing
+    requestAnimationFrame(() => {
+      scrollToForm();
+    });
+  }, [scrollToForm]);
 
   // Handle successful payment - update contact's lastPayment
-  const handlePaymentSuccess = (recipientAddress: string) => {
+  const handlePaymentSuccess = useCallback((recipientAddress: string) => {
     updateLastPayment(recipientAddress);
     setSelectedContact(null);
-  };
+  }, [updateLastPayment]);
+
+  // Clear selected contact
+  const handleClearSelectedContact = useCallback(() => {
+    setSelectedContact(null);
+  }, []);
   
-  // Get quick send contacts: favorites first, then recent, limit to 6
-  const quickSendContacts = [
-    ...contacts.filter(c => c.isFavorite),
-    ...recentContacts.filter(c => !c.isFavorite),
-  ].slice(0, 6);
+  // Get quick send contacts: favorites first, then recent, limit to QUICK_SEND_LIMIT
+  const quickSendContacts = useMemo(() => {
+    return [
+      ...contacts.filter(c => c.isFavorite),
+      ...recentContacts.filter(c => !c.isFavorite),
+    ].slice(0, QUICK_SEND_LIMIT);
+  }, [contacts, recentContacts]);
 
   // Handle refresh with animation
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await refresh();
     setTimeout(() => setIsRefreshing(false), 1000);
-  };
+  }, [refresh]);
+
+  // Handle tab change with scroll
+  const handleTabChange = useCallback((tab: "send" | "request") => {
+    setActiveTab(tab);
+    scrollToForm();
+  }, [scrollToForm]);
+
+  // Handle QR button click
+  const handleQRClick = useCallback(() => {
+    const qrButton = document.querySelector('[data-qr-button]') as HTMLButtonElement;
+    if (qrButton) qrButton.click();
+  }, []);
 
   if (!ready) {
     return (
@@ -175,7 +207,11 @@ export default function HomePage() {
             </div>
             
             <div className="clay-amount mb-5 transition-all duration-300">
-              {balanceVisible ? `$${formatted || "0.00"}` : "••••••"}
+              {balanceLoading ? (
+                <div className="h-12 w-32 bg-white/10 rounded-lg animate-pulse" />
+              ) : (
+                balanceVisible ? `$${formatted || "0.00"}` : "••••••"
+              )}
             </div>
             
             <button
@@ -202,10 +238,18 @@ export default function HomePage() {
             </button>
           </div>
           
+          {/* Show contacts error if any */}
+          {contactsError && (
+            <div className="flex items-center gap-2 text-amber-400 text-xs bg-amber-500/10 rounded-lg p-3 mb-4">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>Unable to load contacts. Please try again later.</span>
+            </div>
+          )}
+          
           {contactsLoading ? (
             <div className="contact-grid">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="contact-item animate-pulse">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="contact-item animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
                   <div className="w-14 h-14 rounded-full bg-white/10" />
                   <div className="h-3 w-12 bg-white/10 rounded mt-2" />
                 </div>
@@ -227,12 +271,13 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            <div className="contact-grid">
+            <div className="contact-grid" role="list" aria-label="Quick send contacts">
               {quickSendContacts.map((contact) => (
                 <button 
                   key={contact.id} 
                   className="contact-item group"
                   onClick={() => handleSendToContact(contact)}
+                  aria-label={`Send to ${contact.name || contact.email || 'contact'}`}
                 >
                   <div className="relative">
                     <div className="clay-avatar group-hover:scale-105 transition-transform duration-200">
@@ -256,7 +301,7 @@ export default function HomePage() {
         <SentRequests walletAddress={wallet?.address} onRefresh={refresh} />
 
         {/* Tab Switcher - Enhanced */}
-        <div className="clay-tabs p-1.5" role="tablist" aria-label="Payment type">
+        <div ref={formSectionRef} className="clay-tabs p-1.5 scroll-mt-20" role="tablist" aria-label="Payment type">
           <button
             onClick={() => setActiveTab("send")}
             role="tab"
@@ -280,20 +325,22 @@ export default function HomePage() {
         </div>
 
         {/* Forms */}
-        {activeTab === "send" ? (
-          <SendMoneyForm 
-            wallet={wallet} 
-            balance={formatted || undefined} 
-            onSuccess={refresh}
-            contacts={contacts}
-            contactsLoading={contactsLoading}
-            onPaymentSuccess={handlePaymentSuccess}
-            selectedContact={selectedContact}
-            onClearSelectedContact={() => setSelectedContact(null)}
-          />
-        ) : (
-          <RequestMoneyForm walletAddress={wallet?.address} userEmail={userEmail} onSuccess={refresh} />
-        )}
+        <div id={activeTab === "send" ? "send-panel" : "request-panel"} role="tabpanel">
+          {activeTab === "send" ? (
+            <SendMoneyForm 
+              wallet={wallet} 
+              balance={formatted || undefined} 
+              onSuccess={refresh}
+              contacts={contacts}
+              contactsLoading={contactsLoading}
+              onPaymentSuccess={handlePaymentSuccess}
+              selectedContact={selectedContact}
+              onClearSelectedContact={handleClearSelectedContact}
+            />
+          ) : (
+            <RequestMoneyForm walletAddress={wallet?.address} userEmail={userEmail} onSuccess={refresh} />
+          )}
+        </div>
 
         <PaymentLinks address={wallet?.address} onRefresh={refresh} />
         <TransactionHistory address={wallet?.address} />
@@ -306,10 +353,7 @@ export default function HomePage() {
           <button 
             className="clay-action-button"
             aria-label="Request money"
-            onClick={() => {
-              setActiveTab("request");
-              window.scrollTo({ top: 500, behavior: 'smooth' });
-            }}
+            onClick={() => handleTabChange("request")}
           >
             <ArrowDownLeft className="w-5 h-5" aria-hidden="true" />
             <span>Request</span>
@@ -317,10 +361,7 @@ export default function HomePage() {
           <button 
             className="clay-action-button primary"
             aria-label="Send money"
-            onClick={() => {
-              setActiveTab("send");
-              window.scrollTo({ top: 500, behavior: 'smooth' });
-            }}
+            onClick={() => handleTabChange("send")}
           >
             <Send className="w-5 h-5" aria-hidden="true" />
             <span>Send</span>
@@ -328,10 +369,7 @@ export default function HomePage() {
           <button 
             className="clay-action-button"
             aria-label="Scan QR code"
-            onClick={() => {
-              const qrButton = document.querySelector('[data-qr-button]') as HTMLButtonElement;
-              if (qrButton) qrButton.click();
-            }}
+            onClick={handleQRClick}
           >
             <QrCode className="w-5 h-5" aria-hidden="true" />
             <span>Scan</span>

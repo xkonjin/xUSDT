@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import { useAssistantReaction, getUserFriendlyError, PaymentProgress, type PaymentStatus } from "@plasma-pay/ui";
@@ -9,6 +9,7 @@ import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE, INSUFFICIEN
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
 import { ModalPortal } from "./ui/ModalPortal";
+import { useToast } from "./ui/Toast";
 import type { Contact } from "./ContactList";
 
 interface SendMoneyFormProps {
@@ -23,7 +24,8 @@ interface SendMoneyFormProps {
   onClearSelectedContact?: () => void;
 }
 
-function ConfirmationModal({
+// Memoized confirmation modal for better performance
+const ConfirmationModal = memo(function ConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
@@ -125,15 +127,17 @@ function ConfirmationModal({
       </div>
     </ModalPortal>
   );
-}
+});
 
-function SuccessOverlay({
+// Memoized success overlay
+const SuccessOverlay = memo(function SuccessOverlay({
   isVisible,
   amount,
   recipient,
   txHash,
   claimUrl,
   onClose,
+  onSendAgain,
 }: {
   isVisible: boolean;
   amount: string;
@@ -141,10 +145,20 @@ function SuccessOverlay({
   txHash?: string;
   claimUrl?: string;
   onClose: () => void;
+  onSendAgain?: () => void;
 }) {
+  const toast = useToast();
+  
   if (!isVisible) return null;
   
   const isClaimFlow = !!claimUrl;
+
+  const handleCopyClaimLink = async () => {
+    if (claimUrl) {
+      await navigator.clipboard.writeText(claimUrl);
+      toast.success("Claim link copied to clipboard!");
+    }
+  };
 
   return (
     <ModalPortal
@@ -156,8 +170,9 @@ function SuccessOverlay({
       wrapperClassName="max-w-none w-full h-full p-0"
     >
       <div className="relative w-full h-full flex items-center justify-center">
+        {/* Reduced confetti for better performance - 20 instead of 50 */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 50 }).map((_, i) => (
+          {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
               className="absolute w-3 h-3 rounded-full animate-confetti-fall"
@@ -185,7 +200,7 @@ function SuccessOverlay({
                 They&apos;ll receive an email to claim the funds
               </p>
               <button
-                onClick={() => navigator.clipboard.writeText(claimUrl!)}
+                onClick={handleCopyClaimLink}
                 className="text-plenmo-500 text-sm hover:underline"
               >
                 Copy claim link
@@ -202,14 +217,27 @@ function SuccessOverlay({
             </a>
           )}
 
-          <button onClick={onClose} className="clay-button clay-button-primary w-full py-3">
-            Done
-          </button>
+          <div className="flex gap-3">
+            {onSendAgain && (
+              <button 
+                onClick={onSendAgain} 
+                className="flex-1 py-3 rounded-2xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+              >
+                Send Again
+              </button>
+            )}
+            <button 
+              onClick={onClose} 
+              className={`clay-button clay-button-primary py-3 ${onSendAgain ? 'flex-1' : 'w-full'}`}
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </ModalPortal>
   );
-}
+});
 
 export function SendMoneyForm({ 
   wallet, 
@@ -225,31 +253,49 @@ export function SendMoneyForm({
   const [recipient, setRecipient] = useState("");
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
-
-  // Auto-fill recipient when selectedContact changes
-  const prevSelectedContactRef = useRef<Contact | null | undefined>(undefined);
-  if (selectedContact && selectedContact !== prevSelectedContactRef.current) {
-    const contactIdentifier = selectedContact.contactAddress || selectedContact.email || selectedContact.phone;
-    if (contactIdentifier) {
-      setRecipient(contactIdentifier);
-      setRecipientName(selectedContact.name);
-    }
-    prevSelectedContactRef.current = selectedContact;
-  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const toast = useToast();
   const { onSuccess: assistantSuccess, onError: assistantError, onLoading: assistantLoading } = useAssistantReaction();
   
-  // Ref to prevent double-submit race condition
+  // Refs for cleanup and preventing double-submit
   const isSubmittingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Payment progress state
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentTxHash, setPaymentTxHash] = useState<string | undefined>();
 
-  const handleSelectContact = (contact: Contact) => {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
+  const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
+  const [lastRecipient, setLastRecipient] = useState<string>("");
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle selectedContact changes properly with useEffect
+  useEffect(() => {
+    if (selectedContact) {
+      const contactIdentifier = selectedContact.contactAddress || selectedContact.email || selectedContact.phone;
+      if (contactIdentifier) {
+        setRecipient(contactIdentifier);
+        setRecipientName(selectedContact.name);
+      }
+    }
+  }, [selectedContact]);
+
+  const handleSelectContact = useCallback((contact: Contact) => {
     if (contact.contactAddress) {
       setRecipient(contact.contactAddress);
       setRecipientName(contact.name);
@@ -261,24 +307,18 @@ export function SendMoneyForm({
       setRecipientName(contact.name);
     }
     playSound('tap');
-  };
+  }, []);
 
-  const handleRecipientChange = (value: string) => {
+  const handleRecipientChange = useCallback((value: string) => {
     setRecipient(value);
     if (recipientName && value !== recipient) {
       setRecipientName(null);
       // Clear selected contact when user manually edits the recipient
       if (onClearSelectedContact) {
         onClearSelectedContact();
-        prevSelectedContactRef.current = undefined;
       }
     }
-  };
-  
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
-  const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
+  }, [recipientName, recipient, onClearSelectedContact]);
 
   const numericBalance = parseFloat(balance || "0");
   const numericAmount = parseFloat(amount || "0");
@@ -286,14 +326,14 @@ export function SendMoneyForm({
   const amountTooSmall = numericAmount > 0 && numericAmount < MIN_AMOUNT;
   const amountTooLarge = numericAmount > MAX_AMOUNT;
 
-  const getAmountError = (): string | null => {
+  const getAmountError = useCallback((): string | null => {
     if (amountTooSmall) return AMOUNT_TOO_SMALL;
     if (amountTooLarge) return AMOUNT_TOO_LARGE;
     if (insufficientBalance) return `${INSUFFICIENT_BALANCE}. You have $${numericBalance.toFixed(2)}.`;
     return null;
-  };
+  }, [amountTooSmall, amountTooLarge, insufficientBalance, numericBalance]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wallet || !recipient || !amount) return;
     
@@ -305,9 +345,9 @@ export function SendMoneyForm({
     
     setError(null);
     setShowConfirm(true);
-  };
+  }, [wallet, recipient, amount, getAmountError]);
 
-  const handleConfirmSend = async () => {
+  const handleConfirmSend = useCallback(async () => {
     // Use ref to prevent double-submit (race condition protection)
     if (!wallet || isSubmittingRef.current) return;
     isSubmittingRef.current = true;
@@ -332,8 +372,11 @@ export function SendMoneyForm({
         setPaymentStatus('confirming');
         setPaymentTxHash(result.txHash);
         
+        // Store last recipient for "Send Again" feature
+        setLastRecipient(recipientName || recipient);
+        
         // After a brief confirmation period, mark as complete
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           setPaymentStatus('complete');
           setShowConfirm(false);
           setSuccessTxHash(result.txHash);
@@ -349,24 +392,37 @@ export function SendMoneyForm({
           }
         }, 1000);
       } else {
+        // Handle unsuccessful result
+        const errorMessage = result.error || "Payment failed. Please try again.";
+        setPaymentStatus('error');
+        setPaymentError(getUserFriendlyError(errorMessage));
         playSound('error');
         hapticFeedback('light');
-        assistantError("Something went wrong. Your funds are safe!");
+        assistantError(getUserFriendlyError(errorMessage));
       }
+    } catch (err) {
+      // Handle exceptions
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
+      setPaymentStatus('error');
+      setPaymentError(getUserFriendlyError(errorMessage));
+      playSound('error');
+      hapticFeedback('light');
+      assistantError("Something went wrong. Your funds are safe!");
+      console.error("Payment error:", err);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
     }
-  };
+  }, [wallet, recipient, amount, recipientName, assistantLoading, assistantSuccess, assistantError, onPaymentSuccess]);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     // Reset payment state and retry
     setPaymentError(null);
     setPaymentStatus('idle');
     handleConfirmSend();
-  };
+  }, [handleConfirmSend]);
 
-  const handleSuccessClose = () => {
+  const handleSuccessClose = useCallback(() => {
     setShowSuccess(false);
     setRecipient("");
     setRecipientName(null);
@@ -377,7 +433,20 @@ export function SendMoneyForm({
     setPaymentError(null);
     setPaymentTxHash(undefined);
     onSuccess?.();
-  };
+  }, [onSuccess]);
+
+  const handleSendAgain = useCallback(() => {
+    setShowSuccess(false);
+    // Keep recipient, clear amount
+    setAmount("");
+    setSuccessTxHash(undefined);
+    setSuccessClaimUrl(undefined);
+    setPaymentStatus('idle');
+    setPaymentError(null);
+    setPaymentTxHash(undefined);
+    // Scroll to form
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
 
   const isValidRecipient =
     recipient.includes("@") || /^\+?\d{10,}$/.test(recipient) || /^0x[a-fA-F0-9]{40}$/.test(recipient);
@@ -387,7 +456,7 @@ export function SendMoneyForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="clay-card p-6 space-y-5">
+      <form ref={formRef} onSubmit={handleSubmit} className="clay-card p-6 space-y-5">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
           <Zap className="w-5 h-5 text-plenmo-500" />
           Send Money
@@ -415,9 +484,9 @@ export function SendMoneyForm({
               onChange={(e) => handleRecipientChange(e.target.value)}
               placeholder="Email, phone, or wallet address"
               aria-label="Recipient email, phone, or wallet address"
-              aria-invalid={recipient && !isValidRecipient && !recipientName ? 'true' : 'false'}
+              aria-invalid={recipient && !isValidRecipient && !recipientName ? true : false}
               aria-describedby={recipient && !isValidRecipient && !recipientName ? 'recipient-error' : undefined}
-              className="clay-input w-full pl-12"
+              className={`clay-input w-full pl-12 ${recipient && !isValidRecipient && !recipientName ? 'border-amber-500/50' : ''}`}
               disabled={loading}
             />
             {recipient && isValidRecipient && (
@@ -450,9 +519,9 @@ export function SendMoneyForm({
               step="0.01"
               min="0"
               aria-label="Payment amount in USD"
-              aria-invalid={(amountTooSmall || amountTooLarge || insufficientBalance) ? 'true' : 'false'}
+              aria-invalid={amountTooSmall || amountTooLarge || insufficientBalance}
               aria-describedby={(amountTooSmall || amountTooLarge || insufficientBalance) ? 'amount-error' : undefined}
-              className="clay-input w-full pl-14 pr-16 text-3xl font-bold"
+              className={`clay-input w-full pl-14 pr-16 text-3xl font-bold ${(amountTooSmall || amountTooLarge || insufficientBalance) ? 'border-amber-500/50' : ''}`}
               disabled={loading}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm">
@@ -512,7 +581,7 @@ export function SendMoneyForm({
         )}
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm flex items-center gap-2" role="alert">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
@@ -563,7 +632,17 @@ export function SendMoneyForm({
         txHash={successTxHash}
         claimUrl={successClaimUrl}
         onClose={handleSuccessClose}
+        onSendAgain={handleSendAgain}
       />
+
+      {/* Aria live region for status updates */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {paymentStatus === 'signing' && 'Preparing payment...'}
+        {paymentStatus === 'submitting' && 'Sending payment...'}
+        {paymentStatus === 'confirming' && 'Confirming transaction...'}
+        {paymentStatus === 'complete' && `Payment of $${amount} sent successfully!`}
+        {paymentStatus === 'error' && `Payment failed: ${paymentError}`}
+      </div>
     </>
   );
 }
