@@ -1,0 +1,42 @@
+{
+  "name": "@plasma-pay/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Plasma Pay - enables Claude, Cursor, and other AI agents to make payments",
+  "main": "dist/index.js",
+  "bin": {
+    "plasma-pay-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs --dts",
+    "dev": "tsup src/index.ts --format cjs --dts --watch",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "plasma",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "ai-agent",
+    "payment"
+  ],
+  "author": "Plasma Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "viem": "^2.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

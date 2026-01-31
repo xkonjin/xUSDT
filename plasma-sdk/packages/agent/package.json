@@ -1,0 +1,55 @@
+{
+  "name": "@plasma-pay/agent",
+  "version": "1.0.0",
+  "description": "One-click payment SDK for AI agents on Plasma - the cheapest way to pay for APIs",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "plasma",
+    "x402",
+    "payment",
+    "ai-agent",
+    "crypto",
+    "usdt",
+    "gasless",
+    "eip-3009"
+  ],
+  "author": "Plasma Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xkonjin/xUSDT"
+  },
+  "dependencies": {
+    "viem": "^2.0.0",
+    "ethers": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  }
+}
