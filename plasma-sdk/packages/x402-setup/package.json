@@ -1,0 +1,29 @@
+{
+  "name": "@plasma-pay/x402-setup",
+  "version": "0.1.0",
+  "description": "Easy X402 payment setup tools for websites and agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "x402",
+    "payments",
+    "setup",
+    "plasma",
+    "agents",
+    "middleware"
+  ],
+  "author": "Plasma",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

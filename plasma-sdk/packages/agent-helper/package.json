@@ -1,0 +1,33 @@
+{
+  "name": "@plasma-pay/agent-helper",
+  "version": "0.1.0",
+  "description": "Agent-to-agent payment setup assistance - helps agents onboard other agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "agent",
+    "payments",
+    "onboarding",
+    "plasma",
+    "ai",
+    "assistant"
+  ],
+  "author": "Plasma",
+  "license": "MIT",
+  "dependencies": {
+    "@plasma-pay/agent": "workspace:*",
+    "@plasma-pay/x402-setup": "workspace:*",
+    "@plasma-pay/zkp2p": "workspace:*",
+    "@plasma-pay/lifi": "workspace:*",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

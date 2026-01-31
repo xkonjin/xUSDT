@@ -1,0 +1,30 @@
+{
+  "name": "@plasma-pay/defi",
+  "version": "0.1.0",
+  "description": "DeFi integration for Plasma Pay - DefiLlama, DEX trading, yield strategies",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "defi",
+    "defillama",
+    "dex",
+    "yield",
+    "plasma",
+    "trading"
+  ],
+  "author": "Plasma",
+  "license": "MIT",
+  "dependencies": {
+    "@defillama/api": "^1.0.0",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

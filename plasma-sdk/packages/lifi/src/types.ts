@@ -264,3 +264,143 @@ export const COMMON_TOKENS: Record<number, Record<string, Address>> = {
  * Supported source chains for swaps to Plasma
  */
 export const SUPPORTED_SOURCE_CHAINS = [1, 8453, 42161, 10, 137, 56, 43114];
+
+// ============================================================================
+// LiFi OUT Types - Send payments in any currency
+// ============================================================================
+
+export interface SendRequest {
+  /**
+   * Recipient address on destination chain
+   */
+  to: Address;
+
+  /**
+   * Amount to send in USDT0 (will be converted)
+   */
+  amount: string;
+
+  /**
+   * Destination chain ID
+   * @default Plasma (prefer Plasma)
+   */
+  toChainId?: number;
+
+  /**
+   * Destination token (what recipient receives)
+   * @default USDT0 on Plasma, or native token on other chains
+   */
+  toToken?: Address;
+
+  /**
+   * Optional note/memo for the payment
+   */
+  note?: string;
+
+  /**
+   * Whether to prefer Plasma when possible
+   * @default true
+   */
+  preferPlasma?: boolean;
+}
+
+export interface SendQuote {
+  /**
+   * Unique quote ID
+   */
+  id: string;
+
+  /**
+   * What sender pays (USDT0 on Plasma)
+   */
+  senderPays: {
+    chainId: number;
+    token: Address;
+    amount: string;
+    amountFormatted: string;
+    symbol: string;
+  };
+
+  /**
+   * What recipient receives
+   */
+  recipientReceives: {
+    chainId: number;
+    token: Address;
+    amount: string;
+    amountFormatted: string;
+    symbol: string;
+  };
+
+  /**
+   * Fee breakdown
+   */
+  fees: {
+    bridgeFee: string;
+    gasFee: string;
+    totalFee: string;
+    totalFeeUsd: string;
+  };
+
+  /**
+   * Estimated time in seconds
+   */
+  estimatedTime: number;
+
+  /**
+   * Whether this uses Plasma (no bridge needed)
+   */
+  isPlasmaOnly: boolean;
+
+  /**
+   * Route steps
+   */
+  steps: SwapStep[];
+
+  /**
+   * Raw route data
+   */
+  rawRoute: unknown;
+}
+
+export interface SendResult {
+  /**
+   * Transaction hash on source chain (Plasma)
+   */
+  sourceTxHash: Hex;
+
+  /**
+   * Transaction hash on destination chain (if bridged)
+   */
+  destinationTxHash?: Hex;
+
+  /**
+   * Final status
+   */
+  status: 'success' | 'pending' | 'failed';
+
+  /**
+   * Amount received by recipient
+   */
+  amountReceived?: string;
+
+  /**
+   * Recipient address
+   */
+  recipient: Address;
+
+  /**
+   * Destination chain
+   */
+  destinationChain: number;
+
+  /**
+   * Error message if failed
+   */
+  error?: string;
+}
+
+/**
+ * Supported destination chains for LiFi OUT
+ */
+export const SUPPORTED_DESTINATION_CHAINS = [1, 8453, 42161, 10, 137, 56, 43114, PLASMA_CHAIN_ID];
