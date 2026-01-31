@@ -25,7 +25,25 @@ const YIELDS_API = 'https://yields.llama.fi';
 
 // Plasma chain configuration
 const PLASMA_CHAIN = 'plasma';
-const PLASMA_CHAIN_ID = 98866;
+const PLASMA_CHAIN_ID = 9745;
+
+// Default timeout for API requests
+const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Fetch with timeout support
+ */
+async function fetchWithTimeout(url: string, timeout = DEFAULT_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export class DeFiClient {
   private defaultChain: string;
@@ -46,9 +64,16 @@ export class DeFiClient {
    * Get all protocols with TVL data
    */
   async getProtocols(): Promise<Protocol[]> {
-    const response = await fetch(`${DEFILLAMA_API}/protocols`);
-    if (!response.ok) throw new Error('Failed to fetch protocols');
-    return response.json();
+    try {
+      const response = await fetchWithTimeout(`${DEFILLAMA_API}/protocols`);
+      if (!response.ok) throw new Error('Failed to fetch protocols');
+      return response.json();
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out fetching protocols');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -238,9 +263,15 @@ export class DeFiClient {
    * Get swap quote
    */
   async getSwapQuote(params: SwapParams): Promise<SwapQuote> {
+    const { fromToken, toToken, amount, slippage } = params;
+    const maxSlippage = slippage ?? this.maxSlippage;
+    
+    // Validate slippage
+    if (maxSlippage < 0 || maxSlippage > 50) {
+      throw new Error('Slippage must be between 0 and 50%');
+    }
+    
     // In production, this would call a DEX aggregator API
-    // For now, return a mock quote
-    const { fromToken, toToken, amount } = params;
 
     return {
       fromToken: {

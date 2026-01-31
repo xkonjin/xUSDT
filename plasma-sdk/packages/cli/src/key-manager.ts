@@ -17,6 +17,42 @@ const scryptAsync = promisify(scrypt);
 
 const SERVICE_NAME = 'plasma-pay';
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+const MIN_PASSWORD_LENGTH = 8;
+const SCRYPT_N = 16384; // CPU/memory cost parameter
+const SCRYPT_R = 8;     // Block size
+const SCRYPT_P = 1;     // Parallelization
+
+/**
+ * Securely clear sensitive data from memory
+ */
+function secureClear(buffer: Buffer | Uint8Array): void {
+  if (buffer instanceof Buffer) {
+    buffer.fill(0);
+  } else {
+    for (let i = 0; i < buffer.length; i++) {
+      buffer[i] = 0;
+    }
+  }
+}
+
+/**
+ * Validate password strength
+ */
+function validatePassword(password: string): { valid: boolean; error?: string } {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { valid: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: 'Password must contain at least one number' };
+  }
+  return { valid: true };
+}
 
 export interface KeyManagerConfig {
   configDir: string;
@@ -170,9 +206,15 @@ export class KeyManager {
    * Encrypt a private key with a password
    */
   async encryptKey(privateKey: Hex, password: string): Promise<string> {
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      throw new Error(passwordValidation.error);
+    }
+    
     const salt = randomBytes(32);
     const iv = randomBytes(16);
-    const key = (await scryptAsync(password, salt, 32)) as Buffer;
+    const key = (await scryptAsync(password, salt, 32, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P })) as Buffer;
     
     const cipher = createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
     let encrypted = cipher.update(privateKey, 'utf8', 'hex');
@@ -180,25 +222,56 @@ export class KeyManager {
     const authTag = cipher.getAuthTag();
     
     // Format: salt:iv:authTag:encrypted
-    return `${salt.toString('hex')}:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+    const result = `${salt.toString('hex')}:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+    
+    // Clear sensitive data from memory
+    secureClear(key);
+    secureClear(salt);
+    secureClear(iv);
+    
+    return result;
   }
 
   /**
    * Decrypt a private key with a password
    */
   async decryptKey(encryptedData: string, password: string): Promise<Hex> {
-    const [saltHex, ivHex, authTagHex, encrypted] = encryptedData.split(':');
+    const parts = encryptedData.split(':');
+    if (parts.length !== 4) {
+      throw new Error('Invalid encrypted data format');
+    }
+    
+    const [saltHex, ivHex, authTagHex, encrypted] = parts;
+    
+    // Validate hex strings
+    if (!/^[a-fA-F0-9]+$/.test(saltHex) || !/^[a-fA-F0-9]+$/.test(ivHex) || !/^[a-fA-F0-9]+$/.test(authTagHex)) {
+      throw new Error('Invalid encrypted data format');
+    }
     
     const salt = Buffer.from(saltHex, 'hex');
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
-    const key = (await scryptAsync(password, salt, 32)) as Buffer;
+    const key = (await scryptAsync(password, salt, 32, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P })) as Buffer;
     
     const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
     
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    let decrypted: string;
+    try {
+      decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+    } catch (error) {
+      // Clear sensitive data before throwing
+      secureClear(key);
+      secureClear(salt);
+      secureClear(iv);
+      throw new Error('Decryption failed - invalid password or corrupted data');
+    }
+    
+    // Clear sensitive data from memory
+    secureClear(key);
+    secureClear(salt);
+    secureClear(iv);
     
     return decrypted as Hex;
   }

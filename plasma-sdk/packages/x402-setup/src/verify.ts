@@ -6,8 +6,12 @@ import { verifyTypedData, recoverTypedDataAddress } from 'viem';
 import type { Address, Hex } from 'viem';
 import type { PaymentProof, VerificationResult } from './types';
 
-const PLASMA_CHAIN_ID = 98866;
-const USDT0_ADDRESS = '0x...'; // TODO: Replace
+const PLASMA_CHAIN_ID = 9745;
+const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace with actual
+
+// Used nonces cache to prevent replay attacks (in production, use Redis or database)
+const usedNonces = new Set<string>();
+const NONCE_CACHE_SIZE = 10000;
 
 // EIP-3009 domain and types
 const EIP3009_DOMAIN = {
@@ -69,6 +73,27 @@ export async function verifyPayment(
     if (parseInt(proof.deadline) < now) {
       return { valid: false, error: 'Payment authorization expired' };
     }
+    
+    // Check validAfter (not before this time)
+    if (proof.validAfter && parseInt(proof.validAfter) > now) {
+      return { valid: false, error: 'Payment authorization not yet valid' };
+    }
+    
+    // Replay attack protection - check if nonce was already used
+    const nonceKey = `${proof.from}:${proof.nonce}`;
+    if (usedNonces.has(nonceKey)) {
+      return { valid: false, error: 'Nonce already used (replay attack detected)' };
+    }
+    
+    // Add nonce to cache (with size limit to prevent memory issues)
+    if (usedNonces.size >= NONCE_CACHE_SIZE) {
+      // Clear oldest entries (simple approach - in production use LRU cache)
+      const entries = Array.from(usedNonces);
+      for (let i = 0; i < NONCE_CACHE_SIZE / 2; i++) {
+        usedNonces.delete(entries[i]);
+      }
+    }
+    usedNonces.add(nonceKey);
 
     return {
       valid: true,
@@ -106,6 +131,17 @@ function parsePaymentProof(proofHeader: string): PaymentProof {
 
   // Validate required fields
   const required = ['signature', 'from', 'to', 'value', 'nonce', 'deadline'];
+  
+  // Validate address formats
+  if (proofData.from && !/^0x[a-fA-F0-9]{40}$/.test(proofData.from)) {
+    throw new Error('Invalid from address format');
+  }
+  if (proofData.to && !/^0x[a-fA-F0-9]{40}$/.test(proofData.to)) {
+    throw new Error('Invalid to address format');
+  }
+  if (proofData.signature && !/^0x[a-fA-F0-9]+$/.test(proofData.signature)) {
+    throw new Error('Invalid signature format');
+  }
   for (const field of required) {
     if (!proofData[field]) {
       throw new Error(`Missing required field: ${field}`);

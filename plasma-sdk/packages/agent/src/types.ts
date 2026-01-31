@@ -70,6 +70,24 @@ export interface PlasmaPayConfig {
    * @default 0.01 XPL (10^16 wei)
    */
   minGasBalance?: bigint;
+
+  /**
+   * Request timeout in milliseconds
+   * @default 30000 (30 seconds)
+   */
+  timeout?: number;
+
+  /**
+   * Maximum number of retries for failed requests
+   * @default 3
+   */
+  maxRetries?: number;
+
+  /**
+   * Base delay between retries in milliseconds (exponential backoff)
+   * @default 1000 (1 second)
+   */
+  retryDelay?: number;
 }
 
 export interface PlasmaWallet {

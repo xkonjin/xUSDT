@@ -95,15 +95,55 @@ const SWAP_ROUTER_ABI = [
 ] as const;
 
 /**
+ * Simple mutex for preventing concurrent operations
+ */
+class Mutex {
+  private locked = false;
+  private waitQueue: (() => void)[] = [];
+
+  async acquire(): Promise<void> {
+    if (!this.locked) {
+      this.locked = true;
+      return;
+    }
+
+    return new Promise<void>((resolve) => {
+      this.waitQueue.push(resolve);
+    });
+  }
+
+  release(): void {
+    if (this.waitQueue.length > 0) {
+      const next = this.waitQueue.shift();
+      next?.();
+    } else {
+      this.locked = false;
+    }
+  }
+}
+
+/**
+ * Daily limit tracker for refills
+ */
+interface DailyLimitTracker {
+  date: string;
+  count: number;
+  totalAmount: bigint;
+}
+
+/**
  * PlasmaGasManager - Auto gas management for self-sovereign agents
  * 
  * Monitors XPL balance and automatically refills from USDT0 when low
+ * Includes protection against race conditions and runaway refills
  * 
  * @example
  * ```typescript
  * const gasManager = new PlasmaGasManager({
  *   privateKey: process.env.WALLET_KEY,
  *   autoRefill: true,
+ *   maxDailyRefills: 5,
+ *   maxDailyAmount: parseUnits('10', 6), // Max 10 USDT0/day
  * });
  * 
  * // Start monitoring
@@ -112,23 +152,30 @@ const SWAP_ROUTER_ABI = [
  * // Check balance
  * const balance = await gasManager.getBalance();
  * console.log(`XPL: ${balance.balanceFormatted}, Healthy: ${balance.isHealthy}`);
- * 
- * // Manual refill if needed
- * if (!balance.isHealthy) {
- *   await gasManager.refill();
- * }
  * ```
  */
 export class PlasmaGasManager {
-  private config: Required<GasManagerConfig>;
+  private config: Required<GasManagerConfig> & {
+    maxDailyRefills: number;
+    maxDailyAmount: bigint;
+  };
   private publicClient: PublicClient;
   private walletClient: WalletClient | null = null;
   private account: Account | null = null;
   private eventHandlers: GasManagerEventHandler[] = [];
   private monitorInterval: NodeJS.Timeout | null = null;
-  private isRefilling = false;
+  private refillMutex = new Mutex();
+  private dailyTracker: DailyLimitTracker = {
+    date: this.getTodayDate(),
+    count: 0,
+    totalAmount: BigInt(0),
+  };
 
-  constructor(config: GasManagerConfig & { privateKey?: Hex } = {}) {
+  constructor(config: GasManagerConfig & { 
+    privateKey?: Hex;
+    maxDailyRefills?: number;
+    maxDailyAmount?: bigint;
+  } = {}) {
     // Merge with defaults
     this.config = {
       plasmaRpcUrl: config.plasmaRpcUrl || PLASMA_RPC_URL,
@@ -138,6 +185,8 @@ export class PlasmaGasManager {
       autoRefill: config.autoRefill ?? true,
       checkInterval: config.checkInterval || 60_000,
       debug: config.debug || false,
+      maxDailyRefills: config.maxDailyRefills ?? 10,
+      maxDailyAmount: config.maxDailyAmount ?? BigInt(10_000_000), // 10 USDT0 default
     };
 
     // Initialize public client
@@ -148,6 +197,10 @@ export class PlasmaGasManager {
 
     // Initialize wallet if private key provided
     if (config.privateKey) {
+      // Validate private key format
+      if (!/^0x[a-fA-F0-9]{64}$/.test(config.privateKey)) {
+        throw new Error('Invalid private key format');
+      }
       this.account = privateKeyToAccount(config.privateKey);
       this.walletClient = createWalletClient({
         account: this.account,
@@ -183,7 +236,7 @@ export class PlasmaGasManager {
     
     // Estimate how many transactions can be done
     const txCost = ESTIMATED_ERC20_GAS * ESTIMATED_GAS_PRICE;
-    const estimatedTxCount = Number(balance / txCost);
+    const estimatedTxCount = txCost > BigInt(0) ? Number(balance / txCost) : 0;
 
     const result: GasBalance = {
       balance,
@@ -227,21 +280,50 @@ export class PlasmaGasManager {
   }
 
   /**
+   * Get daily refill stats
+   */
+  getDailyStats(): { count: number; totalAmount: string; remaining: number } {
+    this.resetDailyTrackerIfNeeded();
+    return {
+      count: this.dailyTracker.count,
+      totalAmount: formatUnits(this.dailyTracker.totalAmount, 6),
+      remaining: this.config.maxDailyRefills - this.dailyTracker.count,
+    };
+  }
+
+  /**
    * Refill XPL gas by swapping USDT0
+   * Protected by mutex to prevent concurrent refills
+   * Protected by daily limits to prevent runaway spending
    */
   async refill(amount?: bigint): Promise<RefillResult> {
     if (!this.walletClient || !this.account) {
       return { success: false, error: 'Wallet not configured' };
     }
 
-    if (this.isRefilling) {
-      return { success: false, error: 'Refill already in progress' };
-    }
-
-    this.isRefilling = true;
-    const refillAmount = amount || this.config.refillAmount;
+    // Acquire mutex to prevent concurrent refills
+    await this.refillMutex.acquire();
 
     try {
+      // Reset daily tracker if it's a new day
+      this.resetDailyTrackerIfNeeded();
+
+      // Check daily limits
+      if (this.dailyTracker.count >= this.config.maxDailyRefills) {
+        const error = `Daily refill limit reached (${this.config.maxDailyRefills} refills)`;
+        this.emit({ type: 'refill_failed', error });
+        return { success: false, error };
+      }
+
+      const refillAmount = amount || this.config.refillAmount;
+
+      if (this.dailyTracker.totalAmount + refillAmount > this.config.maxDailyAmount) {
+        const remaining = this.config.maxDailyAmount - this.dailyTracker.totalAmount;
+        const error = `Daily amount limit reached. Remaining: ${formatUnits(remaining, 6)} USDT0`;
+        this.emit({ type: 'refill_failed', error });
+        return { success: false, error };
+      }
+
       this.emit({ type: 'refill_started', amount: refillAmount });
       this.log('Starting gas refill', { amount: refillAmount.toString() });
 
@@ -275,7 +357,7 @@ export class PlasmaGasManager {
         address: this.address!,
       });
 
-      // Execute swap
+      // Execute swap with deadline
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes
       const txHash = await this.walletClient.writeContract({
         address: GAS_SWAP_ROUTER,
@@ -300,6 +382,10 @@ export class PlasmaGasManager {
 
       const amountReceived = balanceAfter - balanceBefore;
 
+      // Update daily tracker
+      this.dailyTracker.count++;
+      this.dailyTracker.totalAmount += refillAmount;
+
       const result: RefillResult = {
         success: true,
         txHash,
@@ -310,7 +396,8 @@ export class PlasmaGasManager {
       this.emit({ type: 'refill_completed', data: result });
       this.log('Gas refill completed', { 
         txHash, 
-        received: formatUnits(amountReceived, 18) 
+        received: formatUnits(amountReceived, 18),
+        dailyCount: this.dailyTracker.count,
       });
 
       return result;
@@ -320,7 +407,7 @@ export class PlasmaGasManager {
       this.log('Gas refill failed', { error: errorMsg });
       return { success: false, error: errorMsg };
     } finally {
-      this.isRefilling = false;
+      this.refillMutex.release();
     }
   }
 
@@ -396,6 +483,22 @@ export class PlasmaGasManager {
   // Private Methods
   // ============================================================================
 
+  private getTodayDate(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  private resetDailyTrackerIfNeeded(): void {
+    const today = this.getTodayDate();
+    if (this.dailyTracker.date !== today) {
+      this.dailyTracker = {
+        date: today,
+        count: 0,
+        totalAmount: BigInt(0),
+      };
+      this.log('Daily tracker reset for new day');
+    }
+  }
+
   private async checkAndRefill(): Promise<void> {
     try {
       const balance = await this.getBalance();
@@ -442,3 +545,5 @@ export async function hasEnoughGas(
   const balance = await client.getBalance({ address });
   return balance >= minBalance;
 }
+
+export default PlasmaGasManager;

@@ -22,12 +22,8 @@ import type {
   PaymentReceipt,
   PaymentOption,
   BalanceInfo,
-  PlasmaPayError,
   PlasmaPayEvent,
   PlasmaPayEventHandler,
-  PLASMA_CHAIN_ID,
-  USDT0_DECIMALS,
-  XPL_DECIMALS,
 } from './types';
 
 // Default configuration
@@ -40,6 +36,9 @@ const DEFAULT_CONFIG: Partial<PlasmaPayConfig> = {
   debug: false,
   autoGas: true,
   minGasBalance: BigInt(10_000_000_000_000_000), // 0.01 XPL
+  timeout: 30000, // 30 seconds
+  maxRetries: 3,
+  retryDelay: 1000, // 1 second base delay
 };
 
 // ERC20 ABI for balance checks
@@ -75,6 +74,21 @@ const ERC20_ABI = [
 ] as const;
 
 /**
+ * Custom error class for Plasma Pay errors
+ */
+export class PlasmaPayError extends Error {
+  code: string;
+  details?: Record<string, unknown>;
+
+  constructor(code: string, message: string, details?: Record<string, unknown>) {
+    super(message);
+    this.name = 'PlasmaPayError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+/**
  * PlasmaPayClient - One-click payment SDK for AI agents
  * 
  * @example
@@ -82,6 +96,9 @@ const ERC20_ABI = [
  * const client = new PlasmaPayClient({
  *   privateKey: process.env.PLASMA_WALLET_KEY,
  * });
+ * 
+ * // Simple payment
+ * await client.sendPayment({ to: '0x...', amount: '10.00' });
  * 
  * // Automatic payment on 402 responses
  * const response = await client.fetch('https://api.example.com/data');
@@ -93,11 +110,17 @@ export class PlasmaPayClient {
   private signer: PlasmaSigner;
   private publicClient: PublicClient;
   private eventHandlers: PlasmaPayEventHandler[] = [];
+  private pendingPayments: Set<string> = new Set(); // Track in-flight payments
 
   constructor(config: PlasmaPayConfig) {
     // Validate config
     if (!config.privateKey && !config.wallet) {
-      throw new Error('Either privateKey or wallet must be provided');
+      throw new PlasmaPayError('INVALID_CONFIG', 'Either privateKey or wallet must be provided');
+    }
+
+    // Validate private key format if provided
+    if (config.privateKey && !this.isValidPrivateKey(config.privateKey)) {
+      throw new PlasmaPayError('INVALID_PRIVATE_KEY', 'Private key must be a valid 32-byte hex string starting with 0x');
     }
 
     // Merge with defaults
@@ -119,10 +142,88 @@ export class PlasmaPayClient {
   }
 
   /**
+   * Validate private key format
+   */
+  private isValidPrivateKey(key: string): boolean {
+    return /^0x[a-fA-F0-9]{64}$/.test(key);
+  }
+
+  /**
    * Get the wallet address
    */
   get address(): Address {
     return this.signer.address;
+  }
+
+  /**
+   * Send a simple payment to an address
+   * 
+   * @example
+   * ```typescript
+   * await client.sendPayment({
+   *   to: '0x1234...',
+   *   amount: '10.00', // 10 USDT0
+   *   note: 'Payment for services',
+   * });
+   * ```
+   */
+  async sendPayment(params: {
+    to: Address;
+    amount: string;
+    note?: string;
+  }): Promise<PaymentReceipt> {
+    // Validate address
+    if (!this.isValidAddress(params.to)) {
+      throw new PlasmaPayError('INVALID_ADDRESS', 'Invalid recipient address');
+    }
+
+    // Validate amount
+    const amount = this.parseAmount(params.amount);
+    if (amount <= BigInt(0)) {
+      throw new PlasmaPayError('INVALID_AMOUNT', 'Amount must be greater than 0');
+    }
+
+    // Check balance
+    const balance = await this.getBalance();
+    if (balance.usdt0 < amount) {
+      throw new PlasmaPayError('INSUFFICIENT_BALANCE',
+        `Insufficient USDT0 balance. Required: ${params.amount}, Available: ${balance.usdt0Formatted}`,
+        { required: amount.toString(), available: balance.usdt0.toString() }
+      );
+    }
+
+    // Check gas
+    if (!balance.hasGas) {
+      this.emit({ type: 'gas_low', balance: balance.xpl });
+      if (this.config.autoGas) {
+        // TODO: Auto-refill gas
+        this.log('Low gas balance, auto-refill not yet implemented');
+      }
+    }
+
+    const usdt0Address = USDT0_ADDRESSES[9745];
+    const invoiceId = `direct-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Create payment option for direct transfer
+    const option: PaymentOption = {
+      scheme: 'eip3009-transfer-with-auth',
+      network: 'eip155:9745',
+      chainId: 9745,
+      token: usdt0Address,
+      amount: amount.toString(),
+      recipient: params.to,
+      nonce: generateNonce(),
+    };
+
+    // Sign and submit
+    const submission = await this.signPayment(invoiceId, option);
+    this.emit({ type: 'payment_submitted', data: submission });
+
+    const receipt = await this.submitPayment(submission, option.token);
+    this.emit({ type: 'payment_completed', data: receipt });
+
+    this.log('Payment completed', { txHash: receipt.txHash, to: params.to, amount: params.amount });
+    return receipt;
   }
 
   /**
@@ -136,8 +237,8 @@ export class PlasmaPayClient {
   async fetch(url: string, options?: RequestInit): Promise<Response> {
     this.log('Fetching', { url });
 
-    // Make initial request
-    let response = await fetch(url, options);
+    // Make initial request with timeout
+    let response = await this.fetchWithTimeout(url, options);
 
     // Check for 402 Payment Required
     if (response.status === 402 && this.config.autoPayment) {
@@ -153,7 +254,7 @@ export class PlasmaPayClient {
         const newHeaders = new Headers(options?.headers);
         newHeaders.set('X-Payment', this.encodePaymentHeader(receipt));
         
-        response = await fetch(url, {
+        response = await this.fetchWithTimeout(url, {
           ...options,
           headers: newHeaders,
         });
@@ -164,52 +265,96 @@ export class PlasmaPayClient {
   }
 
   /**
+   * Fetch with timeout support
+   */
+  private async fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      return response;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new PlasmaPayError('TIMEOUT', `Request timed out after ${this.config.timeout}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * Execute a payment for a PaymentRequired response
    */
   async pay(paymentRequired: PaymentRequired): Promise<PaymentReceipt> {
-    this.log('Processing payment', { invoiceId: paymentRequired.invoiceId });
+    const invoiceId = paymentRequired.invoiceId;
+    this.log('Processing payment', { invoiceId });
 
-    // Choose the best payment option
-    const option = this.choosePaymentOption(paymentRequired.paymentOptions);
-    
-    if (!option) {
-      throw this.createError('UNSUPPORTED_SCHEME', 'No supported payment option found');
+    // Check for duplicate payment
+    if (this.pendingPayments.has(invoiceId)) {
+      throw new PlasmaPayError('DUPLICATE_PAYMENT', 'Payment already in progress for this invoice');
     }
 
-    // Check amount limit
-    const amount = BigInt(option.amount);
-    if (amount > this.config.maxAmountPerRequest) {
-      throw this.createError('AMOUNT_EXCEEDS_MAX', 
-        `Payment amount ${formatUnits(amount, 6)} USDT0 exceeds maximum ${formatUnits(this.config.maxAmountPerRequest, 6)} USDT0`,
-        { required: option.amount, max: this.config.maxAmountPerRequest.toString() }
-      );
+    this.pendingPayments.add(invoiceId);
+
+    try {
+      // Choose the best payment option
+      const option = this.choosePaymentOption(paymentRequired.paymentOptions);
+      
+      if (!option) {
+        throw new PlasmaPayError('UNSUPPORTED_SCHEME', 'No supported payment option found');
+      }
+
+      // Validate amount
+      const amount = BigInt(option.amount);
+      if (amount <= BigInt(0)) {
+        throw new PlasmaPayError('INVALID_AMOUNT', 'Payment amount must be greater than 0');
+      }
+
+      // Check amount limit
+      if (amount > this.config.maxAmountPerRequest) {
+        throw new PlasmaPayError('AMOUNT_EXCEEDS_MAX', 
+          `Payment amount ${formatUnits(amount, 6)} USDT0 exceeds maximum ${formatUnits(this.config.maxAmountPerRequest, 6)} USDT0`,
+          { required: option.amount, max: this.config.maxAmountPerRequest.toString() }
+        );
+      }
+
+      // Check balance
+      const balance = await this.getBalance();
+      if (balance.usdt0 < amount) {
+        throw new PlasmaPayError('INSUFFICIENT_BALANCE',
+          `Insufficient USDT0 balance. Required: ${formatUnits(amount, 6)}, Available: ${balance.usdt0Formatted}`,
+          { required: option.amount, available: balance.usdt0.toString() }
+        );
+      }
+
+      // Check gas if self-sovereign mode
+      if (!balance.hasGas && this.config.autoGas) {
+        this.emit({ type: 'gas_low', balance: balance.xpl });
+      }
+
+      // Validate nonce if provided
+      if (option.nonce && !this.isValidNonce(option.nonce)) {
+        throw new PlasmaPayError('INVALID_NONCE', 'Invalid nonce format');
+      }
+
+      // Sign the payment
+      const submission = await this.signPayment(invoiceId, option);
+      this.emit({ type: 'payment_submitted', data: submission });
+
+      // Submit to facilitator with retry
+      const receipt = await this.submitPaymentWithRetry(submission, option.token);
+      this.emit({ type: 'payment_completed', data: receipt });
+
+      this.log('Payment completed', { txHash: receipt.txHash });
+      return receipt;
+    } finally {
+      this.pendingPayments.delete(invoiceId);
     }
-
-    // Check balance
-    const balance = await this.getBalance();
-    if (balance.usdt0 < amount) {
-      throw this.createError('INSUFFICIENT_BALANCE',
-        `Insufficient USDT0 balance. Required: ${formatUnits(amount, 6)}, Available: ${balance.usdt0Formatted}`,
-        { required: option.amount, available: balance.usdt0.toString() }
-      );
-    }
-
-    // Check gas if self-sovereign mode
-    if (!balance.hasGas && this.config.autoGas) {
-      this.emit({ type: 'gas_low', balance: balance.xpl });
-      // TODO: Auto-refill gas via LiFi
-    }
-
-    // Sign the payment
-    const submission = await this.signPayment(paymentRequired.invoiceId, option);
-    this.emit({ type: 'payment_submitted', data: submission });
-
-    // Submit to facilitator or directly to chain
-    const receipt = await this.submitPayment(submission);
-    this.emit({ type: 'payment_completed', data: receipt });
-
-    this.log('Payment completed', { txHash: receipt.txHash });
-    return receipt;
   }
 
   /**
@@ -264,8 +409,28 @@ export class PlasmaPayClient {
   // Private Methods
   // ============================================================================
 
+  private isValidAddress(address: string): boolean {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  }
+
+  private isValidNonce(nonce: string): boolean {
+    return /^0x[a-fA-F0-9]{64}$/.test(nonce);
+  }
+
+  private parseAmount(amount: string): bigint {
+    try {
+      // Handle both "10.00" and "10000000" formats
+      if (amount.includes('.')) {
+        return parseUnits(amount, 6);
+      }
+      return BigInt(amount);
+    } catch (e) {
+      throw new PlasmaPayError('INVALID_AMOUNT', `Invalid amount format: ${amount}`);
+    }
+  }
+
   private async parsePaymentRequired(response: Response): Promise<PaymentRequired | null> {
-    // Try X-Payment-Required header first
+    // Try X-Payment-Required header first (X402 standard)
     const header = response.headers.get('X-Payment-Required') || 
                    response.headers.get('PAYMENT-REQUIRED');
     
@@ -379,46 +544,78 @@ export class PlasmaPayClient {
       };
     }
 
-    throw this.createError('UNSUPPORTED_SCHEME', `Unsupported payment scheme: ${option.scheme}`);
+    throw new PlasmaPayError('UNSUPPORTED_SCHEME', `Unsupported payment scheme: ${option.scheme}`);
   }
 
-  private async submitPayment(submission: PaymentSubmitted): Promise<PaymentReceipt> {
-    // Submit to facilitator
-    const response = await fetch(`${this.config.facilitatorUrl}/api/v1/settle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(submission),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw this.createError('FACILITATOR_ERROR', error.message || 'Payment settlement failed');
-    }
-
-    const result = await response.json();
+  private async submitPaymentWithRetry(submission: PaymentSubmitted, tokenAddress: Address): Promise<PaymentReceipt> {
+    let lastError: Error | null = null;
     
-    return {
-      type: 'payment-completed',
-      invoiceId: submission.invoiceId,
-      txHash: result.txHash,
-      timestamp: Date.now(),
-      amount: (submission.authorization as any).value,
-      token: '0x0000000000000000000000000000000000000000' as Address,
-      network: 'eip155:9745',
-    };
+    for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+      try {
+        return await this.submitPayment(submission, tokenAddress);
+      } catch (error: any) {
+        lastError = error;
+        
+        // Don't retry on non-retryable errors
+        if (error.code === 'INSUFFICIENT_BALANCE' || 
+            error.code === 'INVALID_SIGNATURE' ||
+            error.code === 'NONCE_ALREADY_USED') {
+          throw error;
+        }
+        
+        // Exponential backoff
+        const delay = this.config.retryDelay * Math.pow(2, attempt);
+        this.log(`Payment submission failed, retrying in ${delay}ms`, { attempt: attempt + 1, error: error.message });
+        await this.sleep(delay);
+      }
+    }
+    
+    throw lastError || new PlasmaPayError('UNKNOWN_ERROR', 'Payment submission failed after retries');
+  }
+
+  private async submitPayment(submission: PaymentSubmitted, tokenAddress: Address): Promise<PaymentReceipt> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    try {
+      // Submit to facilitator
+      const response = await fetch(`${this.config.facilitatorUrl}/api/v1/settle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submission),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new PlasmaPayError('FACILITATOR_ERROR', error.message || 'Payment settlement failed', { status: response.status });
+      }
+
+      const result = await response.json();
+      
+      return {
+        type: 'payment-completed',
+        invoiceId: submission.invoiceId,
+        txHash: result.txHash,
+        timestamp: Date.now(),
+        amount: (submission.authorization as any).value,
+        token: tokenAddress,
+        network: 'eip155:9745',
+      };
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new PlasmaPayError('TIMEOUT', 'Payment submission timed out');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private encodePaymentHeader(receipt: PaymentReceipt): string {
     return btoa(JSON.stringify(receipt));
-  }
-
-  private createError(code: string, message: string, details?: Record<string, unknown>): Error {
-    const error = new Error(message) as any;
-    error.code = code;
-    error.details = details;
-    return error;
   }
 
   private emit(event: PlasmaPayEvent): void {
@@ -436,4 +633,10 @@ export class PlasmaPayClient {
       console.log(`[PlasmaPayClient] ${message}`, data || '');
     }
   }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 }
+
+export default PlasmaPayClient;
