@@ -32,7 +32,7 @@ export const PLENMO_KNOWLEDGE = {
     
     network: {
       name: "Plasma Chain",
-      chainId: 9745,
+      chainId: 98866,
       rpc: "https://rpc.plasma.to",
       description: "A fast, low-cost Layer 2 blockchain optimized for payments.",
     },

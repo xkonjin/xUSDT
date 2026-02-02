@@ -1,0 +1,54 @@
+{
+  "name": "@plasma-pay/facilitator",
+  "version": "0.1.0",
+  "description": "X402 FacilitatorEvmSigner implementation for Plasma chain with USDT0 support",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@x402/evm": "^2.2.0",
+    "ethers": "^6.13.0",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "ethers": "^6.0.0"
+  },
+  "keywords": [
+    "x402",
+    "plasma",
+    "usdt0",
+    "facilitator",
+    "evm",
+    "payments",
+    "ai-agents"
+  ],
+  "author": "Plasma Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xkonjin/xUSDT.git",
+    "directory": "plasma-sdk/packages/facilitator"
+  }
+}

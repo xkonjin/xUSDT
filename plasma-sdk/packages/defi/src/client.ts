@@ -25,7 +25,7 @@ const YIELDS_API = 'https://yields.llama.fi';
 
 // Plasma chain configuration
 const PLASMA_CHAIN = 'plasma';
-const PLASMA_CHAIN_ID = 9745;
+const PLASMA_CHAIN_ID = 98866;
 
 // Default timeout for API requests
 const DEFAULT_TIMEOUT = 30000;

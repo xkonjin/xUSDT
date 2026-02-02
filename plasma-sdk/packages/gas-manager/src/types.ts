@@ -130,7 +130,7 @@ export type GasManagerEventHandler = (event: GasManagerEvent) => void;
 // Constants
 // ============================================================================
 
-export const PLASMA_CHAIN_ID = 9745;
+export const PLASMA_CHAIN_ID = 98866;
 export const PLASMA_RPC_URL = 'https://rpc.plasma.xyz';
 
 // Default gas values

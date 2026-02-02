@@ -109,7 +109,7 @@ export interface PaymentRequired {
 }
 
 export interface PaymentOption {
-  /** CAIP-2 network identifier (e.g., "eip155:9745" for Plasma) */
+  /** CAIP-2 network identifier (e.g., "eip155:98866" for Plasma) */
   network: string;
   /** CAIP-19 asset identifier */
   asset: string;
@@ -276,13 +276,13 @@ export type PlasmaPayEventHandler = (event: PlasmaPayEvent) => void;
 // Chain Constants
 // ============================================================================
 
-export const PLASMA_CHAIN_ID = 9745;
+export const PLASMA_CHAIN_ID = 98866;
 export const PLASMA_RPC_URL = 'https://rpc.plasma.xyz';
 export const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace with actual
 export const USDT0_DECIMALS = 6;
 export const XPL_DECIMALS = 18;
 
 // CAIP-2 identifiers
-export const PLASMA_CAIP2 = 'eip155:9745';
+export const PLASMA_CAIP2 = 'eip155:98866';
 export const BASE_CAIP2 = 'eip155:8453';
 export const ETHEREUM_CAIP2 = 'eip155:1';

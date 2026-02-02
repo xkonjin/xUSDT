@@ -144,7 +144,7 @@ const ACROSS_SUPPORTED_CHAINS = [
  */
 export function isAcrossSupported(fromChainId: number): boolean {
   // Across requires both chains to be in their supported list
-  // Plasma (9745) may not be supported yet - check dynamically
+  // Plasma (98866) may not be supported yet - check dynamically
   return ACROSS_SUPPORTED_CHAINS.includes(fromChainId);
 }
 

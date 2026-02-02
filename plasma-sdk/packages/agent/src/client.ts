@@ -201,14 +201,14 @@ export class PlasmaPayClient {
       }
     }
 
-    const usdt0Address = USDT0_ADDRESSES[9745];
+    const usdt0Address = USDT0_ADDRESSES[98866];
     const invoiceId = `direct-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     // Create payment option for direct transfer
     const option: PaymentOption = {
       scheme: 'eip3009-transfer-with-auth',
-      network: 'eip155:9745',
-      chainId: 9745,
+      network: 'eip155:98866',
+      chainId: 98866,
       token: usdt0Address,
       amount: amount.toString(),
       recipient: params.to,
@@ -361,7 +361,7 @@ export class PlasmaPayClient {
    * Get USDT0 and XPL balances
    */
   async getBalance(): Promise<BalanceInfo> {
-    const usdt0Address = USDT0_ADDRESSES[9745];
+    const usdt0Address = USDT0_ADDRESSES[98866];
     
     // Get USDT0 balance
     let usdt0 = BigInt(0);
@@ -459,9 +459,9 @@ export class PlasmaPayClient {
   private choosePaymentOption(options: PaymentOption[]): PaymentOption | null {
     // Prefer Plasma network
     const plasmaOptions = options.filter(o => 
-      o.network === 'eip155:9745' || 
+      o.network === 'eip155:98866' || 
       o.network === 'plasma' || 
-      o.chainId === 9745
+      o.chainId === 98866
     );
 
     if (plasmaOptions.length > 0) {
@@ -602,7 +602,7 @@ export class PlasmaPayClient {
         timestamp: Date.now(),
         amount: (submission.authorization as any).value,
         token: tokenAddress,
-        network: 'eip155:9745',
+        network: 'eip155:98866',
       };
     } catch (error: any) {
       if (error.name === 'AbortError') {

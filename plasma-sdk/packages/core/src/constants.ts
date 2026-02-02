@@ -3,7 +3,7 @@
  */
 
 // Chain IDs
-export const PLASMA_MAINNET_CHAIN_ID = 9745;
+export const PLASMA_MAINNET_CHAIN_ID = 98866;
 export const PLASMA_TESTNET_CHAIN_ID = 9746;
 
 // RPC URLs

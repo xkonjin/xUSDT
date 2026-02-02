@@ -23,7 +23,7 @@ const DEBRIDGE_CHAIN_IDS: Record<number, number> = {
   42161: 42161,   // Arbitrum
   43114: 43114,   // Avalanche
   8453: 8453,     // Base
-  9745: 9745,     // Plasma
+  98866: 98866,     // Plasma
   7565164: 7565164, // Solana
 };
 

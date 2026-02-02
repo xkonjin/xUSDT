@@ -68,7 +68,7 @@ export interface SwapRequest {
 
   /**
    * Destination chain ID
-   * @default 9745 (Plasma)
+   * @default 98866 (Plasma)
    */
   toChainId?: number;
 
@@ -209,7 +209,7 @@ export interface ChainInfo {
 // Constants
 // ============================================================================
 
-export const PLASMA_CHAIN_ID = 9745;
+export const PLASMA_CHAIN_ID = 98866;
 export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 export const USDT0_ADDRESS_PLASMA = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace
 
@@ -254,7 +254,7 @@ export const COMMON_TOKENS: Record<number, Record<string, Address>> = {
     MATIC: NATIVE_TOKEN_ADDRESS,
   },
   // Plasma
-  9745: {
+  98866: {
     USDT0: USDT0_ADDRESS_PLASMA,
     XPL: NATIVE_TOKEN_ADDRESS,
   },

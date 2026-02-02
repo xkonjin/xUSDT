@@ -26,7 +26,7 @@ import {
 
 describe('Chain IDs', () => {
   it('PLASMA_MAINNET_CHAIN_ID is correct', () => {
-    expect(PLASMA_MAINNET_CHAIN_ID).toBe(9745);
+    expect(PLASMA_MAINNET_CHAIN_ID).toBe(98866);
     expect(typeof PLASMA_MAINNET_CHAIN_ID).toBe('number');
   });
 

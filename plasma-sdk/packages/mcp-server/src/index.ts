@@ -36,7 +36,7 @@ import {
 // Configuration
 // ============================================================================
 
-const PLASMA_CHAIN_ID = 9745;
+const PLASMA_CHAIN_ID = 98866;
 const PLASMA_RPC_URL = process.env.PLASMA_RPC_URL || 'https://rpc.plasma.xyz';
 const FACILITATOR_URL = process.env.PLASMA_FACILITATOR_URL || 'https://pay.plasma.xyz';
 const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace

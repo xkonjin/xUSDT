@@ -6,7 +6,7 @@ import { verifyTypedData, recoverTypedDataAddress } from 'viem';
 import type { Address, Hex } from 'viem';
 import type { PaymentProof, VerificationResult } from './types';
 
-const PLASMA_CHAIN_ID = 9745;
+const PLASMA_CHAIN_ID = 98866;
 const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace with actual
 
 // Used nonces cache to prevent replay attacks (in production, use Redis or database)
