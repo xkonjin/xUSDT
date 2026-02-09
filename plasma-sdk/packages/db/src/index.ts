@@ -1,6 +1,6 @@
 /**
  * @plasma-pay/db
- * 
+ *
  * Database layer for Plasma SDK applications.
  * Provides Prisma-based data access for:
  * - Payment Links (shareable URLs for receiving payments)
@@ -12,7 +12,7 @@
  */
 
 // Re-export the Prisma client singleton
-export { prisma, default as db } from './client';
+export { prisma, default as db } from "./client";
 
 // Re-export Prisma types for use in other packages
 export type {
@@ -30,10 +30,10 @@ export type {
   UserSettings,
   Stream,
   GasSponsorshipLog,
-} from '@prisma/client';
+} from "@prisma/client";
 
 // Re-export Prisma namespace for advanced queries
-export { Prisma } from '@prisma/client';
+export { Prisma } from "@prisma/client";
 
 // ============================================================================
 // HELPER TYPES
@@ -42,44 +42,49 @@ export { Prisma } from '@prisma/client';
 /**
  * Status types for various entities
  */
-export type PaymentLinkStatus = 'active' | 'paid' | 'expired' | 'cancelled';
-export type PaymentRequestStatus = 'pending' | 'paid' | 'declined' | 'expired';
-export type ClaimStatus = 'pending' | 'claimed' | 'expired' | 'cancelled';
-export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'delivered';
-export type InvoiceStatus = 'pending' | 'paid' | 'expired' | 'failed';
-export type BillStatus = 'draft' | 'active' | 'completed';
+export type PaymentLinkStatus = "active" | "paid" | "expired" | "cancelled";
+export type PaymentRequestStatus = "pending" | "paid" | "declined" | "expired";
+export type ClaimStatus =
+  | "pending"
+  | "processing"
+  | "claimed"
+  | "expired"
+  | "cancelled";
+export type NotificationStatus = "pending" | "sent" | "failed" | "delivered";
+export type InvoiceStatus = "pending" | "paid" | "expired" | "failed";
+export type BillStatus = "draft" | "active" | "completed";
 
 /**
  * Notification types
  */
 export type NotificationType =
-  | 'payment_received'
-  | 'payment_request'
-  | 'claim_available'
-  | 'payment_completed'
-  | 'request_declined'
-  | 'bill_created'
-  | 'bill_share_assigned';
+  | "payment_received"
+  | "payment_request"
+  | "claim_available"
+  | "payment_completed"
+  | "request_declined"
+  | "bill_created"
+  | "bill_share_assigned";
 
 // ============================================================================
 // DATA ACCESS HELPERS
 // ============================================================================
 
-import { prisma } from './client';
-import crypto from 'crypto';
+import { prisma } from "./client";
+import crypto from "crypto";
 
 /**
  * Generate a secure random token for claims
  */
 export function generateClaimToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 /**
  * Hash a claim token for storage (we never store plain tokens)
  */
 export function hashClaimToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 /**
@@ -99,8 +104,8 @@ export const paymentLinks = {
     return prisma.paymentLink.create({
       data: {
         ...data,
-        currency: 'USDT0',
-        status: 'active',
+        currency: "USDT0",
+        status: "active",
       },
     });
   },
@@ -118,7 +123,7 @@ export const paymentLinks = {
   async getByCreator(creatorAddress: string) {
     return prisma.paymentLink.findMany({
       where: { creatorAddress },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   },
 
@@ -129,7 +134,7 @@ export const paymentLinks = {
     return prisma.paymentLink.update({
       where: { id },
       data: {
-        status: 'paid',
+        status: "paid",
         paidBy,
         paidAt: new Date(),
         txHash,
@@ -143,10 +148,10 @@ export const paymentLinks = {
   async expireOld() {
     return prisma.paymentLink.updateMany({
       where: {
-        status: 'active',
+        status: "active",
         expiresAt: { lt: new Date() },
       },
-      data: { status: 'expired' },
+      data: { status: "expired" },
     });
   },
 };
@@ -170,9 +175,10 @@ export const paymentRequests = {
     return prisma.paymentRequest.create({
       data: {
         ...data,
-        currency: 'USDT0',
-        status: 'pending',
-        expiresAt: data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days default
+        currency: "USDT0",
+        status: "pending",
+        expiresAt:
+          data.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days default
       },
     });
   },
@@ -183,7 +189,7 @@ export const paymentRequests = {
   async getSent(fromAddress: string) {
     return prisma.paymentRequest.findMany({
       where: { fromAddress },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   },
 
@@ -197,9 +203,9 @@ export const paymentRequests = {
           { toAddress: addressOrIdentifier },
           { toIdentifier: addressOrIdentifier.toLowerCase() },
         ],
-        status: 'pending',
+        status: "pending",
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   },
 
@@ -210,7 +216,7 @@ export const paymentRequests = {
     return prisma.paymentRequest.update({
       where: { id },
       data: {
-        status: 'paid',
+        status: "paid",
         paidAt: new Date(),
         txHash,
       },
@@ -224,7 +230,7 @@ export const paymentRequests = {
     return prisma.paymentRequest.update({
       where: { id },
       data: {
-        status: 'declined',
+        status: "declined",
         declinedAt: new Date(),
         declineReason: reason,
       },
@@ -261,10 +267,11 @@ export const claims = {
         recipientPhone: data.recipientPhone,
         authorization: JSON.stringify(data.authorization),
         amount: data.amount,
-        currency: 'USDT0',
+        currency: "USDT0",
         memo: data.memo,
-        status: 'pending',
-        expiresAt: data.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
+        status: "pending",
+        expiresAt:
+          data.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days default
       },
     });
 
@@ -286,7 +293,7 @@ export const claims = {
     return prisma.claim.update({
       where: { id },
       data: {
-        status: 'claimed',
+        status: "claimed",
         claimedBy,
         claimedAt: new Date(),
         txHash,
@@ -317,7 +324,7 @@ export const notifications = {
       data: {
         ...data,
         data: data.data ? JSON.stringify(data.data) : null,
-        status: 'pending',
+        status: "pending",
       },
     });
   },
@@ -328,7 +335,7 @@ export const notifications = {
   async markSent(id: string) {
     return prisma.notification.update({
       where: { id },
-      data: { status: 'sent', sentAt: new Date() },
+      data: { status: "sent", sentAt: new Date() },
     });
   },
 
@@ -338,7 +345,7 @@ export const notifications = {
   async markFailed(id: string, reason: string) {
     return prisma.notification.update({
       where: { id },
-      data: { status: 'failed', failedAt: new Date(), failureReason: reason },
+      data: { status: "failed", failedAt: new Date(), failureReason: reason },
     });
   },
 
@@ -347,8 +354,8 @@ export const notifications = {
    */
   async getPending() {
     return prisma.notification.findMany({
-      where: { status: 'pending' },
-      orderBy: { createdAt: 'asc' },
+      where: { status: "pending" },
+      orderBy: { createdAt: "asc" },
     });
   },
 };
@@ -370,9 +377,9 @@ export const invoices = {
     return prisma.invoice.create({
       data: {
         ...data,
-        currency: 'USDT0',
+        currency: "USDT0",
         paymentOptions: JSON.stringify(data.paymentOptions),
-        status: 'pending',
+        status: "pending",
         expiresAt: data.expiresAt || new Date(Date.now() + 10 * 60 * 1000), // 10 minutes default
       },
     });
@@ -392,7 +399,7 @@ export const invoices = {
     return prisma.invoice.update({
       where: { id },
       data: {
-        status: 'paid',
+        status: "paid",
         paidBy,
         paidAt: new Date(),
         txHash,
@@ -423,8 +430,8 @@ export const bills = {
     return prisma.bill.create({
       data: {
         ...data,
-        currency: 'USDT0',
-        status: 'draft',
+        currency: "USDT0",
+        status: "draft",
       },
     });
   },
@@ -455,19 +462,22 @@ export const bills = {
       include: {
         participants: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   },
 
   /**
    * Add a participant to a bill
    */
-  async addParticipant(billId: string, data: {
-    name: string;
-    email?: string;
-    phone?: string;
-    color?: string;
-  }) {
+  async addParticipant(
+    billId: string,
+    data: {
+      name: string;
+      email?: string;
+      phone?: string;
+      color?: string;
+    }
+  ) {
     return prisma.billParticipant.create({
       data: {
         billId,
@@ -479,11 +489,14 @@ export const bills = {
   /**
    * Add an item to a bill
    */
-  async addItem(billId: string, data: {
-    name: string;
-    price: number;
-    quantity?: number;
-  }) {
+  async addItem(
+    billId: string,
+    data: {
+      name: string;
+      price: number;
+      quantity?: number;
+    }
+  ) {
     return prisma.billItem.create({
       data: {
         billId,
@@ -515,4 +528,3 @@ export const bills = {
     });
   },
 };
-

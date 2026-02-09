@@ -2,7 +2,7 @@
 
 /**
  * Claim Page - /claim/[token]
- * 
+ *
  * This page allows users to claim money that was sent to them
  * before they had a wallet. The sender provides a claim link,
  * and the recipient can sign up/login to claim the funds.
@@ -10,17 +10,25 @@
 
 import { useState, useEffect } from "react";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
-import { Gift, Loader2, AlertCircle, CheckCircle, ArrowLeft, ExternalLink, Wallet } from "lucide-react";
+import {
+  Gift,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  ArrowLeft,
+  ExternalLink,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { isAddress } from "viem";
 
 // ClaimToExternalWallet component - allows claiming to any wallet address
-function ClaimToExternalWallet({ 
-  token, 
+function ClaimToExternalWallet({
+  token,
   amount,
-  onSuccess, 
-  onError 
-}: { 
+  onSuccess,
+  onError,
+}: {
   token: string;
   amount: number;
   onSuccess: (txHash: string) => void;
@@ -130,11 +138,7 @@ interface ClaimData {
   createdAt: string;
 }
 
-export default function ClaimPage({
-  params,
-}: {
-  params: { token: string };
-}) {
+export default function ClaimPage({ params }: { params: { token: string } }) {
   // In Next.js 14, params are synchronous (not a Promise)
   const token = params.token;
 
@@ -197,14 +201,18 @@ export default function ClaimPage({
       }
 
       setSuccess(result.txHash);
-      
+
       // Update local state
-      setClaim(prev => prev ? {
-        ...prev,
-        status: 'claimed',
-        claimedBy: wallet.address,
-        txHash: result.txHash,
-      } : null);
+      setClaim((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "claimed",
+              claimedBy: wallet.address,
+              txHash: result.txHash,
+            }
+          : null
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Claim failed");
     } finally {
@@ -232,7 +240,7 @@ export default function ClaimPage({
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Claim Error</h1>
           <p className="text-white/50 mb-6">{error}</p>
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
@@ -250,9 +258,13 @@ export default function ClaimPage({
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full text-center">
           <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Claim Not Found</h1>
-          <p className="text-white/50 mb-6">This claim link is invalid or has been removed.</p>
-          <Link 
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Claim Not Found
+          </h1>
+          <p className="text-white/50 mb-6">
+            This claim link is invalid or has been removed.
+          </p>
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
@@ -265,7 +277,7 @@ export default function ClaimPage({
   }
 
   // Already claimed or success state
-  if (claim.status === 'claimed' || success) {
+  if (claim.status === "claimed" || success) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full">
@@ -278,7 +290,7 @@ export default function ClaimPage({
             <p className="text-white/50 mb-6">
               Funds have been added to your account
             </p>
-            
+
             {(success || claim.txHash) && (
               <a
                 href={`https://scan.plasma.to/tx/${success || claim.txHash}`}
@@ -290,12 +302,9 @@ export default function ClaimPage({
                 <ExternalLink className="w-4 h-4" />
               </a>
             )}
-            
+
             <div className="mt-6">
-              <Link 
-                href="/"
-                className="btn-primary inline-block"
-              >
+              <Link href="/" className="btn-primary inline-block">
                 Open Plenmo
               </Link>
             </div>
@@ -305,8 +314,25 @@ export default function ClaimPage({
     );
   }
 
+  // Processing state (claim is being executed by another request)
+  if (claim.status === "processing") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-black p-4">
+        <div className="max-w-md w-full text-center">
+          <Loader2 className="w-16 h-16 text-plenmo-500 animate-spin mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Claim in Progress
+          </h1>
+          <p className="text-white/50 mb-6">
+            This claim is being processed. Please wait a moment and refresh.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   // Expired state
-  if (claim.status === 'expired') {
+  if (claim.status === "expired") {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full text-center">
@@ -315,7 +341,7 @@ export default function ClaimPage({
           <p className="text-white/50 mb-6">
             This claim has expired. The funds have been returned to the sender.
           </p>
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
@@ -347,24 +373,28 @@ export default function ClaimPage({
           <h1 className="text-2xl font-bold text-white mb-2">
             You received money!
           </h1>
-          
+
           {/* Sender info */}
           <p className="text-white/50 text-sm mb-6">
-            From {claim.senderEmail || `${claim.senderAddress.slice(0, 6)}...${claim.senderAddress.slice(-4)}`}
+            From{" "}
+            {claim.senderEmail ||
+              `${claim.senderAddress.slice(0, 6)}...${claim.senderAddress.slice(
+                -4
+              )}`}
           </p>
 
           {/* Amount */}
           <div className="my-8">
-            <p className="text-6xl font-bold gradient-text">
-              ${claim.amount}
-            </p>
+            <p className="text-6xl font-bold gradient-text">${claim.amount}</p>
             <p className="text-white/40 text-lg mt-2">USD</p>
           </div>
 
           {/* Memo if present */}
           {claim.memo && (
             <div className="bg-white/5 rounded-2xl p-4 mb-6">
-              <p className="text-white/70 text-sm italic">&ldquo;{claim.memo}&rdquo;</p>
+              <p className="text-white/70 text-sm italic">
+                &ldquo;{claim.memo}&rdquo;
+              </p>
             </div>
           )}
 
@@ -415,8 +445,8 @@ export default function ClaimPage({
             </div>
 
             {/* External wallet claim option */}
-            <ClaimToExternalWallet 
-              token={token} 
+            <ClaimToExternalWallet
+              token={token}
               amount={claim.amount}
               onSuccess={(txHash) => setSuccess(txHash)}
               onError={(err) => setError(err)}
@@ -425,7 +455,9 @@ export default function ClaimPage({
 
           {/* Info */}
           <p className="text-white/30 text-xs text-center mt-4">
-            {authenticated ? "Claim to your Plenmo account or any wallet" : "Create an account or claim to an existing wallet"}
+            {authenticated
+              ? "Claim to your Plenmo account or any wallet"
+              : "Create an account or claim to an existing wallet"}
           </p>
         </div>
 
@@ -445,4 +477,3 @@ export default function ClaimPage({
     </main>
   );
 }
-

@@ -1,16 +1,18 @@
-import type { Address, Hex } from 'viem';
-import { parseUnits } from 'viem';
-import type { PlasmaEmbeddedWallet } from '@plasma-pay/privy-auth';
+import type { Address, Hex } from "viem";
+import { parseUnits } from "viem";
+import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import {
   createTransferParams,
   buildTransferAuthorizationTypedData,
-} from '@plasma-pay/gasless';
+} from "@plasma-pay/gasless";
+import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
+import { withRetry, isRetryableError } from "./retry";
+import { splitSignature } from "./crypto";
 import {
-  PLASMA_MAINNET_CHAIN_ID,
-  USDT0_ADDRESS,
-} from '@plasma-pay/core';
-import { withRetry, isRetryableError } from './retry';
-import { splitSignature } from './crypto';
+  RELAY_FEE_BPS,
+  MIN_FEE_USDT0,
+  FEE_COLLECTOR_ADDRESS,
+} from "./constants";
 
 interface SendMoneyOptions {
   recipientIdentifier: string;
@@ -25,10 +27,19 @@ interface SendMoneyResult {
   claimUrl?: string;
   needsClaim?: boolean;
   error?: string;
+  fee?: bigint;
+  netAmount?: bigint;
+}
+
+const MIN_FEE_UNITS = parseUnits(MIN_FEE_USDT0.toString(), 6);
+
+export function calculateRelayFee(amountUnits: bigint): bigint {
+  const bpsFee = (amountUnits * BigInt(RELAY_FEE_BPS)) / 10000n;
+  return bpsFee > MIN_FEE_UNITS ? bpsFee : MIN_FEE_UNITS;
 }
 
 const getErrorMessage = (error: unknown, fallback: string) => {
-  if (!error || typeof error !== 'object') return fallback;
+  if (!error || typeof error !== "object") return fallback;
   const data = error as { message?: string; error?: string };
   return data.message || data.error || fallback;
 };
@@ -40,15 +51,18 @@ export async function sendMoney(
   const { recipientIdentifier, amount, memo, senderEmail } = options;
 
   // Step 1: Try to resolve recipient
-  const resolveResponse = await fetch('/api/resolve-recipient', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const resolveResponse = await fetch("/api/resolve-recipient", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ identifier: recipientIdentifier }),
   });
 
   if (!resolveResponse.ok) {
     const error = await resolveResponse.json().catch(() => ({}));
-    return { success: false, error: getErrorMessage(error, 'Failed to resolve recipient') };
+    return {
+      success: false,
+      error: getErrorMessage(error, "Failed to resolve recipient"),
+    };
   }
 
   const resolveData = await resolveResponse.json();
@@ -67,11 +81,16 @@ export async function sendMoney(
   const recipientAddress = resolveData.address as Address;
   const amountInUnits = parseUnits(amount, 6);
 
-  // Step 3: Create transfer params and sign
+  // Step 3: Calculate fee and net amount
+  const fee = calculateRelayFee(amountInUnits);
+  const netAmount = amountInUnits - fee;
+  const feeCollector = FEE_COLLECTOR_ADDRESS as Address;
+
+  // Step 4: Create and sign main transfer (netAmount to recipient)
   const params = createTransferParams(
     wallet.address,
     recipientAddress,
-    amountInUnits
+    netAmount
   );
 
   const typedData = buildTransferAuthorizationTypedData(params, {
@@ -82,17 +101,41 @@ export async function sendMoney(
   const signature = await wallet.signTypedData(typedData);
   const { v, r, s } = splitSignature(signature);
 
-  // Step 4: Submit transfer with retry
-  // Generate a unique idempotency key based on the nonce and timestamp
-  // This ensures retries use the same key but different transactions get different keys
+  // Step 5: Create and sign fee transfer (fee to collector)
+  let feeTransfer: Record<string, unknown> | undefined;
+  if (feeCollector) {
+    const feeParams = createTransferParams(wallet.address, feeCollector, fee);
+
+    const feeTypedData = buildTransferAuthorizationTypedData(feeParams, {
+      chainId: PLASMA_MAINNET_CHAIN_ID,
+      tokenAddress: USDT0_ADDRESS,
+    });
+
+    const feeSig = await wallet.signTypedData(feeTypedData);
+    const { v: feeV, r: feeR, s: feeS } = splitSignature(feeSig);
+
+    feeTransfer = {
+      from: feeParams.from,
+      to: feeParams.to,
+      value: feeParams.value.toString(),
+      validAfter: feeParams.validAfter,
+      validBefore: feeParams.validBefore,
+      nonce: feeParams.nonce,
+      v: feeV,
+      r: feeR,
+      s: feeS,
+    };
+  }
+
+  // Step 6: Submit transfer with retry
   const idempotencyKey = `${params.nonce}-${Date.now()}`;
-  
+
   try {
     const result = await withRetry(
       async () => {
-        const submitResponse = await fetch('/api/submit-transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const submitResponse = await fetch("/api/submit-transfer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             from: params.from,
             to: params.to,
@@ -104,12 +147,13 @@ export async function sendMoney(
             r,
             s,
             idempotencyKey,
+            feeTransfer,
           }),
         });
 
         if (!submitResponse.ok) {
           const error = await submitResponse.json().catch(() => ({}));
-          const errorMessage = error.message || 'Failed to submit transfer';
+          const errorMessage = error.message || "Failed to submit transfer";
           throw new Error(errorMessage);
         }
 
@@ -121,11 +165,12 @@ export async function sendMoney(
       }
     );
 
-    return { success: true, txHash: result.txHash };
+    return { success: true, txHash: result.txHash, fee, netAmount };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to submit transfer' 
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to submit transfer",
     };
   }
 }
@@ -142,15 +187,18 @@ async function createClaimForUnregisteredRecipient(
   senderEmail?: string
 ): Promise<SendMoneyResult> {
   const amountInUnits = parseUnits(amount, 6);
-  
+
   // Get escrow/treasury address from env
   const escrowAddress = process.env.NEXT_PUBLIC_MERCHANT_ADDRESS as Address;
-  
+
   if (!escrowAddress) {
-    console.warn('[send] NEXT_PUBLIC_MERCHANT_ADDRESS not configured - claim links unavailable');
-    return { 
-      success: false, 
-      error: 'Claim links are currently unavailable. Please send to a registered user or wallet address.' 
+    console.warn(
+      "[send] NEXT_PUBLIC_MERCHANT_ADDRESS not configured - claim links unavailable"
+    );
+    return {
+      success: false,
+      error:
+        "Claim links are currently unavailable. Please send to a registered user or wallet address.",
     };
   }
 
@@ -171,14 +219,14 @@ async function createClaimForUnregisteredRecipient(
   const { v, r, s } = splitSignature(signature);
 
   // Determine if recipient is email or phone
-  const isEmail = recipientIdentifier.includes('@');
+  const isEmail = recipientIdentifier.includes("@");
   const recipientEmail = isEmail ? recipientIdentifier : undefined;
   const recipientPhone = !isEmail ? recipientIdentifier : undefined;
 
   // Create claim with the signed authorization
-  const claimResponse = await fetch('/api/claims', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const claimResponse = await fetch("/api/claims", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       senderAddress: wallet.address,
       senderEmail,
@@ -202,15 +250,18 @@ async function createClaimForUnregisteredRecipient(
 
   if (!claimResponse.ok) {
     const error = await claimResponse.json().catch(() => ({}));
-    return { success: false, error: getErrorMessage(error, 'Failed to create claim') };
+    return {
+      success: false,
+      error: getErrorMessage(error, "Failed to create claim"),
+    };
   }
 
   const claimResult = await claimResponse.json();
-  
+
   // Now submit the transfer to escrow
-  const submitResponse = await fetch('/api/submit-transfer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const submitResponse = await fetch("/api/submit-transfer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       from: params.from,
       to: params.to,
@@ -226,17 +277,20 @@ async function createClaimForUnregisteredRecipient(
 
   if (!submitResponse.ok) {
     const error = await submitResponse.json().catch(() => ({}));
-    return { success: false, error: getErrorMessage(error, 'Transfer to escrow failed') };
+    return {
+      success: false,
+      error: getErrorMessage(error, "Transfer to escrow failed"),
+    };
   }
 
   // Trigger notification email
   if (recipientEmail) {
-    await fetch('/api/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipientEmail,
-        type: 'claim_available',
+        type: "claim_available",
         data: {
           amount,
           senderAddress: wallet.address,
@@ -248,8 +302,8 @@ async function createClaimForUnregisteredRecipient(
     }).catch(console.error);
   }
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     needsClaim: true,
     claimUrl: claimResult.claimUrl,
   };

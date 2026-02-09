@@ -15,5 +15,18 @@ export const AMOUNT_TOO_LARGE = `Maximum amount is $${MAX_AMOUNT.toLocaleString(
 export const INSUFFICIENT_BALANCE = "Insufficient balance";
 export const MEMO_TOO_LONG = `Memo must be ${MAX_MEMO_LENGTH} characters or less`;
 
+// Relay fee model
+export const RELAY_FEE_BPS = 50; // 0.5%
+export const MIN_FEE_USDT0 = 0.01;
+export const FEE_COLLECTOR_ADDRESS =
+  process.env.NEXT_PUBLIC_FEE_COLLECTOR_ADDRESS ||
+  process.env.NEXT_PUBLIC_MERCHANT_ADDRESS ||
+  "";
+
+// Gas sponsorship limits
+export const DAILY_FREE_TX_LIMIT = 10;
+export const DAILY_GAS_BUDGET_USD = 1.0;
+
 // Clipboard fallback message
-export const CLIPBOARD_FALLBACK = "Unable to copy automatically. Please select and copy the text manually.";
+export const CLIPBOARD_FALLBACK =
+  "Unable to copy automatically. Please select and copy the text manually.";

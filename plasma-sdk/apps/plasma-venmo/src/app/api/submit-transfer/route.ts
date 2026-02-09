@@ -29,6 +29,7 @@ import {
   alertTransactionFailed,
   captureException,
 } from "@/lib/monitoring";
+import { checkGasBudget, logGasSponsorship } from "@/lib/gas-tracking";
 
 // Server-side amount limits (in USDT0 with 6 decimals)
 const MIN_AMOUNT = parseUnits("0.01", 6); // $0.01 minimum
@@ -138,6 +139,7 @@ export async function POST(request: Request) {
       r,
       s,
       idempotencyKey,
+      feeTransfer,
     } = body;
 
     // Store for logging
@@ -215,6 +217,25 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Authorization expired or not yet valid" },
         { status: 400 }
+      );
+    }
+
+    // Check gas sponsorship budget before executing
+    try {
+      const budget = await checkGasBudget(from);
+      if (!budget.allowed) {
+        return NextResponse.json(
+          {
+            error: budget.reason || "Daily free transfer limit reached",
+            resetsAt: budget.resetsAt,
+          },
+          { status: 429 }
+        );
+      }
+    } catch (budgetError) {
+      console.warn(
+        "[submit-transfer] Gas budget check failed, proceeding:",
+        budgetError
       );
     }
 
@@ -298,6 +319,45 @@ export async function POST(request: Request) {
       method: "transfer",
       chain: "plasma",
     });
+
+    // Log gas sponsorship (non-blocking)
+    logGasSponsorship(
+      from,
+      txHash,
+      receipt.gasUsed?.toString() || "0",
+      0,
+      "send"
+    ).catch((err) =>
+      console.warn("[submit-transfer] Gas sponsorship log failed:", err)
+    );
+
+    // Execute fee transfer if provided (non-blocking — fee failure must not fail main transfer)
+    if (feeTransfer) {
+      try {
+        const feeTxHash = await walletClient.writeContract({
+          address: USDT0_ADDRESS,
+          abi: TRANSFER_WITH_AUTH_ABI,
+          functionName: "transferWithAuthorization",
+          args: [
+            feeTransfer.from as Address,
+            feeTransfer.to as Address,
+            BigInt(feeTransfer.value),
+            BigInt(feeTransfer.validAfter),
+            BigInt(feeTransfer.validBefore),
+            feeTransfer.nonce as Hex,
+            feeTransfer.v,
+            feeTransfer.r as Hex,
+            feeTransfer.s as Hex,
+          ],
+        });
+        console.log(`[submit-transfer] Fee transfer submitted: ${feeTxHash}`);
+      } catch (feeError) {
+        console.error(
+          "[submit-transfer] Fee transfer failed (non-blocking):",
+          feeError
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,

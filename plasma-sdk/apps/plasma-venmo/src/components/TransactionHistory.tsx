@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -31,9 +31,46 @@ interface Transaction {
 
 interface TransactionHistoryProps {
   address: Address | undefined;
+  compact?: boolean;
+  limit?: number;
 }
 
-export function TransactionHistory({ address }: TransactionHistoryProps) {
+function getDateGroup(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const txDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  if (txDate.getTime() === today.getTime()) return "Today";
+  if (txDate.getTime() === yesterday.getTime()) return "Yesterday";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function groupByDate(
+  txs: Transaction[]
+): { label: string; items: Transaction[] }[] {
+  const groups: { label: string; items: Transaction[] }[] = [];
+  let current: { label: string; items: Transaction[] } | null = null;
+
+  for (const tx of txs) {
+    const label = getDateGroup(tx.timestamp);
+    if (!current || current.label !== label) {
+      current = { label, items: [] };
+      groups.push(current);
+    }
+    current.items.push(tx);
+  }
+
+  return groups;
+}
+
+export function TransactionHistory({
+  address,
+  compact,
+  limit,
+}: TransactionHistoryProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -97,11 +134,22 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
     }
   };
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((tx) => {
-    if (filter === "all") return true;
-    return tx.type === filter;
-  });
+  // Filter and limit transactions
+  const filteredTransactions = useMemo(() => {
+    let txs = transactions;
+    if (!compact && filter !== "all") {
+      txs = txs.filter((tx) => tx.type === filter);
+    }
+    if (limit) {
+      txs = txs.slice(0, limit);
+    }
+    return txs;
+  }, [transactions, filter, compact, limit]);
+
+  const dateGroups = useMemo(
+    () => groupByDate(filteredTransactions),
+    [filteredTransactions]
+  );
 
   if (loading) {
     return (
@@ -109,10 +157,10 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2 font-heading">
             <History className="w-5 h-5 text-plenmo-500" />
-            Recent Activity
+            {compact ? "Recent Activity" : "Recent Activity"}
           </h2>
         </div>
-        <TransactionListSkeleton count={3} />
+        <TransactionListSkeleton count={compact ? 3 : 3} />
       </div>
     );
   }
@@ -170,92 +218,104 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
           Recent Activity
         </h2>
 
-        {/* Filter buttons */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
-          {[
-            { value: "all", label: "All" },
-            { value: "sent", label: "Sent" },
-            { value: "received", label: "Received" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setFilter(option.value as typeof filter)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filter === option.value
-                  ? "bg-plenmo-500 text-black"
-                  : "text-white/50 hover:text-white/70 hover:bg-white/5"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        {/* Filter buttons - hidden in compact mode */}
+        {!compact && (
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
+            {[
+              { value: "all", label: "All" },
+              { value: "sent", label: "Sent" },
+              { value: "received", label: "Received" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setFilter(option.value as typeof filter)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  filter === option.value
+                    ? "bg-plenmo-500 text-black"
+                    : "text-white/50 hover:text-white/70 hover:bg-white/5"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="space-y-2">
-        {filteredTransactions.length === 0 ? (
+      <div className="space-y-1">
+        {dateGroups.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-white/40 text-sm">No {filter} transactions</p>
           </div>
         ) : (
-          filteredTransactions.map((tx, index) => (
-            <button
-              key={tx.id}
-              type="button"
-              className="flex items-center gap-4 p-4 clay-list-item hover:bg-white/[0.06] transition-all duration-200 cursor-pointer group w-full text-left animate-fade-in"
-              style={{ animationDelay: `${index * 50}ms` }}
-              onClick={() =>
-                window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
-              }
-              aria-label={`View ${
-                tx.type === "sent" ? "sent" : "received"
-              } transaction of $${tx.amount} ${
-                tx.type === "sent" ? "to" : "from"
-              } ${tx.counterparty}`}
-            >
-              <div className="relative">
-                <Avatar name={tx.counterparty} size="lg" />
-                <div
-                  className={`absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full shadow-lg ${
-                    tx.type === "sent"
-                      ? "bg-gradient-to-br from-red-400 to-red-500"
-                      : "bg-gradient-to-br from-green-400 to-green-500"
-                  }`}
+          dateGroups.map((group) => (
+            <div key={group.label}>
+              <p className="text-white/30 text-xs font-semibold font-body uppercase tracking-wider px-1 pt-3 pb-1.5">
+                {group.label}
+              </p>
+              {group.items.map((tx, index) => (
+                <button
+                  key={tx.id}
+                  type="button"
+                  className="flex items-center gap-4 p-4 rounded-2xl hover:bg-white/[0.06] transition-all duration-200 cursor-pointer group w-full text-left animate-fade-in min-h-[44px]"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() =>
+                    window.open(
+                      `https://scan.plasma.to/tx/${tx.txHash}`,
+                      "_blank"
+                    )
+                  }
+                  aria-label={`View ${
+                    tx.type === "sent" ? "sent" : "received"
+                  } transaction of $${tx.amount} ${
+                    tx.type === "sent" ? "to" : "from"
+                  } ${tx.counterparty}`}
                 >
-                  {tx.type === "sent" ? (
-                    <ArrowUpRight className="w-2.5 h-2.5 text-white" />
-                  ) : (
-                    <ArrowDownLeft className="w-2.5 h-2.5 text-white" />
-                  )}
-                </div>
-              </div>
+                  <div className="relative">
+                    <Avatar name={tx.counterparty} size="lg" />
+                    <div
+                      className={`absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full shadow-lg ${
+                        tx.type === "sent"
+                          ? "bg-gradient-to-br from-red-400 to-red-500"
+                          : "bg-gradient-to-br from-green-400 to-green-500"
+                      }`}
+                    >
+                      {tx.type === "sent" ? (
+                        <ArrowUpRight className="w-2.5 h-2.5 text-white" />
+                      ) : (
+                        <ArrowDownLeft className="w-2.5 h-2.5 text-white" />
+                      )}
+                    </div>
+                  </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-white truncate group-hover:text-white/90 transition-colors text-sm">
-                  {tx.type === "sent" ? "Sent to" : "Received from"}{" "}
-                  <span className="text-white/60">{tx.counterparty}</span>
-                </div>
-                <div className="text-white/40 text-xs flex items-center gap-2 mt-0.5">
-                  <span>
-                    {formatRelativeTime(new Date(tx.timestamp * 1000))}
-                  </span>
-                  <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-white truncate group-hover:text-white/90 transition-colors text-sm">
+                      {tx.type === "sent" ? "Sent to" : "Received from"}{" "}
+                      <span className="text-white/60">{tx.counterparty}</span>
+                    </div>
+                    <div className="text-white/40 text-xs flex items-center gap-2 mt-0.5">
+                      <span>
+                        {formatRelativeTime(new Date(tx.timestamp * 1000))}
+                      </span>
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
 
-              <div
-                className={`font-bold text-base ${
-                  tx.type === "sent" ? "text-red-400" : "text-green-400"
-                }`}
-              >
-                {tx.type === "sent" ? "-" : "+"}${tx.amount}
-              </div>
-            </button>
+                  <div
+                    className={`font-bold text-base tabular-nums ${
+                      tx.type === "sent" ? "text-red-400" : "text-green-400"
+                    }`}
+                  >
+                    {tx.type === "sent" ? "-" : "+"}${tx.amount}
+                  </div>
+                </button>
+              ))}
+            </div>
           ))
         )}
 
-        {/* Load More Button */}
-        {hasMore && filter === "all" && (
+        {/* Load More Button - hidden in compact mode */}
+        {!compact && hasMore && filter === "all" && (
           <button
             onClick={loadMore}
             disabled={loadingMore}
@@ -275,8 +335,8 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
           </button>
         )}
 
-        {/* Total count */}
-        {filteredTransactions.length > 0 && (
+        {/* Total count - hidden in compact mode */}
+        {!compact && filteredTransactions.length > 0 && (
           <p className="text-center text-white/30 text-xs mt-4 pt-2 border-t border-white/5">
             Showing {filteredTransactions.length} of {transactions.length}{" "}
             transaction{transactions.length !== 1 ? "s" : ""}
