@@ -68,7 +68,9 @@ merchant.log
 # -----------------------------------------------------------------------------
 # Hardhat / Solidity build artifacts (large, regenerated on compile)
 # -----------------------------------------------------------------------------
-# artifacts/build-info/
+artifacts/
+cache/
+typechain-types/
 
 # -----------------------------------------------------------------------------
 # Test artifacts
