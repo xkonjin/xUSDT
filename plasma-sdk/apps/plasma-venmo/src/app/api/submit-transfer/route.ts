@@ -1,10 +1,25 @@
-import { NextResponse } from 'next/server';
-import { createPublicClient, createWalletClient, http, type Address, type Hex, parseUnits, formatUnits } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
-import { plasmaMainnet } from '@plasma-pay/core';
-import { getValidatedRelayerKey } from '@/lib/validation';
-import { withRateLimit, getClientIP, getRouteType } from '@/lib/rate-limiter-redis';
+import { NextResponse } from "next/server";
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  type Address,
+  type Hex,
+  parseUnits,
+  formatUnits,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from "@plasma-pay/core";
+import { plasmaMainnet } from "@plasma-pay/core";
+import {
+  getValidatedRelayerKey,
+  parseUserFriendlyError,
+} from "@/lib/validation";
+import {
+  withRateLimit,
+  getClientIP,
+  getRouteType,
+} from "@/lib/rate-limiter-redis";
 import {
   generateCorrelationId,
   logPaymentInitiated,
@@ -13,33 +28,33 @@ import {
   logPaymentTimeout,
   alertTransactionFailed,
   captureException,
-} from '@/lib/monitoring';
+} from "@/lib/monitoring";
 
 // Server-side amount limits (in USDT0 with 6 decimals)
-const MIN_AMOUNT = parseUnits('0.01', 6); // $0.01 minimum
-const MAX_AMOUNT = parseUnits('10000', 6); // $10,000 maximum
+const MIN_AMOUNT = parseUnits("0.01", 6); // $0.01 minimum
+const MAX_AMOUNT = parseUnits("10000", 6); // $10,000 maximum
 
 // PRODUCTION MODE: Mock mode is disabled for production
 // All payments are real on Plasma Chain
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 const TRANSFER_WITH_AUTH_ABI = [
   {
     inputs: [
-      { name: 'from', type: 'address' },
-      { name: 'to', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'validAfter', type: 'uint256' },
-      { name: 'validBefore', type: 'uint256' },
-      { name: 'nonce', type: 'bytes32' },
-      { name: 'v', type: 'uint8' },
-      { name: 'r', type: 'bytes32' },
-      { name: 's', type: 'bytes32' },
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "validAfter", type: "uint256" },
+      { name: "validBefore", type: "uint256" },
+      { name: "nonce", type: "bytes32" },
+      { name: "v", type: "uint8" },
+      { name: "r", type: "bytes32" },
+      { name: "s", type: "bytes32" },
     ],
-    name: 'transferWithAuthorization',
+    name: "transferWithAuthorization",
     outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    stateMutability: "nonpayable",
+    type: "function",
   },
 ] as const;
 
@@ -49,40 +64,44 @@ export async function POST(request: Request) {
   let paymentFrom: string | undefined;
   let paymentTo: string | undefined;
   let paymentAmount: string | undefined;
-  
+
   try {
     // Rate limiting check (Redis-based for production)
     const ip = getClientIP(request);
-    const routeType = getRouteType('/api/submit-transfer');
+    const routeType = getRouteType("/api/submit-transfer");
 
     // Try Redis rate limiter first, fallback to permissive if unavailable
     try {
       // Dynamic import to avoid build issues if @vercel/kv not installed
-      const rateLimitModule = await import('@/lib/rate-limiter-redis');
-      const { allowed, response: rateLimitResponse } = await rateLimitModule.withRateLimit(request, 'payment');
+      const rateLimitModule = await import("@/lib/rate-limiter-redis");
+      const { allowed, response: rateLimitResponse } =
+        await rateLimitModule.withRateLimit(request, "payment");
 
       if (!allowed && rateLimitResponse) {
         return rateLimitResponse;
       }
     } catch (rateLimitError) {
-      console.warn('[submit-transfer] Redis rate limiter unavailable, proceeding:', rateLimitError);
+      console.warn(
+        "[submit-transfer] Redis rate limiter unavailable, proceeding:",
+        rateLimitError
+      );
       // Fallback: Continue without rate limiting (graceful degradation)
     }
 
     // PRODUCTION VALIDATION: Ensure we're not in mock mode
-    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
-      console.error('[submit-transfer] CRITICAL: Mock mode enabled in production!');
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === "true") {
+      console.error(
+        "[submit-transfer] CRITICAL: Mock mode enabled in production!"
+      );
       if (IS_PRODUCTION) {
-        const errorMsg = 'Payment service configuration error. Please contact support.';
+        const errorMsg =
+          "Payment service configuration error. Please contact support.";
         await alertTransactionFailed({
           correlationId,
-          error: 'Mock mode enabled in production',
-          errorCode: 'CONFIG_ERROR',
+          error: "Mock mode enabled in production",
+          errorCode: "CONFIG_ERROR",
         });
-        return NextResponse.json(
-          { error: errorMsg },
-          { status: 500 }
-        );
+        return NextResponse.json({ error: errorMsg }, { status: 500 });
       }
       // Only allow mock mode in development
       return NextResponse.json({
@@ -95,22 +114,32 @@ export async function POST(request: Request) {
     // Validate relayer key with proper error handling
     const { key: RELAYER_KEY, error: relayerError } = getValidatedRelayerKey();
     if (!RELAYER_KEY || relayerError) {
-      console.error('[submit-transfer] Relayer key validation failed');
-      const errorMsg = relayerError || 'Payment service configuration error. Please contact support.';
+      console.error("[submit-transfer] Relayer key validation failed");
+      const errorMsg =
+        relayerError ||
+        "Payment service configuration error. Please contact support.";
       await alertTransactionFailed({
         correlationId,
-        error: 'Relayer key validation failed',
-        errorCode: 'RELAYER_CONFIG_ERROR',
+        error: "Relayer key validation failed",
+        errorCode: "RELAYER_CONFIG_ERROR",
       });
-      return NextResponse.json(
-        { error: errorMsg },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
 
     const body = await request.json();
-    const { from, to, value, validAfter, validBefore, nonce, v, r, s, idempotencyKey } = body;
-    
+    const {
+      from,
+      to,
+      value,
+      validAfter,
+      validBefore,
+      nonce,
+      v,
+      r,
+      s,
+      idempotencyKey,
+    } = body;
+
     // Store for logging
     paymentFrom = from;
     paymentTo = to;
@@ -123,7 +152,9 @@ export async function POST(request: Request) {
     // This provides built-in idempotency at the protocol level
     // Additionally, clients can provide an explicit idempotencyKey for request-level deduplication
     const effectiveIdempotencyKey = idempotencyKey || nonce;
-    console.log(`[submit-transfer] Processing payment with idempotency key: ${effectiveIdempotencyKey}`);
+    console.log(
+      `[submit-transfer] Processing payment with idempotency key: ${effectiveIdempotencyKey}`
+    );
 
     if (!from || !to || !value || !nonce || v === undefined || !r || !s) {
       logPaymentFailed({
@@ -131,11 +162,11 @@ export async function POST(request: Request) {
         from: paymentFrom,
         to: paymentTo,
         amount: paymentAmount,
-        error: 'Missing required parameters',
-        errorCode: 'MISSING_PARAMS',
+        error: "Missing required parameters",
+        errorCode: "MISSING_PARAMS",
       });
       return NextResponse.json(
-        { error: 'Missing required parameters' },
+        { error: "Missing required parameters" },
         { status: 400 }
       );
     }
@@ -148,11 +179,11 @@ export async function POST(request: Request) {
         from: paymentFrom,
         to: paymentTo,
         amount: paymentAmount,
-        error: 'Amount is below the minimum of $0.01',
-        errorCode: 'AMOUNT_TOO_LOW',
+        error: "Amount is below the minimum of $0.01",
+        errorCode: "AMOUNT_TOO_LOW",
       });
       return NextResponse.json(
-        { error: 'Amount is below the minimum of $0.01' },
+        { error: "Amount is below the minimum of $0.01" },
         { status: 400 }
       );
     }
@@ -162,11 +193,11 @@ export async function POST(request: Request) {
         from: paymentFrom,
         to: paymentTo,
         amount: paymentAmount,
-        error: 'Amount exceeds the maximum of $10,000',
-        errorCode: 'AMOUNT_TOO_HIGH',
+        error: "Amount exceeds the maximum of $10,000",
+        errorCode: "AMOUNT_TOO_HIGH",
       });
       return NextResponse.json(
-        { error: 'Amount exceeds the maximum of $10,000' },
+        { error: "Amount exceeds the maximum of $10,000" },
         { status: 400 }
       );
     }
@@ -178,11 +209,11 @@ export async function POST(request: Request) {
         from: paymentFrom,
         to: paymentTo,
         amount: paymentAmount,
-        error: 'Authorization expired or not yet valid',
-        errorCode: 'AUTH_EXPIRED',
+        error: "Authorization expired or not yet valid",
+        errorCode: "AUTH_EXPIRED",
       });
       return NextResponse.json(
-        { error: 'Authorization expired or not yet valid' },
+        { error: "Authorization expired or not yet valid" },
         { status: 400 }
       );
     }
@@ -193,7 +224,7 @@ export async function POST(request: Request) {
       amount: paymentAmount!,
       from: paymentFrom!,
       to: paymentTo!,
-      method: 'transfer',
+      method: "transfer",
     });
 
     const account = privateKeyToAccount(RELAYER_KEY);
@@ -212,7 +243,7 @@ export async function POST(request: Request) {
     const txHash = await walletClient.writeContract({
       address: USDT0_ADDRESS,
       abi: TRANSFER_WITH_AUTH_ABI,
-      functionName: 'transferWithAuthorization',
+      functionName: "transferWithAuthorization",
       args: [
         from as Address,
         to as Address,
@@ -231,30 +262,27 @@ export async function POST(request: Request) {
       timeout: 30000,
     });
 
-    if (receipt.status !== 'success') {
-      const errorMsg = 'Transaction reverted';
+    if (receipt.status !== "success") {
+      const errorMsg = "Transaction reverted";
       logPaymentFailed({
         correlationId,
         from: paymentFrom,
         to: paymentTo,
         amount: paymentAmount,
         error: errorMsg,
-        errorCode: 'TX_REVERTED',
+        errorCode: "TX_REVERTED",
         duration: Date.now() - startTime,
       });
       await alertTransactionFailed({
         correlationId,
         error: errorMsg,
-        errorCode: 'TX_REVERTED',
+        errorCode: "TX_REVERTED",
         amount: paymentAmount,
         from: paymentFrom,
         to: paymentTo,
         txHash,
       });
-      return NextResponse.json(
-        { error: errorMsg },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: errorMsg }, { status: 500 });
     }
 
     // Log successful payment
@@ -267,8 +295,8 @@ export async function POST(request: Request) {
       blockNumber: receipt.blockNumber.toString(),
       gasUsed: receipt.gasUsed?.toString(),
       duration: Date.now() - startTime,
-      method: 'transfer',
-      chain: 'plasma',
+      method: "transfer",
+      chain: "plasma",
     });
 
     return NextResponse.json({
@@ -278,12 +306,13 @@ export async function POST(request: Request) {
       correlationId,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Transfer failed';
+    const errorMessage =
+      error instanceof Error ? error.message : "Transfer failed";
     const duration = Date.now() - startTime;
-    
+
     // Check if it was a timeout
-    const isTimeout = errorMessage.includes('timeout') || duration > 30000;
-    
+    const isTimeout = errorMessage.includes("timeout") || duration > 30000;
+
     if (isTimeout) {
       logPaymentTimeout({
         correlationId,
@@ -302,7 +331,7 @@ export async function POST(request: Request) {
         duration,
       });
     }
-    
+
     // Alert on failures
     await alertTransactionFailed({
       correlationId,
@@ -311,16 +340,16 @@ export async function POST(request: Request) {
       from: paymentFrom,
       to: paymentTo,
     });
-    
+
     // Capture exception in Sentry
     captureException(error, {
-      tags: { route: 'submit-transfer', correlationId },
+      tags: { route: "submit-transfer", correlationId },
       extra: { paymentFrom, paymentTo, paymentAmount, duration },
     });
-    
-    console.error('Submit transfer error:', error);
+
+    console.error("Submit transfer error:", error);
     return NextResponse.json(
-      { error: errorMessage, correlationId },
+      { error: parseUserFriendlyError(errorMessage), correlationId },
       { status: 500 }
     );
   }

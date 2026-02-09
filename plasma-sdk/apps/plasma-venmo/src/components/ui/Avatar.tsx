@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps {
@@ -17,6 +18,13 @@ const sizeClasses = {
   xl: "w-16 h-16 text-lg",
 };
 
+const sizePixels = {
+  sm: 32,
+  md: 40,
+  lg: 48,
+  xl: 64,
+};
+
 // Generate a consistent color based on name
 function getAvatarColor(name: string): string {
   const colors = [
@@ -29,17 +37,23 @@ function getAvatarColor(name: string): string {
     "from-cyan-500 to-cyan-600",
     "from-amber-500 to-amber-600",
   ];
-  
+
   // Simple hash based on name
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   return colors[Math.abs(hash) % colors.length];
 }
 
-export function Avatar({ name, src, size = "md", className, showRing = false }: AvatarProps) {
+export function Avatar({
+  name,
+  src,
+  size = "md",
+  className,
+  showRing = false,
+}: AvatarProps) {
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -51,10 +65,18 @@ export function Avatar({ name, src, size = "md", className, showRing = false }: 
 
   if (src) {
     return (
-      <div className={cn("relative", showRing && "p-0.5 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-400")}>
-        <img
+      <div
+        className={cn(
+          "relative",
+          showRing &&
+            "p-0.5 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-400"
+        )}
+      >
+        <Image
           src={src}
           alt={name}
+          width={sizePixels[size]}
+          height={sizePixels[size]}
           className={cn(
             "rounded-full object-cover ring-2 ring-white/10",
             sizeClasses[size],
