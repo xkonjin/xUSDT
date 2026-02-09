@@ -3,8 +3,7 @@
 import { forwardRef } from "react";
 import { cn } from "../lib/utils";
 
-export interface ClayDividerProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface ClayDividerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientation?: "horizontal" | "vertical";
   size?: "sm" | "md" | "lg";
   variant?: "default" | "primary" | "success" | "warning" | "danger";
@@ -12,7 +11,7 @@ export interface ClayDividerProps
 }
 
 const orientationStyles = {
-  horizontal: "w-full h-px",
+  horizontal: "w-full",
   vertical: "h-full w-px",
 };
 
@@ -23,16 +22,11 @@ const sizeStyles = {
 };
 
 const variantStyles = {
-  default:
-    "bg-gradient-to-r from-transparent via-slate-300 to-transparent",
-  primary:
-    "bg-gradient-to-r from-transparent via-blue-400 to-transparent",
-  success:
-    "bg-gradient-to-r from-transparent via-emerald-400 to-transparent",
-  warning:
-    "bg-gradient-to-r from-transparent via-amber-400 to-transparent",
-  danger:
-    "bg-gradient-to-r from-transparent via-red-400 to-transparent",
+  default: "bg-gradient-to-r from-transparent via-slate-300 to-transparent",
+  primary: "bg-gradient-to-r from-transparent via-blue-400 to-transparent",
+  success: "bg-gradient-to-r from-transparent via-emerald-400 to-transparent",
+  warning: "bg-gradient-to-r from-transparent via-amber-400 to-transparent",
+  danger: "bg-gradient-to-r from-transparent via-red-400 to-transparent",
 };
 
 const ClayDivider = forwardRef<HTMLDivElement, ClayDividerProps>(
@@ -47,28 +41,40 @@ const ClayDivider = forwardRef<HTMLDivElement, ClayDividerProps>(
     },
     ref
   ) => {
-    const DividerComponent = (
-      <div
-        ref={ref}
-        className={cn(
-          "flex-shrink-0",
-          orientationStyles[orientation],
-          sizeStyles[size],
-          variantStyles[variant],
-          label && "flex items-center gap-4",
-          className
-        )}
-        {...props}
-      >
-        {label && (
+    if (label) {
+      return (
+        <div
+          ref={ref}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-4",
+            orientationStyles[orientation],
+            sizeStyles[size],
+            className
+          )}
+          {...props}
+        >
+          <div className={cn("flex-1 h-px", variantStyles[variant])} />
           <span className="text-sm font-semibold text-slate-500 bg-white/50 px-3 rounded-2xl shadow-clay-sm">
             {label}
           </span>
-        )}
-      </div>
-    );
+          <div className={cn("flex-1 h-px", variantStyles[variant])} />
+        </div>
+      );
+    }
 
-    return DividerComponent;
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex-shrink-0 h-px",
+          orientationStyles[orientation],
+          sizeStyles[size],
+          variantStyles[variant],
+          className
+        )}
+        {...props}
+      />
+    );
   }
 );
 

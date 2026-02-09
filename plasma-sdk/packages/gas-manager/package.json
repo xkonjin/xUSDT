@@ -41,7 +41,6 @@
     "vitest": "^1.0.0"
   },
   "peerDependencies": {
-    "viem": ">=2.0.0",
-    "@plasma-pay/lifi": ">=1.0.0"
+    "viem": ">=2.0.0"
   }
 }

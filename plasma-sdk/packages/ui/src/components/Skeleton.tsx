@@ -45,6 +45,8 @@ export function Skeleton({
         ${className}
       `}
       style={style}
+      role="status"
+      aria-label="Loading"
     />
   );
 }

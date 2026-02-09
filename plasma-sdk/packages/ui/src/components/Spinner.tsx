@@ -15,6 +15,8 @@ const sizeStyles = {
 export function Spinner({ size = "md", className = "" }: SpinnerProps) {
   return (
     <div
+      role="status"
+      aria-label="Loading"
       className={`
         rounded-full
         border-[rgb(0,212,255)]
@@ -33,7 +35,10 @@ export interface LoadingScreenProps {
 
 export function LoadingScreen({ message = "Loading..." }: LoadingScreenProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      aria-live="polite"
+    >
       <div className="flex flex-col items-center gap-4">
         <Spinner size="xl" />
         <span className="text-white/50">{message}</span>

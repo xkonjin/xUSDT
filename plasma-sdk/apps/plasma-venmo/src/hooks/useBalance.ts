@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 /**
  * Hook to fetch and cache balance with auto-refresh
- * TODO: Replace with SWR when added to dependencies
  */
 export function useBalance(address?: string) {
   const [balance, setBalance] = useState<bigint | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!address) {
@@ -25,21 +25,20 @@ export function useBalance(address?: string) {
         setIsLoading(true);
         setError(null);
 
-        // TODO: Replace with actual balance fetch
         const response = await fetch(`/api/balance?address=${address}`);
-        
+
         if (!response.ok) {
-          throw new Error('Failed to fetch balance');
+          throw new Error("Failed to fetch balance");
         }
 
         const data = await response.json();
-        
+
         if (!cancelled) {
           setBalance(BigInt(data.balance));
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err : new Error('Unknown error'));
+          setError(err instanceof Error ? err : new Error("Unknown error"));
         }
       } finally {
         if (!cancelled) {
@@ -50,21 +49,17 @@ export function useBalance(address?: string) {
 
     fetchBalance();
 
-    // Auto-refresh every 10 seconds
     const interval = setInterval(fetchBalance, 10000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [address]);
+  }, [address, refreshKey]);
 
-  const refresh = () => {
-    if (address) {
-      setIsLoading(true);
-      // Trigger re-fetch by updating a dependency
-    }
-  };
+  const refresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   return {
     balance,

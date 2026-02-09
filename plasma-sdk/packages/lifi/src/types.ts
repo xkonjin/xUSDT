@@ -1,10 +1,10 @@
 /**
  * @plasma-pay/lifi - Type definitions
- * 
+ *
  * Types for cross-chain swaps and bridging to Plasma
  */
 
-import type { Address, Hex } from 'viem';
+import type { Address, Hex } from "viem";
 
 // ============================================================================
 // Configuration Types
@@ -145,7 +145,7 @@ export interface SwapQuote {
 }
 
 export interface SwapStep {
-  type: 'swap' | 'bridge' | 'cross';
+  type: "swap" | "bridge" | "cross";
   tool: string;
   fromChainId: number;
   toChainId: number;
@@ -168,7 +168,7 @@ export interface SwapResult {
   /**
    * Final status
    */
-  status: 'success' | 'pending' | 'failed';
+  status: "success" | "pending" | "failed";
 
   /**
    * Amount received on destination
@@ -210,8 +210,10 @@ export interface ChainInfo {
 // ============================================================================
 
 export const PLASMA_CHAIN_ID = 98866;
-export const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
-export const USDT0_ADDRESS_PLASMA = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace
+export const NATIVE_TOKEN_ADDRESS =
+  "0x0000000000000000000000000000000000000000" as Address;
+export const USDT0_ADDRESS_PLASMA =
+  "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb" as Address;
 
 /**
  * Common token addresses on popular chains
@@ -219,38 +221,38 @@ export const USDT0_ADDRESS_PLASMA = '0x0000000000000000000000000000000000000000'
 export const COMMON_TOKENS: Record<number, Record<string, Address>> = {
   // Ethereum
   1: {
-    USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    DAI: '0x6B175474E89094C44Da98b954EescdeCB5BE3830',
-    WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+    USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    DAI: "0x6B175474E89094C44Da98b954EescdeCB5BE3830",
+    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     ETH: NATIVE_TOKEN_ADDRESS,
   },
   // Base
   8453: {
-    USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    USDbC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-    WETH: '0x4200000000000000000000000000000000000006',
+    USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    USDbC: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
+    WETH: "0x4200000000000000000000000000000000000006",
     ETH: NATIVE_TOKEN_ADDRESS,
   },
   // Arbitrum
   42161: {
-    USDT: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
-    USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    WETH: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    USDT: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     ETH: NATIVE_TOKEN_ADDRESS,
   },
   // Optimism
   10: {
-    USDT: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
-    USDC: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-    WETH: '0x4200000000000000000000000000000000000006',
+    USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+    USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+    WETH: "0x4200000000000000000000000000000000000006",
     ETH: NATIVE_TOKEN_ADDRESS,
   },
   // Polygon
   137: {
-    USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
-    USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    WMATIC: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+    USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    WMATIC: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
     MATIC: NATIVE_TOKEN_ADDRESS,
   },
   // Plasma
@@ -377,7 +379,7 @@ export interface SendResult {
   /**
    * Final status
    */
-  status: 'success' | 'pending' | 'failed';
+  status: "success" | "pending" | "failed";
 
   /**
    * Amount received by recipient
@@ -403,4 +405,13 @@ export interface SendResult {
 /**
  * Supported destination chains for LiFi OUT
  */
-export const SUPPORTED_DESTINATION_CHAINS = [1, 8453, 42161, 10, 137, 56, 43114, PLASMA_CHAIN_ID];
+export const SUPPORTED_DESTINATION_CHAINS = [
+  1,
+  8453,
+  42161,
+  10,
+  137,
+  56,
+  43114,
+  PLASMA_CHAIN_ID,
+];

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { AlertCircle, Home } from 'lucide-react';
+import { useEffect } from "react";
+import { AlertCircle, Home } from "lucide-react";
 
 /**
  * Global Error Boundary for Client-Side Errors
@@ -20,11 +20,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to error reporting service
-    console.error('Global error:', error);
-
-    // TODO: Send to Sentry
-    // Sentry.captureException(error);
+    console.error("Global error:", error);
   }, [error]);
 
   return (
@@ -43,20 +39,17 @@ export default function GlobalError({
         </h1>
 
         <p className="text-plasma-300 mb-6 font-body">
-          {error.message || 'An unexpected error occurred'}
+          {error.message || "An unexpected error occurred"}
         </p>
 
         {/* Recovery Options */}
         <div className="flex flex-col gap-3">
-          <button
-            onClick={reset}
-            className="clay-button w-full"
-          >
+          <button onClick={reset} className="clay-button w-full">
             Try Again
           </button>
 
           <button
-            onClick={() => (window.location.href = '/')}
+            onClick={() => (window.location.href = "/")}
             className="clay-button w-full !bg-white/10 !text-white"
           >
             <Home className="w-4 h-4 mr-2" />
@@ -66,7 +59,7 @@ export default function GlobalError({
 
         {/* Help Link */}
         <p className="text-plasma-400 text-sm mt-6 font-body">
-          Need help?{' '}
+          Need help?{" "}
           <a
             href="mailto:support@plenmo.com"
             className="text-plenmo-500 hover:text-plenmo-400 underline"
@@ -84,10 +77,10 @@ export default function GlobalError({
  * Can be used to categorize and track errors
  */
 export const ErrorCategories = {
-  NETWORK: 'network',
-  VALIDATION: 'validation',
-  AUTHENTICATION: 'authentication',
-  UNKNOWN: 'unknown',
+  NETWORK: "network",
+  VALIDATION: "validation",
+  AUTHENTICATION: "authentication",
+  UNKNOWN: "unknown",
 } as const;
 
 /**
@@ -96,15 +89,15 @@ export const ErrorCategories = {
 export function getErrorCategory(error: Error): string {
   const message = error.message.toLowerCase();
 
-  if (message.includes('network') || message.includes('fetch')) {
+  if (message.includes("network") || message.includes("fetch")) {
     return ErrorCategories.NETWORK;
   }
 
-  if (message.includes('invalid') || message.includes('validation')) {
+  if (message.includes("invalid") || message.includes("validation")) {
     return ErrorCategories.VALIDATION;
   }
 
-  if (message.includes('unauthorized') || message.includes('auth')) {
+  if (message.includes("unauthorized") || message.includes("auth")) {
     return ErrorCategories.AUTHENTICATION;
   }
 

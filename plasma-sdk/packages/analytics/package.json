@@ -19,7 +19,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "posthog-js": "^1.96.0"
+    "posthog-js": "^1.319.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -31,6 +31,8 @@
   "peerDependencies": {
     "react": "^18.0.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT"
 }

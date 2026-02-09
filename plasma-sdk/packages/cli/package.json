@@ -1,6 +1,7 @@
 {
   "name": "@plasma-pay/cli",
   "version": "0.1.0",
+  "type": "module",
   "description": "CLI for Plasma Pay - onboard agents, manage keys, fund wallets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,14 +25,11 @@
   "license": "MIT",
   "dependencies": {
     "@plasma-pay/agent": "workspace:*",
-    "@plasma-pay/lifi": "workspace:*",
-    "@plasma-pay/gas-manager": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "inquirer": "^9.2.0",
     "ora": "^8.0.0",
     "viem": "^2.0.0",
-    "dotenv": "^16.0.0",
     "conf": "^12.0.0",
     "keytar": "^7.9.0",
     "qrcode-terminal": "^0.12.0"

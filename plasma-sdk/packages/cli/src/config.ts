@@ -2,14 +2,14 @@
  * Config Manager - Persistent CLI configuration
  */
 
-import Conf from 'conf';
-import type { CLIConfig, WalletConfig } from './types';
+import Conf from "conf";
+import type { CLIConfig, WalletConfig } from "./types";
 
 const DEFAULT_CONFIG: CLIConfig = {
   wallets: [],
   activeWallet: undefined,
-  defaultNetwork: 'plasma',
-  facilitatorUrl: 'https://pay.plasma.xyz',
+  defaultNetwork: "plasma",
+  facilitatorUrl: "https://pay.plasma.xyz",
   autoGas: true,
   preferPlasma: true,
 };
@@ -19,7 +19,7 @@ export class ConfigManager {
 
   constructor() {
     this.config = new Conf<CLIConfig>({
-      projectName: 'plasma-pay',
+      projectName: "plasma-pay",
       defaults: DEFAULT_CONFIG,
     });
   }
@@ -29,12 +29,15 @@ export class ConfigManager {
    */
   getAll(): CLIConfig {
     return {
-      wallets: this.config.get('wallets', []),
-      activeWallet: this.config.get('activeWallet'),
-      defaultNetwork: this.config.get('defaultNetwork', 'plasma'),
-      facilitatorUrl: this.config.get('facilitatorUrl', 'https://pay.plasma.xyz'),
-      autoGas: this.config.get('autoGas', true),
-      preferPlasma: this.config.get('preferPlasma', true),
+      wallets: this.config.get("wallets", []),
+      activeWallet: this.config.get("activeWallet"),
+      defaultNetwork: this.config.get("defaultNetwork", "plasma"),
+      facilitatorUrl: this.config.get(
+        "facilitatorUrl",
+        "https://pay.plasma.xyz"
+      ),
+      autoGas: this.config.get("autoGas", true),
+      preferPlasma: this.config.get("preferPlasma", true),
     };
   }
 
@@ -42,37 +45,39 @@ export class ConfigManager {
    * Get active wallet
    */
   getActiveWallet(): WalletConfig | undefined {
-    const activeAddress = this.config.get('activeWallet');
+    const activeAddress = this.config.get("activeWallet");
     if (!activeAddress) return undefined;
-    
-    const wallets = this.config.get('wallets', []);
-    return wallets.find(w => w.address.toLowerCase() === activeAddress.toLowerCase());
+
+    const wallets = this.config.get("wallets", []);
+    return wallets.find(
+      (w: any) => w.address.toLowerCase() === activeAddress.toLowerCase()
+    );
   }
 
   /**
    * Set active wallet
    */
   setActiveWallet(address: string): void {
-    this.config.set('activeWallet', address);
+    this.config.set("activeWallet", address);
   }
 
   /**
    * Add a wallet
    */
   addWallet(wallet: WalletConfig): void {
-    const wallets = this.config.get('wallets', []);
+    const wallets = this.config.get("wallets", []);
     const existing = wallets.findIndex(
-      w => w.address.toLowerCase() === wallet.address.toLowerCase()
+      (w: any) => w.address.toLowerCase() === wallet.address.toLowerCase()
     );
-    
+
     if (existing >= 0) {
       wallets[existing] = { ...wallets[existing], ...wallet };
     } else {
       wallets.push(wallet);
     }
-    
-    this.config.set('wallets', wallets);
-    
+
+    this.config.set("wallets", wallets);
+
     // Set as active if it's the first wallet
     if (wallets.length === 1) {
       this.setActiveWallet(wallet.address);
@@ -83,21 +88,21 @@ export class ConfigManager {
    * Remove a wallet
    */
   removeWallet(address: string): boolean {
-    const wallets = this.config.get('wallets', []);
+    const wallets = this.config.get("wallets", []);
     const filtered = wallets.filter(
-      w => w.address.toLowerCase() !== address.toLowerCase()
+      (w: any) => w.address.toLowerCase() !== address.toLowerCase()
     );
-    
+
     if (filtered.length === wallets.length) return false;
-    
-    this.config.set('wallets', filtered);
-    
+
+    this.config.set("wallets", filtered);
+
     // Clear active wallet if it was removed
-    const activeWallet = this.config.get('activeWallet');
+    const activeWallet = this.config.get("activeWallet");
     if (activeWallet?.toLowerCase() === address.toLowerCase()) {
-      this.config.set('activeWallet', filtered[0]?.address);
+      this.config.set("activeWallet", filtered[0]?.address);
     }
-    
+
     return true;
   }
 
@@ -105,21 +110,21 @@ export class ConfigManager {
    * List all wallets
    */
   listWallets(): WalletConfig[] {
-    return this.config.get('wallets', []);
+    return this.config.get("wallets", []);
   }
 
   /**
    * Update wallet
    */
   updateWallet(address: string, updates: Partial<WalletConfig>): void {
-    const wallets = this.config.get('wallets', []);
+    const wallets = this.config.get("wallets", []);
     const index = wallets.findIndex(
-      w => w.address.toLowerCase() === address.toLowerCase()
+      (w: any) => w.address.toLowerCase() === address.toLowerCase()
     );
-    
+
     if (index >= 0) {
       wallets[index] = { ...wallets[index], ...updates };
-      this.config.set('wallets', wallets);
+      this.config.set("wallets", wallets);
     }
   }
 
@@ -127,28 +132,28 @@ export class ConfigManager {
    * Set facilitator URL
    */
   setFacilitatorUrl(url: string): void {
-    this.config.set('facilitatorUrl', url);
+    this.config.set("facilitatorUrl", url);
   }
 
   /**
    * Set default network
    */
-  setDefaultNetwork(network: 'plasma' | 'base' | 'ethereum'): void {
-    this.config.set('defaultNetwork', network);
+  setDefaultNetwork(network: "plasma" | "base" | "ethereum"): void {
+    this.config.set("defaultNetwork", network);
   }
 
   /**
    * Set auto gas preference
    */
   setAutoGas(enabled: boolean): void {
-    this.config.set('autoGas', enabled);
+    this.config.set("autoGas", enabled);
   }
 
   /**
    * Set prefer Plasma preference
    */
   setPreferPlasma(enabled: boolean): void {
-    this.config.set('preferPlasma', enabled);
+    this.config.set("preferPlasma", enabled);
   }
 
   /**
@@ -177,13 +182,18 @@ export class ConfigManager {
    */
   import(json: string): void {
     const imported = JSON.parse(json) as Partial<CLIConfig>;
-    
-    if (imported.wallets) this.config.set('wallets', imported.wallets);
-    if (imported.activeWallet) this.config.set('activeWallet', imported.activeWallet);
-    if (imported.defaultNetwork) this.config.set('defaultNetwork', imported.defaultNetwork);
-    if (imported.facilitatorUrl) this.config.set('facilitatorUrl', imported.facilitatorUrl);
-    if (imported.autoGas !== undefined) this.config.set('autoGas', imported.autoGas);
-    if (imported.preferPlasma !== undefined) this.config.set('preferPlasma', imported.preferPlasma);
+
+    if (imported.wallets) this.config.set("wallets", imported.wallets);
+    if (imported.activeWallet)
+      this.config.set("activeWallet", imported.activeWallet);
+    if (imported.defaultNetwork)
+      this.config.set("defaultNetwork", imported.defaultNetwork);
+    if (imported.facilitatorUrl)
+      this.config.set("facilitatorUrl", imported.facilitatorUrl);
+    if (imported.autoGas !== undefined)
+      this.config.set("autoGas", imported.autoGas);
+    if (imported.preferPlasma !== undefined)
+      this.config.set("preferPlasma", imported.preferPlasma);
   }
 }
 

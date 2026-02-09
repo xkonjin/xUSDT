@@ -19,10 +19,7 @@
   ],
   "author": "Plasma",
   "license": "MIT",
-  "dependencies": {
-    "@defillama/api": "^1.0.0",
-    "viem": "^2.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"

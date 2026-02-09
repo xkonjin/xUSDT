@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -21,16 +21,24 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       leftIcon,
       rightIcon,
       type = "text",
+      id: externalId,
       ...props
     },
     ref
   ) => {
+    const generatedId = useId();
+    const inputId = externalId || generatedId;
     const hasError = !!error;
+    const errorId = hasError ? `${inputId}-error` : undefined;
+    const hintId = hint && !hasError ? `${inputId}-hint` : undefined;
 
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-white/70 mb-2">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-medium text-white/70 mb-2"
+          >
             {label}
           </label>
         )}
@@ -42,7 +50,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            id={inputId}
             type={type}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorId || hintId || undefined}
             className={`
               w-full
               bg-white/[0.05]
@@ -72,9 +83,15 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
         </div>
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        {error && (
+          <p id={errorId} className="mt-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
         {hint && !error && (
-          <p className="mt-2 text-sm text-white/40">{hint}</p>
+          <p id={hintId} className="mt-2 text-sm text-white/40">
+            {hint}
+          </p>
         )}
       </div>
     );

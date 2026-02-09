@@ -1,19 +1,13 @@
 /**
  * @plasma-pay/facilitator - X402 Express Middleware
- * 
+ *
  * Express middleware for handling X402 payments on Plasma chain.
  * Based on baghdadgherras/x402-usdt0 server implementation.
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { PlasmaFacilitator } from './facilitator';
-import {
-  Address,
-  Hex,
-  X402PaymentPayload,
-  X402PaymentResult,
-  PLASMA_MAINNET,
-} from './types';
+import { Request, Response, NextFunction } from "express";
+import { PlasmaFacilitator } from "./facilitator";
+import { Address, Hex, X402PaymentPayload, PLASMA_MAINNET } from "./types";
 
 // ============================================================================
 // Types
@@ -49,15 +43,15 @@ export interface X402Request extends Request {
 
 /**
  * Create X402 payment middleware for Express.
- * 
+ *
  * @example
  * ```typescript
  * import express from 'express';
  * import { createX402Middleware, PlasmaFacilitator } from '@plasma-pay/facilitator';
- * 
+ *
  * const app = express();
  * const facilitator = new PlasmaFacilitator({ privateKey: '0x...' });
- * 
+ *
  * app.use('/api', createX402Middleware({
  *   facilitator,
  *   pricePerRequest: 1000000n, // 1 USDT0
@@ -67,9 +61,10 @@ export interface X402Request extends Request {
  */
 export function createX402Middleware(config: X402MiddlewareConfig) {
   // Create facilitator if private key provided
-  const facilitator = config.facilitator instanceof PlasmaFacilitator
-    ? config.facilitator
-    : new PlasmaFacilitator({ privateKey: config.facilitator });
+  const facilitator =
+    config.facilitator instanceof PlasmaFacilitator
+      ? config.facilitator
+      : new PlasmaFacilitator({ privateKey: config.facilitator });
 
   // Track free tier usage by IP
   const freeTierUsage = new Map<string, number>();
@@ -85,36 +80,36 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
   ) {
     try {
       // Skip certain routes
-      if (config.skipRoutes?.some(route => req.path.startsWith(route))) {
+      if (config.skipRoutes?.some((route) => req.path.startsWith(route))) {
         return next();
       }
 
       // Check free tier
-      const clientIP = req.ip || req.socket.remoteAddress || 'unknown';
+      const clientIP = req.ip || req.socket.remoteAddress || "unknown";
       const currentUsage = freeTierUsage.get(clientIP) || 0;
-      
+
       if (freeTierLimit > 0 && currentUsage < freeTierLimit) {
         freeTierUsage.set(clientIP, currentUsage + 1);
-        req.x402 = { paid: false, amount: 0n, from: '0x0' as Address };
+        req.x402 = { paid: false, amount: 0n, from: "0x0" as Address };
         return next();
       }
 
       // Check for X-Payment header
-      const paymentHeader = req.headers['x-payment'] as string;
-      
+      const paymentHeader = req.headers["x-payment"] as string;
+
       if (!paymentHeader) {
         // Return 402 Payment Required
         return res.status(402).json({
-          error: 'Payment Required',
+          error: "Payment Required",
           x402: {
-            version: '1',
-            scheme: 'eip3009-transfer-with-auth',
-            network: 'plasma',
+            version: "1",
+            scheme: "eip3009-transfer-with-auth",
+            network: "plasma",
             chainId: PLASMA_MAINNET.chainId,
             token: PLASMA_MAINNET.usdt0Address,
             recipient: config.recipientAddress,
             amount: config.pricePerRequest.toString(),
-            description: 'Payment required to access this resource',
+            description: "Payment required to access this resource",
           },
         });
       }
@@ -125,15 +120,15 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
         payment = JSON.parse(paymentHeader);
       } catch {
         return res.status(400).json({
-          error: 'Invalid X-Payment header',
-          details: 'Could not parse payment payload',
+          error: "Invalid X-Payment header",
+          details: "Could not parse payment payload",
         });
       }
 
       // Validate payment scheme
-      if (payment.scheme !== 'eip3009-transfer-with-auth') {
+      if (payment.scheme !== "eip3009-transfer-with-auth") {
         return res.status(400).json({
-          error: 'Unsupported payment scheme',
+          error: "Unsupported payment scheme",
           details: `Expected 'eip3009-transfer-with-auth', got '${payment.scheme}'`,
         });
       }
@@ -142,16 +137,19 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       const paymentAmount = BigInt(payment.payload.value);
       if (paymentAmount < config.pricePerRequest) {
         return res.status(402).json({
-          error: 'Insufficient payment',
+          error: "Insufficient payment",
           required: config.pricePerRequest.toString(),
           provided: paymentAmount.toString(),
         });
       }
 
       // Validate recipient
-      if (payment.payload.to.toLowerCase() !== config.recipientAddress.toLowerCase()) {
+      if (
+        payment.payload.to.toLowerCase() !==
+        config.recipientAddress.toLowerCase()
+      ) {
         return res.status(400).json({
-          error: 'Invalid recipient',
+          error: "Invalid recipient",
           expected: config.recipientAddress,
           provided: payment.payload.to,
         });
@@ -161,8 +159,8 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       const nonceKey = `${payment.payload.from}-${payment.payload.nonce}`;
       if (usedNonces.has(nonceKey)) {
         return res.status(400).json({
-          error: 'Nonce already used',
-          details: 'This authorization has already been processed',
+          error: "Nonce already used",
+          details: "This authorization has already been processed",
         });
       }
 
@@ -173,7 +171,7 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
 
       if (now < validAfter) {
         return res.status(400).json({
-          error: 'Authorization not yet valid',
+          error: "Authorization not yet valid",
           validAfter: validAfter.toString(),
           currentTime: now.toString(),
         });
@@ -181,7 +179,7 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
 
       if (now >= validBefore) {
         return res.status(400).json({
-          error: 'Authorization expired',
+          error: "Authorization expired",
           validBefore: validBefore.toString(),
           currentTime: now.toString(),
         });
@@ -192,7 +190,7 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
         const isValid = await config.verifyPayment(payment);
         if (!isValid) {
           return res.status(400).json({
-            error: 'Payment verification failed',
+            error: "Payment verification failed",
           });
         }
       }
@@ -202,17 +200,17 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
         payment.payload.from as Address,
         payment.payload.nonce as Hex
       );
-      
+
       if (isUsed) {
         return res.status(400).json({
-          error: 'Authorization already used on-chain',
+          error: "Authorization already used on-chain",
         });
       }
 
       // Parse signature
       const signature = payment.payload.signature;
-      const r = ('0x' + signature.slice(2, 66)) as Hex;
-      const s = ('0x' + signature.slice(66, 130)) as Hex;
+      const r = ("0x" + signature.slice(2, 66)) as Hex;
+      const s = ("0x" + signature.slice(66, 130)) as Hex;
       const v = parseInt(signature.slice(130, 132), 16);
 
       // Execute the transfer
@@ -229,11 +227,13 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       });
 
       // Wait for confirmation
-      const receipt = await facilitator.waitForTransactionReceipt({ hash: txHash });
+      const receipt = await facilitator.waitForTransactionReceipt({
+        hash: txHash,
+      });
 
-      if (receipt.status !== 'success') {
+      if (receipt.status !== "success") {
         return res.status(500).json({
-          error: 'Payment transaction reverted',
+          error: "Payment transaction reverted",
           transactionHash: txHash,
         });
       }
@@ -252,10 +252,10 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       // Continue to next middleware
       next();
     } catch (error) {
-      console.error('X402 middleware error:', error);
+      console.error("X402 middleware error:", error);
       return res.status(500).json({
-        error: 'Payment processing failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Payment processing failed",
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
@@ -274,16 +274,16 @@ export function create402Response(config: {
   description?: string;
 }) {
   return {
-    error: 'Payment Required',
+    error: "Payment Required",
     x402: {
-      version: '1',
-      scheme: 'eip3009-transfer-with-auth',
-      network: 'plasma',
+      version: "1",
+      scheme: "eip3009-transfer-with-auth",
+      network: "plasma",
       chainId: PLASMA_MAINNET.chainId,
       token: PLASMA_MAINNET.usdt0Address,
       recipient: config.recipient,
       amount: config.amount.toString(),
-      description: config.description || 'Payment required',
+      description: config.description || "Payment required",
     },
   };
 }

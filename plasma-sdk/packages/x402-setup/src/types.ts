@@ -2,13 +2,13 @@
  * X402 Setup Types - Easy payment integration for websites and agents
  */
 
-import type { Address, Hex } from 'viem';
+import type { Address, Hex } from "viem";
 
 export interface X402Config {
   /** Wallet address to receive payments */
   paymentAddress: Address;
   /** Network to accept payments on (default: plasma) */
-  network?: 'plasma' | 'base' | 'ethereum';
+  network?: "plasma" | "base" | "ethereum";
   /** Token to accept (default: USDT0) */
   token?: Address;
   /** Whether to use a facilitator for gas sponsorship */
@@ -33,13 +33,13 @@ export interface PaywallConfig {
 }
 
 export interface X402Headers {
-  'X-Payment-Required': 'true';
-  'X-Payment-Address': string;
-  'X-Payment-Amount': string;
-  'X-Payment-Token': string;
-  'X-Payment-Network': string;
-  'X-Payment-Description'?: string;
-  'X-Payment-Expiry'?: string;
+  "X-Payment-Required": "true";
+  "X-Payment-Address": string;
+  "X-Payment-Amount": string;
+  "X-Payment-Token": string;
+  "X-Payment-Network": string;
+  "X-Payment-Description"?: string;
+  "X-Payment-Expiry"?: string;
 }
 
 export interface PaymentProof {
@@ -55,6 +55,8 @@ export interface PaymentProof {
   nonce: string;
   /** Deadline timestamp */
   deadline: string;
+  /** Valid after timestamp (optional) */
+  validAfter?: string;
   /** Transaction hash (if already submitted) */
   txHash?: Hex;
 }
@@ -98,15 +100,15 @@ export interface EnvVar {
   example: string;
 }
 
-export type Framework = 
-  | 'nextjs'
-  | 'express'
-  | 'fastify'
-  | 'hono'
-  | 'python-flask'
-  | 'python-fastapi'
-  | 'vercel-edge'
-  | 'cloudflare-workers';
+export type Framework =
+  | "nextjs"
+  | "express"
+  | "fastify"
+  | "hono"
+  | "python-flask"
+  | "python-fastapi"
+  | "vercel-edge"
+  | "cloudflare-workers";
 
 export interface AgentSetupConfig {
   /** Agent name/identifier */

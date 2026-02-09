@@ -1,19 +1,17 @@
 /**
  * @plasma-pay/facilitator - EIP-3009 Authorization Signer
- * 
+ *
  * Client-side utilities for signing EIP-3009 TransferWithAuthorization.
  */
 
-import { ethers, Wallet, randomBytes, hexlify } from 'ethers';
+import { ethers, Wallet, randomBytes, hexlify } from "ethers";
 import {
   Address,
   Hex,
-  TransferWithAuthorizationParams,
   SignedAuthorization,
   EIP712Domain,
   PLASMA_MAINNET,
-  TRANSFER_WITH_AUTHORIZATION_TYPEHASH,
-} from './types';
+} from "./types";
 
 // ============================================================================
 // EIP-712 Types for EIP-3009
@@ -21,12 +19,12 @@ import {
 
 const TRANSFER_WITH_AUTHORIZATION_TYPES = {
   TransferWithAuthorization: [
-    { name: 'from', type: 'address' },
-    { name: 'to', type: 'address' },
-    { name: 'value', type: 'uint256' },
-    { name: 'validAfter', type: 'uint256' },
-    { name: 'validBefore', type: 'uint256' },
-    { name: 'nonce', type: 'bytes32' },
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
   ],
 };
 
@@ -49,19 +47,19 @@ export interface AuthorizationSignerConfig {
 
 /**
  * AuthorizationSigner - Signs EIP-3009 TransferWithAuthorization
- * 
+ *
  * @example
  * ```typescript
  * const signer = new AuthorizationSigner({
  *   privateKey: '0x...',
  * });
- * 
+ *
  * const auth = await signer.signTransferAuthorization({
  *   to: '0x...',
  *   value: 1000000n, // 1 USDT0
  *   validityDuration: 3600, // 1 hour
  * });
- * 
+ *
  * // Use auth in X-Payment header
  * const header = { 'X-Payment': JSON.stringify(auth) };
  * ```
@@ -72,10 +70,10 @@ export class AuthorizationSigner {
 
   constructor(config: AuthorizationSignerConfig) {
     this.wallet = new Wallet(config.privateKey);
-    
+
     this.domain = {
-      name: config.tokenName || 'USD₮0',
-      version: config.tokenVersion || '1',
+      name: config.tokenName || "USD₮0",
+      version: config.tokenVersion || "1",
       chainId: config.chainId || PLASMA_MAINNET.chainId,
       verifyingContract: config.tokenAddress || PLASMA_MAINNET.usdt0Address,
     };
@@ -97,7 +95,7 @@ export class AuthorizationSigner {
 
   /**
    * Sign a TransferWithAuthorization.
-   * 
+   *
    * @param params - Authorization parameters
    * @returns Signed authorization ready for X-Payment header
    */
@@ -110,14 +108,15 @@ export class AuthorizationSigner {
     nonce?: Hex;
   }): Promise<SignedAuthorization> {
     const now = BigInt(Math.floor(Date.now() / 1000));
-    
+
     // Set validity window
     const validAfter = params.validAfter ?? now;
-    const validBefore = params.validBefore ?? 
-      (params.validityDuration 
+    const validBefore =
+      params.validBefore ??
+      (params.validityDuration
         ? now + BigInt(params.validityDuration)
         : now + BigInt(3600)); // Default 1 hour
-    
+
     // Generate nonce if not provided
     const nonce = params.nonce || this.generateNonce();
 
@@ -163,9 +162,9 @@ export class AuthorizationSigner {
     validityDuration?: number;
   }): Promise<string> {
     const auth = await this.signTransferAuthorization(params);
-    
+
     return JSON.stringify({
-      scheme: 'eip3009-transfer-with-auth',
+      scheme: "eip3009-transfer-with-auth",
       payload: {
         from: auth.from,
         to: auth.to,
@@ -192,8 +191,12 @@ export class AuthorizationSigner {
         nonce: auth.nonce,
       };
 
-      const signature = ethers.concat([auth.r, auth.s, ethers.toBeHex(auth.v, 1)]);
-      
+      const signature = ethers.concat([
+        auth.r,
+        auth.s,
+        ethers.toBeHex(auth.v, 1),
+      ]);
+
       const recoveredAddress = ethers.verifyTypedData(
         this.domain,
         TRANSFER_WITH_AUTHORIZATION_TYPES,
