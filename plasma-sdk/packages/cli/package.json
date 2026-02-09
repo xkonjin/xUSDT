@@ -1,6 +1,7 @@
 {
   "name": "@plasma-pay/cli",
   "version": "0.1.0",
+  "type": "module",
   "description": "CLI for Plasma Pay - onboard agents, manage keys, fund wallets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -4,12 +4,12 @@
  * @jest-environment jsdom
  */
 
-import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import React from "react";
+import { render, RenderOptions } from "@testing-library/react";
 
 // Placeholder test to satisfy Jest requirement
-describe('Test Utilities', () => {
-  it('should export test utilities', () => {
+describe("Test Utilities", () => {
+  it("should export test utilities", () => {
     expect(createMockWallet).toBeDefined();
     expect(createMockContact).toBeDefined();
     expect(createMockPaymentLink).toBeDefined();
@@ -52,7 +52,7 @@ export interface MockPaymentLink {
   amount: number | null;
   currency: string;
   memo?: string;
-  status: 'active' | 'paid' | 'cancelled' | 'expired';
+  status: "active" | "paid" | "cancelled" | "expired";
   paidBy?: string;
   paidAt?: string;
   txHash?: string;
@@ -65,27 +65,31 @@ export interface MockPaymentLink {
 // Mock Data Factories
 // ============================================================================
 
-export const createMockWallet = (overrides?: Partial<MockWallet>): MockWallet => ({
-  address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  signTypedData: jest.fn().mockResolvedValue('0xmocksignature'),
-  signMessage: jest.fn().mockResolvedValue('0xmocksignature'),
+export const createMockWallet = (
+  overrides?: Partial<MockWallet>
+): MockWallet => ({
+  address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  signTypedData: jest.fn().mockResolvedValue("0xmocksignature"),
+  signMessage: jest.fn().mockResolvedValue("0xmocksignature"),
   ...overrides,
 });
 
 export const createMockUser = (overrides?: Partial<MockUser>): MockUser => ({
-  id: 'user-123',
-  email: { address: 'test@example.com' },
-  wallet: { address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0' },
+  id: "user-123",
+  email: { address: "test@example.com" },
+  wallet: { address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0" },
   ...overrides,
 });
 
-export const createMockContact = (overrides?: Partial<MockContact>): MockContact => ({
+export const createMockContact = (
+  overrides?: Partial<MockContact>
+): MockContact => ({
   id: `contact-${Date.now()}`,
-  ownerAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  contactAddress: '0xaaaa567890123456789012345678901234567890',
-  name: 'Test Contact',
-  email: 'contact@example.com',
-  phone: '+12345678900',
+  ownerAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  contactAddress: "0xaaaa567890123456789012345678901234567890",
+  name: "Test Contact",
+  email: "contact@example.com",
+  phone: "+12345678900",
   isFavorite: false,
   lastPayment: null,
   createdAt: new Date().toISOString(),
@@ -93,12 +97,14 @@ export const createMockContact = (overrides?: Partial<MockContact>): MockContact
   ...overrides,
 });
 
-export const createMockPaymentLink = (overrides?: Partial<MockPaymentLink>): MockPaymentLink => ({
+export const createMockPaymentLink = (
+  overrides?: Partial<MockPaymentLink>
+): MockPaymentLink => ({
   id: `link-${Date.now()}`,
-  creatorAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  amount: 10.00,
-  currency: 'USD',
-  status: 'active',
+  creatorAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  amount: 10.0,
+  currency: "USD",
+  status: "active",
   createdAt: new Date().toISOString(),
   url: `https://app.plenmo.com/pay/link-${Date.now()}`,
   ...overrides,
@@ -108,7 +114,7 @@ export const createMockPaymentLink = (overrides?: Partial<MockPaymentLink>): Moc
 // Mock API Response Helpers
 // ============================================================================
 
-export const mockFetchSuccess = <T>(data: T) => {
+export const mockFetchSuccess = <T,>(data: T) => {
   return jest.fn().mockResolvedValue({
     ok: true,
     json: () => Promise.resolve(data),
@@ -133,7 +139,12 @@ export const createPrivyMocks = (config: {
   user?: MockUser | null;
   wallet?: MockWallet | null;
 }) => {
-  const { authenticated = false, ready = true, user = null, wallet = null } = config;
+  const {
+    authenticated = false,
+    ready = true,
+    user = null,
+    wallet = null,
+  } = config;
 
   return {
     usePrivy: jest.fn(() => ({
@@ -148,7 +159,9 @@ export const createPrivyMocks = (config: {
     useWallets: jest.fn(() => ({
       wallets: wallet ? [wallet] : [],
     })),
-    PrivyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    PrivyProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
   };
 };
 
@@ -162,7 +175,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
 
 export const renderWithProviders = (
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
+  options?: Omit<RenderOptions, "wrapper">
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
 // ============================================================================
@@ -177,9 +190,9 @@ export const waitForCondition = async (
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (await condition()) return;
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-  throw new Error('Condition not met within timeout');
+  throw new Error("Condition not met within timeout");
 };
 
 // ============================================================================
@@ -188,8 +201,8 @@ export const waitForCondition = async (
 
 export const mockEIP3009Signature = {
   v: 28,
-  r: '0x' + 'a'.repeat(64),
-  s: '0x' + 'b'.repeat(64),
+  r: "0x" + "a".repeat(64),
+  s: "0x" + "b".repeat(64),
 };
 
 export const createMockTransferParams = (overrides?: {
@@ -197,12 +210,12 @@ export const createMockTransferParams = (overrides?: {
   to?: string;
   value?: string;
 }) => ({
-  from: overrides?.from ?? '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  to: overrides?.to ?? '0xaaaa567890123456789012345678901234567890',
-  value: overrides?.value ?? '10000000', // 10 USDT (6 decimals)
+  from: overrides?.from ?? "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  to: overrides?.to ?? "0xaaaa567890123456789012345678901234567890",
+  value: overrides?.value ?? "10000000", // 10 USDT (6 decimals)
   validAfter: 0,
   validBefore: Math.floor(Date.now() / 1000) + 3600,
-  nonce: '0x' + 'c'.repeat(64),
+  nonce: "0x" + "c".repeat(64),
 });
 
 // ============================================================================
@@ -213,10 +226,18 @@ export const mockLocalStorage = () => {
   const store: Record<string, string> = {};
   return {
     getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => { store[key] = value; }),
-    removeItem: jest.fn((key: string) => { delete store[key]; }),
-    clear: jest.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
-    get length() { return Object.keys(store).length; },
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      Object.keys(store).forEach((k) => delete store[k]);
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
     key: jest.fn((i: number) => Object.keys(store)[i] || null),
   };
 };
@@ -228,29 +249,29 @@ export const mockSessionStorage = () => mockLocalStorage();
 // ============================================================================
 
 export const TEST_ADDRESSES = {
-  VALID_ADDRESS: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  RECIPIENT_ADDRESS: '0xaaaa567890123456789012345678901234567890',
-  INVALID_ADDRESS: '0xinvalid',
-  ZERO_ADDRESS: '0x0000000000000000000000000000000000000000',
+  VALID_ADDRESS: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  RECIPIENT_ADDRESS: "0xaaaa567890123456789012345678901234567890",
+  INVALID_ADDRESS: "0xinvalid",
+  ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
 };
 
 export const TEST_AMOUNTS = {
-  VALID_SMALL: '5.00',
-  VALID_MEDIUM: '100.00',
-  VALID_LARGE: '1000.00',
-  BELOW_MINIMUM: '0.001',
-  ABOVE_MAXIMUM: '10001.00',
-  INSUFFICIENT: '999999.00',
+  VALID_SMALL: "5.00",
+  VALID_MEDIUM: "100.00",
+  VALID_LARGE: "1000.00",
+  BELOW_MINIMUM: "0.001",
+  ABOVE_MAXIMUM: "10001.00",
+  INSUFFICIENT: "999999.00",
 };
 
 export const TEST_EMAILS = {
-  VALID: 'test@example.com',
-  INVALID: 'invalid-email',
-  UNREGISTERED: 'unregistered@example.com',
+  VALID: "test@example.com",
+  INVALID: "invalid-email",
+  UNREGISTERED: "unregistered@example.com",
 };
 
 export const TEST_PHONES = {
-  VALID: '+12345678900',
-  INVALID: '123',
-  UNREGISTERED: '+19999999999',
+  VALID: "+12345678900",
+  INVALID: "123",
+  UNREGISTERED: "+19999999999",
 };

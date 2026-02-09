@@ -1,29 +1,25 @@
 /**
  * @plasma-pay/agent - EIP-3009 Signer
- * 
+ *
  * Handles signing of EIP-3009 TransferWithAuthorization messages
  */
 
-import { 
-  createWalletClient, 
-  http, 
+import {
+  createWalletClient,
+  http,
   type WalletClient,
   type Hex,
   type Address,
-  privateKeyToAccount,
-  type Account
-} from 'viem';
-import { plasma } from './chains';
-import type { 
-  PlasmaPayConfig, 
-  PlasmaWallet, 
+  type Account,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { plasma } from "./chains";
+import type {
+  PlasmaPayConfig,
+  PlasmaWallet,
   EIP3009Authorization,
-  EIP712TypedData 
-} from './types';
-
-// EIP-3009 TransferWithAuthorization type hash
-const TRANSFER_WITH_AUTHORIZATION_TYPEHASH = 
-  'TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)';
+  EIP712TypedData,
+} from "./types";
 
 /**
  * Generate a random 32-byte nonce for EIP-3009
@@ -31,7 +27,9 @@ const TRANSFER_WITH_AUTHORIZATION_TYPEHASH =
 export function generateNonce(): Hex {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return `0x${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}` as Hex;
+  return `0x${Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")}` as Hex;
 }
 
 /**
@@ -52,21 +50,21 @@ export function buildTransferWithAuthTypedData(params: {
   return {
     types: {
       EIP712Domain: [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'chainId', type: 'uint256' },
-        { name: 'verifyingContract', type: 'address' },
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
       ],
       TransferWithAuthorization: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'validAfter', type: 'uint256' },
-        { name: 'validBefore', type: 'uint256' },
-        { name: 'nonce', type: 'bytes32' },
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "validAfter", type: "uint256" },
+        { name: "validBefore", type: "uint256" },
+        { name: "nonce", type: "bytes32" },
       ],
     },
-    primaryType: 'TransferWithAuthorization',
+    primaryType: "TransferWithAuthorization",
     domain: {
       name: params.tokenName,
       version: params.tokenVersion,
@@ -102,21 +100,21 @@ export function buildReceiveWithAuthTypedData(params: {
   return {
     types: {
       EIP712Domain: [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'chainId', type: 'uint256' },
-        { name: 'verifyingContract', type: 'address' },
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
       ],
       ReceiveWithAuthorization: [
-        { name: 'from', type: 'address' },
-        { name: 'to', type: 'address' },
-        { name: 'value', type: 'uint256' },
-        { name: 'validAfter', type: 'uint256' },
-        { name: 'validBefore', type: 'uint256' },
-        { name: 'nonce', type: 'bytes32' },
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "validAfter", type: "uint256" },
+        { name: "validBefore", type: "uint256" },
+        { name: "nonce", type: "bytes32" },
       ],
     },
-    primaryType: 'ReceiveWithAuthorization',
+    primaryType: "ReceiveWithAuthorization",
     domain: {
       name: params.tokenName,
       version: params.tokenVersion,
@@ -142,12 +140,12 @@ export function parseSignature(signature: Hex): { v: number; r: Hex; s: Hex } {
   const r = `0x${sig.slice(0, 64)}` as Hex;
   const s = `0x${sig.slice(64, 128)}` as Hex;
   let v = parseInt(sig.slice(128, 130), 16);
-  
+
   // Handle EIP-155 v values
   if (v < 27) {
     v += 27;
   }
-  
+
   return { v, r, s };
 }
 
@@ -163,9 +161,9 @@ export class PlasmaSigner {
     if (config.privateKey) {
       this.account = privateKeyToAccount(config.privateKey);
       this.walletClient = createWalletClient({
-        account: this.account,
+        account: this.account as any,
         chain: plasma,
-        transport: http(config.plasmaRpcUrl || 'https://rpc.plasma.xyz'),
+        transport: http(config.plasmaRpcUrl || "https://rpc.plasma.xyz"),
       });
     } else if (config.wallet) {
       this.customWallet = config.wallet;
@@ -182,7 +180,7 @@ export class PlasmaSigner {
     if (this.customWallet) {
       return this.customWallet.address;
     }
-    throw new Error('No wallet configured');
+    throw new Error("No wallet configured");
   }
 
   /**
@@ -198,12 +196,12 @@ export class PlasmaSigner {
         message: typedData.message,
       });
     }
-    
+
     if (this.customWallet) {
       return this.customWallet.signTypedData(typedData);
     }
-    
-    throw new Error('No wallet configured for signing');
+
+    throw new Error("No wallet configured for signing");
   }
 
   /**
@@ -221,7 +219,7 @@ export class PlasmaSigner {
     nonce?: Hex;
   }): Promise<EIP3009Authorization> {
     const nonce = params.nonce || generateNonce();
-    
+
     const typedData = buildTransferWithAuthTypedData({
       ...params,
       from: this.address,
@@ -259,7 +257,7 @@ export class PlasmaSigner {
     nonce?: Hex;
   }): Promise<EIP3009Authorization> {
     const nonce = params.nonce || generateNonce();
-    
+
     const typedData = buildReceiveWithAuthTypedData({
       ...params,
       from: this.address,

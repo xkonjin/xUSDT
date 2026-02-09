@@ -1,26 +1,25 @@
 #!/usr/bin/env node
 /**
  * @plasma-pay/mcp-server
- * 
+ *
  * MCP Server for Plasma Pay - enables Claude, Cursor, and other AI agents to make payments
- * 
+ *
  * Usage:
  *   npx @plasma-pay/mcp-server
- * 
+ *
  * Environment variables:
  *   PLASMA_WALLET_KEY - Private key for signing payments (required)
  *   PLASMA_RPC_URL - Plasma RPC URL (optional, defaults to https://rpc.plasma.xyz)
  *   PLASMA_FACILITATOR_URL - Facilitator URL (optional, defaults to https://pay.plasma.xyz)
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
-} from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
+} from "@modelcontextprotocol/sdk/types.js";
 import {
   createPublicClient,
   createWalletClient,
@@ -29,42 +28,45 @@ import {
   parseUnits,
   type Address,
   type Hex,
-  privateKeyToAccount,
-} from 'viem';
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
 const PLASMA_CHAIN_ID = 98866;
-const PLASMA_RPC_URL = process.env.PLASMA_RPC_URL || 'https://rpc.plasma.xyz';
-const FACILITATOR_URL = process.env.PLASMA_FACILITATOR_URL || 'https://pay.plasma.xyz';
-const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace
+const PLASMA_RPC_URL = process.env.PLASMA_RPC_URL || "https://rpc.plasma.xyz";
+// @ts-ignore - reserved for future use
+const _FACILITATOR_URL =
+  process.env.PLASMA_FACILITATOR_URL || "https://pay.plasma.xyz";
+const USDT0_ADDRESS = (process.env.USDT0_ADDRESS ||
+  "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb") as Address;
 const USDT0_DECIMALS = 6;
 
 // Plasma chain definition
 const plasma = {
   id: PLASMA_CHAIN_ID,
-  name: 'Plasma',
-  nativeCurrency: { decimals: 18, name: 'XPL', symbol: 'XPL' },
+  name: "Plasma",
+  nativeCurrency: { decimals: 18, name: "XPL", symbol: "XPL" },
   rpcUrls: { default: { http: [PLASMA_RPC_URL] } },
 };
 
 // ERC20 ABI
 const ERC20_ABI = [
   {
-    inputs: [{ name: 'account', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [],
-    name: 'name',
-    outputs: [{ name: '', type: 'string' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "name",
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+    type: "function",
   },
 ] as const;
 
@@ -74,68 +76,72 @@ const ERC20_ABI = [
 
 const TOOLS: Tool[] = [
   {
-    name: 'plasma_get_balance',
-    description: 'Get the USDT0 and XPL (gas) balance of the configured wallet on Plasma',
+    name: "plasma_get_balance",
+    description:
+      "Get the USDT0 and XPL (gas) balance of the configured wallet on Plasma",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {},
       required: [],
     },
   },
   {
-    name: 'plasma_send_payment',
-    description: 'Send USDT0 payment to a recipient address on Plasma. Uses gasless EIP-3009 transfers.',
+    name: "plasma_send_payment",
+    description:
+      "Send USDT0 payment to a recipient address on Plasma. Uses gasless EIP-3009 transfers.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         to: {
-          type: 'string',
-          description: 'Recipient address (0x...)',
+          type: "string",
+          description: "Recipient address (0x...)",
         },
         amount: {
-          type: 'string',
+          type: "string",
           description: 'Amount in USDT0 (e.g., "10.50" for $10.50)',
         },
         note: {
-          type: 'string',
-          description: 'Optional payment note/memo',
+          type: "string",
+          description: "Optional payment note/memo",
         },
       },
-      required: ['to', 'amount'],
+      required: ["to", "amount"],
     },
   },
   {
-    name: 'plasma_pay_invoice',
-    description: 'Pay an X402 invoice/payment request. Automatically handles the payment flow.',
+    name: "plasma_pay_invoice",
+    description:
+      "Pay an X402 invoice/payment request. Automatically handles the payment flow.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         invoiceUrl: {
-          type: 'string',
-          description: 'URL that returned 402 Payment Required',
+          type: "string",
+          description: "URL that returned 402 Payment Required",
         },
         maxAmount: {
-          type: 'string',
+          type: "string",
           description: 'Maximum amount willing to pay in USDT0 (e.g., "1.00")',
         },
       },
-      required: ['invoiceUrl'],
+      required: ["invoiceUrl"],
     },
   },
   {
-    name: 'plasma_get_address',
-    description: 'Get the wallet address configured for Plasma Pay',
+    name: "plasma_get_address",
+    description: "Get the wallet address configured for Plasma Pay",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {},
       required: [],
     },
   },
   {
-    name: 'plasma_estimate_gas',
-    description: 'Estimate gas cost for a transaction on Plasma (extremely cheap)',
+    name: "plasma_estimate_gas",
+    description:
+      "Estimate gas cost for a transaction on Plasma (extremely cheap)",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {},
       required: [],
     },
@@ -147,18 +153,18 @@ const TOOLS: Tool[] = [
 // ============================================================================
 
 async function handleGetBalance(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: any,
   address: Address
 ): Promise<string> {
   // Get USDT0 balance
   let usdt0 = BigInt(0);
   try {
-    usdt0 = await publicClient.readContract({
+    usdt0 = (await publicClient.readContract({
       address: USDT0_ADDRESS,
       abi: ERC20_ABI,
-      functionName: 'balanceOf',
+      functionName: "balanceOf",
       args: [address],
-    }) as bigint;
+    })) as bigint;
   } catch (e) {
     // Token might not exist yet
   }
@@ -166,114 +172,148 @@ async function handleGetBalance(
   // Get XPL (native) balance
   const xpl = await publicClient.getBalance({ address });
 
-  return JSON.stringify({
-    address,
-    usdt0: {
-      balance: usdt0.toString(),
-      formatted: formatUnits(usdt0, USDT0_DECIMALS),
-      symbol: 'USDT0',
+  return JSON.stringify(
+    {
+      address,
+      usdt0: {
+        balance: usdt0.toString(),
+        formatted: formatUnits(usdt0, USDT0_DECIMALS),
+        symbol: "USDT0",
+      },
+      xpl: {
+        balance: xpl.toString(),
+        formatted: formatUnits(xpl, 18),
+        symbol: "XPL",
+      },
+      hasGas: xpl >= BigInt(10_000_000_000_000_000), // 0.01 XPL
     },
-    xpl: {
-      balance: xpl.toString(),
-      formatted: formatUnits(xpl, 18),
-      symbol: 'XPL',
-    },
-    hasGas: xpl >= BigInt(10_000_000_000_000_000), // 0.01 XPL
-  }, null, 2);
+    null,
+    2
+  );
 }
 
 async function handleSendPayment(
-  publicClient: ReturnType<typeof createPublicClient>,
-  walletClient: ReturnType<typeof createWalletClient>,
+  publicClient: any,
+  _walletClient: any,
   address: Address,
   to: string,
   amount: string,
   note?: string
 ): Promise<string> {
   // Validate recipient address
-  if (!to.startsWith('0x') || to.length !== 42) {
-    throw new Error('Invalid recipient address');
+  if (!to.startsWith("0x") || to.length !== 42) {
+    throw new Error("Invalid recipient address");
   }
 
   // Parse amount
   const amountWei = parseUnits(amount, USDT0_DECIMALS);
 
   // Check balance
-  const balance = await publicClient.readContract({
+  const balance = (await publicClient.readContract({
     address: USDT0_ADDRESS,
     abi: ERC20_ABI,
-    functionName: 'balanceOf',
+    functionName: "balanceOf",
     args: [address],
-  }) as bigint;
+  })) as bigint;
 
   if (balance < amountWei) {
-    throw new Error(`Insufficient balance. Have ${formatUnits(balance, USDT0_DECIMALS)} USDT0, need ${amount} USDT0`);
+    throw new Error(
+      `Insufficient balance. Have ${formatUnits(
+        balance,
+        USDT0_DECIMALS
+      )} USDT0, need ${amount} USDT0`
+    );
   }
 
   // For now, return a simulated response
   // In production, this would sign and submit an EIP-3009 authorization
-  return JSON.stringify({
-    status: 'simulated',
-    message: 'Payment would be sent (simulation mode - configure facilitator for real payments)',
-    details: {
-      from: address,
-      to,
-      amount,
-      amountWei: amountWei.toString(),
-      note: note || null,
-      network: 'Plasma',
-      token: 'USDT0',
+  return JSON.stringify(
+    {
+      status: "simulated",
+      message:
+        "Payment would be sent (simulation mode - configure facilitator for real payments)",
+      details: {
+        from: address,
+        to,
+        amount,
+        amountWei: amountWei.toString(),
+        note: note || null,
+        network: "Plasma",
+        token: "USDT0",
+      },
     },
-  }, null, 2);
+    null,
+    2
+  );
 }
 
 async function handlePayInvoice(
-  address: Address,
+  _address: Address,
   invoiceUrl: string,
-  maxAmount?: string
+  _maxAmount?: string
 ): Promise<string> {
   // Fetch the invoice
   const response = await fetch(invoiceUrl);
-  
+
   if (response.status !== 402) {
-    return JSON.stringify({
-      status: 'no_payment_required',
-      message: `URL returned status ${response.status}, not 402 Payment Required`,
-    }, null, 2);
+    return JSON.stringify(
+      {
+        status: "no_payment_required",
+        message: `URL returned status ${response.status}, not 402 Payment Required`,
+      },
+      null,
+      2
+    );
   }
 
   // Parse payment required header
-  const paymentHeader = response.headers.get('X-Payment-Required');
+  const paymentHeader = response.headers.get("X-Payment-Required");
   if (!paymentHeader) {
-    return JSON.stringify({
-      status: 'error',
-      message: 'No X-Payment-Required header found in 402 response',
-    }, null, 2);
+    return JSON.stringify(
+      {
+        status: "error",
+        message: "No X-Payment-Required header found in 402 response",
+      },
+      null,
+      2
+    );
   }
 
   try {
     const paymentRequired = JSON.parse(atob(paymentHeader));
-    
-    return JSON.stringify({
-      status: 'payment_required',
-      invoiceId: paymentRequired.invoiceId,
-      options: paymentRequired.paymentOptions,
-      message: 'Payment required. Use plasma_send_payment to pay.',
-    }, null, 2);
+
+    return JSON.stringify(
+      {
+        status: "payment_required",
+        invoiceId: paymentRequired.invoiceId,
+        options: paymentRequired.paymentOptions,
+        message: "Payment required. Use plasma_send_payment to pay.",
+      },
+      null,
+      2
+    );
   } catch (e) {
-    return JSON.stringify({
-      status: 'error',
-      message: 'Failed to parse payment required header',
-    }, null, 2);
+    return JSON.stringify(
+      {
+        status: "error",
+        message: "Failed to parse payment required header",
+      },
+      null,
+      2
+    );
   }
 }
 
 function handleGetAddress(address: Address): string {
-  return JSON.stringify({
-    address,
-    network: 'Plasma',
-    chainId: PLASMA_CHAIN_ID,
-  }, null, 2);
+  return JSON.stringify(
+    {
+      address,
+      network: "Plasma",
+      chainId: PLASMA_CHAIN_ID,
+    },
+    null,
+    2
+  );
 }
 
 function handleEstimateGas(): string {
@@ -281,16 +321,20 @@ function handleEstimateGas(): string {
   const gasPrice = BigInt(1_000_000_000); // 1 gwei
   const cost = gasLimit * gasPrice;
 
-  return JSON.stringify({
-    gasLimit: gasLimit.toString(),
-    gasPrice: formatUnits(gasPrice, 9) + ' gwei',
-    totalCost: {
-      wei: cost.toString(),
-      xpl: formatUnits(cost, 18),
-      usd: '< $0.0001',
+  return JSON.stringify(
+    {
+      gasLimit: gasLimit.toString(),
+      gasPrice: formatUnits(gasPrice, 9) + " gwei",
+      totalCost: {
+        wei: cost.toString(),
+        xpl: formatUnits(cost, 18),
+        usd: "< $0.0001",
+      },
+      note: "Plasma gas is extremely cheap - ~10,000x cheaper than Ethereum",
     },
-    note: 'Plasma gas is extremely cheap - ~10,000x cheaper than Ethereum',
-  }, null, 2);
+    null,
+    2
+  );
 }
 
 // ============================================================================
@@ -300,10 +344,10 @@ function handleEstimateGas(): string {
 async function main() {
   // Get private key from environment
   const privateKey = process.env.PLASMA_WALLET_KEY as Hex | undefined;
-  
+
   if (!privateKey) {
-    console.error('Error: PLASMA_WALLET_KEY environment variable is required');
-    console.error('Set it to your wallet private key (0x...)');
+    console.error("Error: PLASMA_WALLET_KEY environment variable is required");
+    console.error("Set it to your wallet private key (0x...)");
     process.exit(1);
   }
 
@@ -326,8 +370,8 @@ async function main() {
   // Create MCP server
   const server = new Server(
     {
-      name: 'plasma-pay',
-      version: '1.0.0',
+      name: "plasma-pay",
+      version: "1.0.0",
     },
     {
       capabilities: {
@@ -349,11 +393,11 @@ async function main() {
       let result: string;
 
       switch (name) {
-        case 'plasma_get_balance':
+        case "plasma_get_balance":
           result = await handleGetBalance(publicClient, address);
           break;
 
-        case 'plasma_send_payment':
+        case "plasma_send_payment":
           result = await handleSendPayment(
             publicClient,
             walletClient,
@@ -364,7 +408,7 @@ async function main() {
           );
           break;
 
-        case 'plasma_pay_invoice':
+        case "plasma_pay_invoice":
           result = await handlePayInvoice(
             address,
             (args as any).invoiceUrl,
@@ -372,11 +416,11 @@ async function main() {
           );
           break;
 
-        case 'plasma_get_address':
+        case "plasma_get_address":
           result = handleGetAddress(address);
           break;
 
-        case 'plasma_estimate_gas':
+        case "plasma_estimate_gas":
           result = handleEstimateGas();
           break;
 
@@ -385,17 +429,21 @@ async function main() {
       }
 
       return {
-        content: [{ type: 'text', text: result }],
+        content: [{ type: "text", text: result }],
       };
     } catch (error: any) {
       return {
         content: [
           {
-            type: 'text',
-            text: JSON.stringify({
-              error: true,
-              message: error.message || 'Unknown error',
-            }, null, 2),
+            type: "text",
+            text: JSON.stringify(
+              {
+                error: true,
+                message: error.message || "Unknown error",
+              },
+              null,
+              2
+            ),
           },
         ],
         isError: true,
@@ -413,6 +461,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });

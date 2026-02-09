@@ -1,6 +1,6 @@
 /**
  * @plasma-pay/gas-manager - Gas Manager Client
- * 
+ *
  * Auto gas management for self-sovereign agent operation on Plasma
  * Ensures agents always have XPL for transactions without relying on a relayer
  */
@@ -10,70 +10,68 @@ import {
   createWalletClient,
   http,
   formatUnits,
-  parseUnits,
-  type PublicClient,
   type WalletClient,
   type Address,
   type Hex,
-  privateKeyToAccount,
   type Account,
-} from 'viem';
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import type {
   GasManagerConfig,
   GasBalance,
   RefillResult,
   GasManagerEvent,
   GasManagerEventHandler,
-} from './types';
+} from "./types";
 import {
   PLASMA_CHAIN_ID,
   PLASMA_RPC_URL,
   DEFAULT_MIN_BALANCE,
   DEFAULT_TARGET_BALANCE,
   DEFAULT_REFILL_AMOUNT,
-  ESTIMATED_TX_GAS,
+  ESTIMATED_TX_GAS as _ESTIMATED_TX_GAS,
   ESTIMATED_ERC20_GAS,
   ESTIMATED_GAS_PRICE,
   USDT0_ADDRESS,
   GAS_SWAP_ROUTER,
-} from './types';
+} from "./types";
 
 // Plasma chain definition
 const plasma = {
   id: PLASMA_CHAIN_ID,
-  name: 'Plasma',
-  nativeCurrency: { decimals: 18, name: 'XPL', symbol: 'XPL' },
+  name: "Plasma",
+  nativeCurrency: { decimals: 18, name: "XPL", symbol: "XPL" },
   rpcUrls: { default: { http: [PLASMA_RPC_URL] } },
 };
 
 // ERC20 ABI for USDT0 balance and approval
 const ERC20_ABI = [
   {
-    inputs: [{ name: 'account', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
   },
   {
     inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' },
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
     ],
-    name: 'approve',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
     inputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
     ],
-    name: 'allowance',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
   },
 ] as const;
 
@@ -81,16 +79,16 @@ const ERC20_ABI = [
 const SWAP_ROUTER_ABI = [
   {
     inputs: [
-      { name: 'tokenIn', type: 'address' },
-      { name: 'amountIn', type: 'uint256' },
-      { name: 'amountOutMin', type: 'uint256' },
-      { name: 'to', type: 'address' },
-      { name: 'deadline', type: 'uint256' },
+      { name: "tokenIn", type: "address" },
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" },
     ],
-    name: 'swapExactTokensForETH',
-    outputs: [{ name: 'amountOut', type: 'uint256' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    name: "swapExactTokensForETH",
+    outputs: [{ name: "amountOut", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
   },
 ] as const;
 
@@ -133,10 +131,10 @@ interface DailyLimitTracker {
 
 /**
  * PlasmaGasManager - Auto gas management for self-sovereign agents
- * 
+ *
  * Monitors XPL balance and automatically refills from USDT0 when low
  * Includes protection against race conditions and runaway refills
- * 
+ *
  * @example
  * ```typescript
  * const gasManager = new PlasmaGasManager({
@@ -145,10 +143,10 @@ interface DailyLimitTracker {
  *   maxDailyRefills: 5,
  *   maxDailyAmount: parseUnits('10', 6), // Max 10 USDT0/day
  * });
- * 
+ *
  * // Start monitoring
  * gasManager.startMonitoring();
- * 
+ *
  * // Check balance
  * const balance = await gasManager.getBalance();
  * console.log(`XPL: ${balance.balanceFormatted}, Healthy: ${balance.isHealthy}`);
@@ -159,7 +157,7 @@ export class PlasmaGasManager {
     maxDailyRefills: number;
     maxDailyAmount: bigint;
   };
-  private publicClient: PublicClient;
+  private publicClient: any;
   private walletClient: WalletClient | null = null;
   private account: Account | null = null;
   private eventHandlers: GasManagerEventHandler[] = [];
@@ -171,11 +169,13 @@ export class PlasmaGasManager {
     totalAmount: BigInt(0),
   };
 
-  constructor(config: GasManagerConfig & { 
-    privateKey?: Hex;
-    maxDailyRefills?: number;
-    maxDailyAmount?: bigint;
-  } = {}) {
+  constructor(
+    config: GasManagerConfig & {
+      privateKey?: Hex;
+      maxDailyRefills?: number;
+      maxDailyAmount?: bigint;
+    } = {}
+  ) {
     // Merge with defaults
     this.config = {
       plasmaRpcUrl: config.plasmaRpcUrl || PLASMA_RPC_URL,
@@ -199,17 +199,17 @@ export class PlasmaGasManager {
     if (config.privateKey) {
       // Validate private key format
       if (!/^0x[a-fA-F0-9]{64}$/.test(config.privateKey)) {
-        throw new Error('Invalid private key format');
+        throw new Error("Invalid private key format");
       }
       this.account = privateKeyToAccount(config.privateKey);
       this.walletClient = createWalletClient({
-        account: this.account,
+        account: this.account as any,
         chain: plasma as any,
         transport: http(this.config.plasmaRpcUrl),
       });
     }
 
-    this.log('PlasmaGasManager initialized');
+    this.log("PlasmaGasManager initialized");
   }
 
   /**
@@ -224,7 +224,7 @@ export class PlasmaGasManager {
    */
   async getBalance(): Promise<GasBalance> {
     if (!this.address) {
-      throw new Error('Wallet not configured');
+      throw new Error("Wallet not configured");
     }
 
     const balance = await this.publicClient.getBalance({
@@ -233,7 +233,7 @@ export class PlasmaGasManager {
 
     const isHealthy = balance >= this.config.minBalance;
     const isCritical = balance < this.config.minBalance / BigInt(10);
-    
+
     // Estimate how many transactions can be done
     const txCost = ESTIMATED_ERC20_GAS * ESTIMATED_GAS_PRICE;
     const estimatedTxCount = txCost > BigInt(0) ? Number(balance / txCost) : 0;
@@ -246,12 +246,12 @@ export class PlasmaGasManager {
       estimatedTxCount,
     };
 
-    this.emit({ type: 'balance_checked', data: result });
-    
+    this.emit({ type: "balance_checked", data: result });
+
     if (isCritical) {
-      this.emit({ type: 'balance_critical', data: result });
+      this.emit({ type: "balance_critical", data: result });
     } else if (!isHealthy) {
-      this.emit({ type: 'balance_low', data: result });
+      this.emit({ type: "balance_low", data: result });
     }
 
     return result;
@@ -262,19 +262,19 @@ export class PlasmaGasManager {
    */
   async getUSDT0Balance(): Promise<bigint> {
     if (!this.address) {
-      throw new Error('Wallet not configured');
+      throw new Error("Wallet not configured");
     }
 
     try {
       const balance = await this.publicClient.readContract({
         address: USDT0_ADDRESS,
         abi: ERC20_ABI,
-        functionName: 'balanceOf',
+        functionName: "balanceOf",
         args: [this.address],
       });
       return balance as bigint;
     } catch (error) {
-      this.log('Failed to get USDT0 balance', { error });
+      this.log("Failed to get USDT0 balance", { error });
       return BigInt(0);
     }
   }
@@ -298,7 +298,7 @@ export class PlasmaGasManager {
    */
   async refill(amount?: bigint): Promise<RefillResult> {
     if (!this.walletClient || !this.account) {
-      return { success: false, error: 'Wallet not configured' };
+      return { success: false, error: "Wallet not configured" };
     }
 
     // Acquire mutex to prevent concurrent refills
@@ -311,45 +311,59 @@ export class PlasmaGasManager {
       // Check daily limits
       if (this.dailyTracker.count >= this.config.maxDailyRefills) {
         const error = `Daily refill limit reached (${this.config.maxDailyRefills} refills)`;
-        this.emit({ type: 'refill_failed', error });
+        this.emit({ type: "refill_failed", error });
         return { success: false, error };
       }
 
       const refillAmount = amount || this.config.refillAmount;
 
-      if (this.dailyTracker.totalAmount + refillAmount > this.config.maxDailyAmount) {
-        const remaining = this.config.maxDailyAmount - this.dailyTracker.totalAmount;
-        const error = `Daily amount limit reached. Remaining: ${formatUnits(remaining, 6)} USDT0`;
-        this.emit({ type: 'refill_failed', error });
+      if (
+        this.dailyTracker.totalAmount + refillAmount >
+        this.config.maxDailyAmount
+      ) {
+        const remaining =
+          this.config.maxDailyAmount - this.dailyTracker.totalAmount;
+        const error = `Daily amount limit reached. Remaining: ${formatUnits(
+          remaining,
+          6
+        )} USDT0`;
+        this.emit({ type: "refill_failed", error });
         return { success: false, error };
       }
 
-      this.emit({ type: 'refill_started', amount: refillAmount });
-      this.log('Starting gas refill', { amount: refillAmount.toString() });
+      this.emit({ type: "refill_started", amount: refillAmount });
+      this.log("Starting gas refill", { amount: refillAmount.toString() });
 
       // Check USDT0 balance
       const usdt0Balance = await this.getUSDT0Balance();
       if (usdt0Balance < refillAmount) {
-        throw new Error(`Insufficient USDT0 balance. Need ${formatUnits(refillAmount, 6)}, have ${formatUnits(usdt0Balance, 6)}`);
+        throw new Error(
+          `Insufficient USDT0 balance. Need ${formatUnits(
+            refillAmount,
+            6
+          )}, have ${formatUnits(usdt0Balance, 6)}`
+        );
       }
 
       // Check and set approval if needed
-      const allowance = await this.publicClient.readContract({
+      const allowance = (await this.publicClient.readContract({
         address: USDT0_ADDRESS,
         abi: ERC20_ABI,
-        functionName: 'allowance',
+        functionName: "allowance",
         args: [this.address!, GAS_SWAP_ROUTER],
-      }) as bigint;
+      })) as bigint;
 
       if (allowance < refillAmount) {
-        this.log('Approving USDT0 for swap router');
+        this.log("Approving USDT0 for swap router");
         const approveHash = await this.walletClient.writeContract({
           address: USDT0_ADDRESS,
           abi: ERC20_ABI,
-          functionName: 'approve',
+          functionName: "approve",
           args: [GAS_SWAP_ROUTER, refillAmount * BigInt(10)], // Approve 10x for future
+        } as any);
+        await this.publicClient.waitForTransactionReceipt({
+          hash: approveHash,
         });
-        await this.publicClient.waitForTransactionReceipt({ hash: approveHash });
       }
 
       // Get balance before swap
@@ -362,7 +376,7 @@ export class PlasmaGasManager {
       const txHash = await this.walletClient.writeContract({
         address: GAS_SWAP_ROUTER,
         abi: SWAP_ROUTER_ABI,
-        functionName: 'swapExactTokensForETH',
+        functionName: "swapExactTokensForETH",
         args: [
           USDT0_ADDRESS,
           refillAmount,
@@ -370,7 +384,7 @@ export class PlasmaGasManager {
           this.address!,
           deadline,
         ],
-      });
+      } as any);
 
       // Wait for confirmation
       await this.publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -380,7 +394,7 @@ export class PlasmaGasManager {
         address: this.address!,
       });
 
-      const amountReceived = balanceAfter - balanceBefore;
+      const amountReceived = BigInt(balanceAfter) - BigInt(balanceBefore);
 
       // Update daily tracker
       this.dailyTracker.count++;
@@ -393,18 +407,18 @@ export class PlasmaGasManager {
         amountSpent: refillAmount,
       };
 
-      this.emit({ type: 'refill_completed', data: result });
-      this.log('Gas refill completed', { 
-        txHash, 
+      this.emit({ type: "refill_completed", data: result });
+      this.log("Gas refill completed", {
+        txHash,
         received: formatUnits(amountReceived, 18),
         dailyCount: this.dailyTracker.count,
       });
 
       return result;
     } catch (error: any) {
-      const errorMsg = error.message || 'Unknown error';
-      this.emit({ type: 'refill_failed', error: errorMsg });
-      this.log('Gas refill failed', { error: errorMsg });
+      const errorMsg = error.message || "Unknown error";
+      this.emit({ type: "refill_failed", error: errorMsg });
+      this.log("Gas refill failed", { error: errorMsg });
       return { success: false, error: errorMsg };
     } finally {
       this.refillMutex.release();
@@ -416,12 +430,12 @@ export class PlasmaGasManager {
    */
   startMonitoring(): void {
     if (this.monitorInterval) {
-      this.log('Monitoring already started');
+      this.log("Monitoring already started");
       return;
     }
 
-    this.log('Starting gas balance monitoring');
-    
+    this.log("Starting gas balance monitoring");
+
     // Check immediately
     this.checkAndRefill();
 
@@ -438,7 +452,7 @@ export class PlasmaGasManager {
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
-      this.log('Stopped gas balance monitoring');
+      this.log("Stopped gas balance monitoring");
     }
   }
 
@@ -475,7 +489,7 @@ export class PlasmaGasManager {
     return {
       wei: cost,
       xpl: formatUnits(cost, 18),
-      usd: '< $0.0001', // Plasma gas is extremely cheap
+      usd: "< $0.0001", // Plasma gas is extremely cheap
     };
   }
 
@@ -484,7 +498,7 @@ export class PlasmaGasManager {
   // ============================================================================
 
   private getTodayDate(): string {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   }
 
   private resetDailyTrackerIfNeeded(): void {
@@ -495,20 +509,20 @@ export class PlasmaGasManager {
         count: 0,
         totalAmount: BigInt(0),
       };
-      this.log('Daily tracker reset for new day');
+      this.log("Daily tracker reset for new day");
     }
   }
 
   private async checkAndRefill(): Promise<void> {
     try {
       const balance = await this.getBalance();
-      
+
       if (!balance.isHealthy && this.config.autoRefill) {
-        this.log('Balance low, triggering auto-refill');
+        this.log("Balance low, triggering auto-refill");
         await this.refill();
       }
     } catch (error: any) {
-      this.log('Balance check failed', { error: error.message });
+      this.log("Balance check failed", { error: error.message });
     }
   }
 
@@ -517,14 +531,14 @@ export class PlasmaGasManager {
       try {
         handler(event);
       } catch (e) {
-        this.log('Event handler error', { error: e });
+        this.log("Event handler error", { error: e });
       }
     }
   }
 
   private log(message: string, data?: Record<string, unknown>): void {
     if (this.config.debug) {
-      console.log(`[PlasmaGasManager] ${message}`, data || '');
+      console.log(`[PlasmaGasManager] ${message}`, data || "");
     }
   }
 }

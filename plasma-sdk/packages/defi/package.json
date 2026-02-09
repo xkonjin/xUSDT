@@ -20,7 +20,7 @@
   "author": "Plasma",
   "license": "MIT",
   "dependencies": {
-    "@defillama/api": "^1.0.0",
+    "@defillama/api": "^0.1.2",
     "viem": "^2.0.0"
   },
   "devDependencies": {
