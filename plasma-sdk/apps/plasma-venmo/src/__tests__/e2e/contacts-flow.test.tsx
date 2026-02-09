@@ -99,7 +99,7 @@ function ContactsTestComponent({
   const [formPhone, setFormPhone] = React.useState("");
   const [formAddress, setFormAddress] = React.useState("");
 
-  const fetchContacts = async () => {
+  const fetchContacts = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -112,13 +112,13 @@ function ContactsTestComponent({
     } finally {
       setLoading(false);
     }
-  };
+  }, [address]);
 
   React.useEffect(() => {
     if (initialContacts.length === 0) {
       fetchContacts();
     }
-  }, [address]);
+  }, [fetchContacts, initialContacts.length]);
 
   const filteredContacts = React.useMemo(() => {
     if (!searchQuery.trim()) return contacts;

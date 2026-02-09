@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowUpRight, ArrowDownLeft, History, ExternalLink, Clock, Loader2, AlertCircle, RefreshCw, ChevronDown, Filter } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  History,
+  ExternalLink,
+  Clock,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  ChevronDown,
+} from "lucide-react";
 import type { Address } from "viem";
 import { TransactionListSkeleton } from "./ui/Skeleton";
 import { EmptyState } from "./ui/EmptyState";
@@ -48,23 +58,27 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
 
     try {
       const offset = pageNum * PAGE_SIZE;
-      const response = await fetch(`/api/history?address=${address}&limit=${PAGE_SIZE}&offset=${offset}`);
+      const response = await fetch(
+        `/api/history?address=${address}&limit=${PAGE_SIZE}&offset=${offset}`
+      );
       if (!response.ok) {
         throw new Error("Failed to load transactions");
       }
       const data = await response.json();
       const newTxs = data.transactions || [];
-      
+
       if (append) {
-        setTransactions(prev => [...prev, ...newTxs]);
+        setTransactions((prev) => [...prev, ...newTxs]);
       } else {
         setTransactions(newTxs);
       }
-      
+
       setHasMore(newTxs.length === PAGE_SIZE);
       setPage(pageNum);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load transactions");
+      setError(
+        err instanceof Error ? err.message : "Failed to load transactions"
+      );
       if (!append) setTransactions([]);
     } finally {
       setLoading(false);
@@ -84,7 +98,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
   };
 
   // Filter transactions
-  const filteredTransactions = transactions.filter(tx => {
+  const filteredTransactions = transactions.filter((tx) => {
     if (filter === "all") return true;
     return tx.type === filter;
   });
@@ -155,7 +169,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
           <History className="w-5 h-5 text-plenmo-500" />
           Recent Activity
         </h2>
-        
+
         {/* Filter buttons */}
         <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5">
           {[
@@ -177,7 +191,7 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
           ))}
         </div>
       </div>
-      
+
       <div className="space-y-2">
         {filteredTransactions.length === 0 ? (
           <div className="text-center py-8">
@@ -193,7 +207,11 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
               onClick={() =>
                 window.open(`https://scan.plasma.to/tx/${tx.txHash}`, "_blank")
               }
-              aria-label={`View ${tx.type === "sent" ? "sent" : "received"} transaction of $${tx.amount} ${tx.type === "sent" ? "to" : "from"} ${tx.counterparty}`}
+              aria-label={`View ${
+                tx.type === "sent" ? "sent" : "received"
+              } transaction of $${tx.amount} ${
+                tx.type === "sent" ? "to" : "from"
+              } ${tx.counterparty}`}
             >
               <div className="relative">
                 <Avatar name={tx.counterparty} size="lg" />
@@ -218,7 +236,9 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
                   <span className="text-white/60">{tx.counterparty}</span>
                 </div>
                 <div className="text-white/40 text-xs flex items-center gap-2 mt-0.5">
-                  <span>{formatRelativeTime(new Date(tx.timestamp * 1000))}</span>
+                  <span>
+                    {formatRelativeTime(new Date(tx.timestamp * 1000))}
+                  </span>
                   <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
@@ -258,7 +278,8 @@ export function TransactionHistory({ address }: TransactionHistoryProps) {
         {/* Total count */}
         {filteredTransactions.length > 0 && (
           <p className="text-center text-white/30 text-xs mt-4 pt-2 border-t border-white/5">
-            Showing {filteredTransactions.length} of {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+            Showing {filteredTransactions.length} of {transactions.length}{" "}
+            transaction{transactions.length !== 1 ? "s" : ""}
           </p>
         )}
       </div>

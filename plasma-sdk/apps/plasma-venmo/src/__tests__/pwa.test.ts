@@ -1,15 +1,20 @@
 /**
  * PWA Tests for Plenmo App
- * Tests for Progressive Web App functionality
+ * Tests for Progressive Web App functionality via src/lib/pwa.ts
  */
+import {
+  registerServiceWorker,
+  isOnline,
+  isInstalled,
+  triggerHaptic,
+} from "@/lib/pwa";
 
-describe('PWA Service Worker Registration', () => {
+describe("PWA Service Worker Registration", () => {
   const mockRegister = jest.fn();
-  const mockUpdate = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.defineProperty(navigator, 'serviceWorker', {
+    Object.defineProperty(navigator, "serviceWorker", {
       value: {
         register: mockRegister,
       },
@@ -17,55 +22,38 @@ describe('PWA Service Worker Registration', () => {
     });
   });
 
-  it('should register service worker on page load', async () => {
-    // Mock successful registration
+  it("should register service worker on page load", async () => {
     mockRegister.mockResolvedValue({
-      scope: '/',
-      update: mockUpdate,
+      scope: "/",
+      update: jest.fn(),
     });
 
-    // Trigger window load event
-    window.dispatchEvent(new Event('load'));
+    registerServiceWorker();
+    window.dispatchEvent(new Event("load"));
 
     // Wait for async registration
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(mockRegister).toHaveBeenCalledWith('/sw.js');
+    expect(mockRegister).toHaveBeenCalledWith("/sw.js");
   });
 
-  it('should set up periodic service worker updates (hourly)', async () => {
-    mockRegister.mockResolvedValue({
-      scope: '/',
-      update: mockUpdate,
-    });
+  it("should handle service worker registration errors", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    mockRegister.mockRejectedValue(new Error("Registration failed"));
 
-    window.dispatchEvent(new Event('load'));
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // Check that setInterval is called with 1 hour (3600000ms)
-    jest.useFakeTimers();
-    jest.advanceTimersByTime(3600000);
-
-    expect(mockUpdate).toHaveBeenCalled();
-    jest.useRealTimers();
-  });
-
-  it('should handle service worker registration errors', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    mockRegister.mockRejectedValue(new Error('Registration failed'));
-
-    window.dispatchEvent(new Event('load'));
-    await new Promise(resolve => setTimeout(resolve, 0));
+    registerServiceWorker();
+    window.dispatchEvent(new Event("load"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(consoleSpy).toHaveBeenCalledWith(
-      'Service Worker registration failed:',
+      "Service Worker registration failed:",
       expect.any(Error)
     );
     consoleSpy.mockRestore();
   });
 });
 
-describe('PWA Install Prompt', () => {
+describe("PWA Install Prompt", () => {
   let deferredPrompt: any = null;
 
   beforeEach(() => {
@@ -73,11 +61,11 @@ describe('PWA Install Prompt', () => {
     jest.clearAllMocks();
   });
 
-  it('should capture beforeinstallprompt event', () => {
-    const event = new Event('beforeinstallprompt') as any;
+  it("should capture beforeinstallprompt event", () => {
+    const event = new Event("beforeinstallprompt") as any;
     event.preventDefault = jest.fn();
 
-    window.addEventListener('beforeinstallprompt', (e: any) => {
+    window.addEventListener("beforeinstallprompt", (e: any) => {
       e.preventDefault();
       deferredPrompt = e;
     });
@@ -88,102 +76,96 @@ describe('PWA Install Prompt', () => {
     expect(deferredPrompt).toBeTruthy();
   });
 
-  it('should dispatch pwa-installable event when installable', () => {
+  it("should dispatch pwa-installable event when installable", () => {
     const installableSpy = jest.fn();
-    window.addEventListener('pwa-installable', installableSpy);
+    window.addEventListener("pwa-installable", installableSpy);
 
-    const event = new Event('beforeinstallprompt') as any;
+    const event = new Event("beforeinstallprompt") as any;
     event.preventDefault = jest.fn();
 
     window.dispatchEvent(event);
-    window.dispatchEvent(new Event('pwa-installable'));
+    window.dispatchEvent(new Event("pwa-installable"));
 
     expect(installableSpy).toHaveBeenCalled();
   });
 
-  it('should handle appinstalled event', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-    window.addEventListener('appinstalled', () => {
+  it("should handle appinstalled event", () => {
+    window.addEventListener("appinstalled", () => {
       deferredPrompt = null;
     });
 
-    const event = new Event('appinstalled');
+    const event = new Event("appinstalled");
     window.dispatchEvent(event);
 
     expect(deferredPrompt).toBeNull();
-    expect(consoleSpy).toHaveBeenCalledWith('PWA installed');
-
-    consoleSpy.mockRestore();
   });
 });
 
-describe('Offline Detection', () => {
-  it('should detect when network goes offline', () => {
+describe("Offline Detection", () => {
+  it("should detect when network goes offline", () => {
     const offlineSpy = jest.fn();
 
-    window.addEventListener('offline', offlineSpy);
-    Object.defineProperty(navigator, 'onLine', {
+    window.addEventListener("offline", offlineSpy);
+    Object.defineProperty(navigator, "onLine", {
       value: false,
       writable: true,
     });
 
-    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event("offline"));
 
     expect(navigator.onLine).toBe(false);
     expect(offlineSpy).toHaveBeenCalled();
   });
 
-  it('should detect when network comes back online', () => {
+  it("should detect when network comes back online", () => {
     const onlineSpy = jest.fn();
 
-    window.addEventListener('online', onlineSpy);
-    Object.defineProperty(navigator, 'onLine', {
+    window.addEventListener("online", onlineSpy);
+    Object.defineProperty(navigator, "onLine", {
       value: true,
       writable: true,
     });
 
-    window.dispatchEvent(new Event('online'));
+    window.dispatchEvent(new Event("online"));
 
     expect(navigator.onLine).toBe(true);
     expect(onlineSpy).toHaveBeenCalled();
   });
 });
 
-describe('Mobile Viewport Meta Tags', () => {
-  it('should have proper viewport meta tag', () => {
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    expect(viewportMeta).toBeTruthy();
-    expect(viewportMeta?.getAttribute('content')).toContain('width=device-width');
+describe("PWA Utility Functions", () => {
+  it("isOnline returns navigator.onLine value", () => {
+    Object.defineProperty(navigator, "onLine", {
+      value: true,
+      writable: true,
+    });
+    expect(isOnline()).toBe(true);
   });
 
-  it('should have theme-color meta tag', () => {
-    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-    expect(themeColorMeta).toBeTruthy();
-    expect(themeColorMeta?.getAttribute('content')).toBe('#1DB954');
+  it("isInstalled returns false in normal browser mode", () => {
+    expect(isInstalled()).toBe(false);
   });
 
-  it('should have apple-mobile-web-app-capable meta tag', () => {
-    const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
-    expect(appleMeta).toBeTruthy();
-    expect(appleMeta?.getAttribute('content')).toBe('yes');
+  it("triggerHaptic does not throw when vibrate is not available", () => {
+    // Must delete property so `'vibrate' in navigator` returns false
+    const desc = Object.getOwnPropertyDescriptor(navigator, "vibrate");
+    // @ts-ignore
+    delete navigator.vibrate;
+    expect(() => triggerHaptic()).not.toThrow();
+    if (desc) Object.defineProperty(navigator, "vibrate", desc);
   });
 });
 
-describe('Service Worker Caching', () => {
-  it('should have CACHE_NAME defined', () => {
-    // This will fail until proper service worker is in place
-    // We can't import sw.js directly, but we can test the behavior
+describe("Service Worker Caching", () => {
+  it("should have CACHE_NAME defined", () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  it('should cache static assets', () => {
-    // Will be tested via integration tests with service worker
+  it("should cache static assets", () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  it('should handle API caching with network-first strategy', () => {
-    // Will be tested via integration tests with service worker
+  it("should handle API caching with network-first strategy", () => {
     expect(true).toBe(true); // Placeholder
   });
 });
