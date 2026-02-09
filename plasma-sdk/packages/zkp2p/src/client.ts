@@ -1,10 +1,17 @@
 /**
  * ZKP2P Client - Fiat on-ramp for AI agents
- * 
+ *
  * Enables agents to accept fiat payments via Venmo, Zelle, Revolut, etc.
  * and convert them to USDT0 on Plasma using zero-knowledge proofs.
  */
 
+import {
+  createPublicClient,
+  http,
+  formatUnits,
+  type Address,
+  type PublicClient,
+} from "viem";
 import type {
   ZKP2PConfig,
   OnrampRequest,
@@ -12,25 +19,60 @@ import type {
   OnrampStatus,
   PaymentPlatform,
   PlatformInfo,
-} from './types';
-import { PLATFORM_INFO } from './types';
+} from "./types";
+import { PLATFORM_INFO } from "./types";
 
-const DEFAULT_BASE_URL = 'https://www.zkp2p.xyz';
+const DEFAULT_BASE_URL = "https://www.zkp2p.xyz";
 
 // Plasma chain configuration
 const PLASMA_CHAIN_ID = 98866; // Plasma mainnet
-const USDT0_ADDRESS = '0x...'; // USDT0 on Plasma - to be configured
+const USDT0_ADDRESS: Address = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
+const PLASMA_RPC_URL = "https://rpc.plasma.io/v1";
+
+const ERC20_BALANCE_ABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
 
 export class ZKP2PClient {
   private baseUrl: string;
   private defaultPlatform: PaymentPlatform;
   private callbackUrl?: string;
   private statusPollingInterval: NodeJS.Timer | null = null;
+  private publicClient: PublicClient;
+  private preOnrampSnapshots: Map<
+    string,
+    { recipient: string; balance: bigint }
+  > = new Map();
 
   constructor(config: ZKP2PConfig = {}) {
     this.baseUrl = config.baseUrl || DEFAULT_BASE_URL;
-    this.defaultPlatform = config.defaultPlatform || 'venmo';
+    this.defaultPlatform = config.defaultPlatform || "venmo";
     this.callbackUrl = config.callbackUrl;
+    this.publicClient = createPublicClient({
+      chain: {
+        id: PLASMA_CHAIN_ID,
+        name: "Plasma",
+        nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+        rpcUrls: { default: { http: [PLASMA_RPC_URL] } },
+      },
+      transport: http(PLASMA_RPC_URL),
+    });
+  }
+
+  async getUSDT0Balance(address: string): Promise<bigint> {
+    const balance = await this.publicClient.readContract({
+      address: USDT0_ADDRESS,
+      abi: ERC20_BALANCE_ABI,
+      functionName: "balanceOf",
+      args: [address as Address],
+    });
+    return balance as bigint;
   }
 
   /**
@@ -42,12 +84,16 @@ export class ZKP2PClient {
     // Validate amount
     const platformInfo = this.getPlatformInfo(platform);
     const amountNum = parseFloat(amount);
-    
+
     if (amountNum < parseFloat(platformInfo.minAmount)) {
-      throw new Error(`Minimum amount for ${platformInfo.name} is $${platformInfo.minAmount}`);
+      throw new Error(
+        `Minimum amount for ${platformInfo.name} is $${platformInfo.minAmount}`
+      );
     }
     if (amountNum > parseFloat(platformInfo.maxAmount)) {
-      throw new Error(`Maximum amount for ${platformInfo.name} is $${platformInfo.maxAmount}`);
+      throw new Error(
+        `Maximum amount for ${platformInfo.name} is $${platformInfo.maxAmount}`
+      );
     }
 
     // Generate reference ID if not provided
@@ -64,10 +110,18 @@ export class ZKP2PClient {
     });
 
     if (this.callbackUrl) {
-      params.append('callback', this.callbackUrl);
+      params.append("callback", this.callbackUrl);
     }
 
     const url = `${this.baseUrl}/?${params.toString()}`;
+
+    // Snapshot pre-onramp balance for polling-based status detection
+    try {
+      const balance = await this.getUSDT0Balance(recipient);
+      this.preOnrampSnapshots.set(refId, { recipient, balance });
+    } catch {
+      this.preOnrampSnapshots.set(refId, { recipient, balance: 0n });
+    }
 
     return {
       url,
@@ -82,21 +136,55 @@ export class ZKP2PClient {
   async generateQRCode(url: string): Promise<string> {
     // In production, use a QR code library
     // For now, return a placeholder
-    return `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><text>QR: ${encodeURIComponent(url)}</text></svg>`;
+    return `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><text>QR: ${encodeURIComponent(
+      url
+    )}</text></svg>`;
   }
 
   /**
    * Check the status of an on-ramp request
    */
   async checkStatus(referenceId: string): Promise<OnrampStatus> {
-    // In production, this would call ZKP2P's status API
-    // For now, return a mock status
-    return {
-      referenceId,
-      status: 'pending',
-      amount: '0',
-      updatedAt: new Date().toISOString(),
-    };
+    const snapshot = this.preOnrampSnapshots.get(referenceId);
+    if (!snapshot) {
+      return {
+        referenceId,
+        status: "pending",
+        amount: "0",
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    try {
+      const currentBalance = await this.getUSDT0Balance(snapshot.recipient);
+      const diff = currentBalance - snapshot.balance;
+
+      if (diff > 0n) {
+        const receivedAmount = formatUnits(diff, 6);
+        this.preOnrampSnapshots.delete(referenceId);
+        return {
+          referenceId,
+          status: "completed",
+          amount: receivedAmount,
+          receivedAmount,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      return {
+        referenceId,
+        status: "pending",
+        amount: "0",
+        updatedAt: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        referenceId,
+        status: "pending",
+        amount: "0",
+        updatedAt: new Date().toISOString(),
+      };
+    }
   }
 
   /**
@@ -110,30 +198,34 @@ export class ZKP2PClient {
       onStatusChange?: (status: OnrampStatus) => void;
     } = {}
   ): Promise<OnrampStatus> {
-    const { timeout = 30 * 60 * 1000, pollInterval = 10000, onStatusChange } = options;
+    const {
+      timeout = 30 * 60 * 1000,
+      pollInterval = 10000,
+      onStatusChange,
+    } = options;
     const startTime = Date.now();
 
     return new Promise((resolve, reject) => {
       const poll = async () => {
         try {
           const status = await this.checkStatus(referenceId);
-          
+
           if (onStatusChange) {
             onStatusChange(status);
           }
 
-          if (status.status === 'completed') {
+          if (status.status === "completed") {
             resolve(status);
             return;
           }
 
-          if (status.status === 'failed') {
-            reject(new Error(status.error || 'On-ramp failed'));
+          if (status.status === "failed") {
+            reject(new Error(status.error || "On-ramp failed"));
             return;
           }
 
           if (Date.now() - startTime > timeout) {
-            reject(new Error('On-ramp timed out'));
+            reject(new Error("On-ramp timed out"));
             return;
           }
 
@@ -158,9 +250,13 @@ export class ZKP2PClient {
    * Get all available payment platforms
    */
   getAvailablePlatforms(region?: string): PlatformInfo[] {
-    return Object.values(PLATFORM_INFO).filter(p => {
+    return Object.values(PLATFORM_INFO).filter((p) => {
       if (!p.available) return false;
-      if (region && !p.regions.includes(region) && !p.regions.includes('Global')) {
+      if (
+        region &&
+        !p.regions.includes(region) &&
+        !p.regions.includes("Global")
+      ) {
         return false;
       }
       return true;
@@ -189,7 +285,7 @@ export class ZKP2PClient {
       inputAmount: amount,
       outputAmount: outputAmount.toFixed(2),
       fee: fee.toFixed(2),
-      rate: '1.00', // 1 USD = 1 USDT0
+      rate: "1.00", // 1 USD = 1 USDT0
     };
   }
 
@@ -199,58 +295,58 @@ export class ZKP2PClient {
   getInstructions(platform: PaymentPlatform): string[] {
     const instructions: Record<PaymentPlatform, string[]> = {
       venmo: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see a Venmo payment request',
-        '4. Open Venmo and send the exact amount shown',
-        '5. Include the reference code in the payment note',
-        '6. ZKP2P will generate a ZK proof of your payment',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see a Venmo payment request",
+        "4. Open Venmo and send the exact amount shown",
+        "5. Include the reference code in the payment note",
+        "6. ZKP2P will generate a ZK proof of your payment",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
       zelle: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see Zelle payment instructions',
-        '4. Open your bank app and send via Zelle',
-        '5. Use the exact amount and recipient shown',
-        '6. ZKP2P will verify your payment via ZK proof',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see Zelle payment instructions",
+        "4. Open your bank app and send via Zelle",
+        "5. Use the exact amount and recipient shown",
+        "6. ZKP2P will verify your payment via ZK proof",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
       revolut: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see Revolut payment instructions',
-        '4. Open Revolut and send the payment',
-        '5. Use the exact amount and reference shown',
-        '6. ZKP2P will verify your payment via ZK proof',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see Revolut payment instructions",
+        "4. Open Revolut and send the payment",
+        "5. Use the exact amount and reference shown",
+        "6. ZKP2P will verify your payment via ZK proof",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
       wise: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see Wise payment instructions',
-        '4. Open Wise and initiate the transfer',
-        '5. Use the exact amount and reference shown',
-        '6. ZKP2P will verify your payment via ZK proof',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see Wise payment instructions",
+        "4. Open Wise and initiate the transfer",
+        "5. Use the exact amount and reference shown",
+        "6. ZKP2P will verify your payment via ZK proof",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
       cashapp: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see Cash App payment instructions',
-        '4. Open Cash App and send the payment',
-        '5. Include the reference in the note',
-        '6. ZKP2P will verify your payment via ZK proof',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see Cash App payment instructions",
+        "4. Open Cash App and send the payment",
+        "5. Include the reference in the note",
+        "6. ZKP2P will verify your payment via ZK proof",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
       paypal: [
-        '1. Open the ZKP2P link in your browser',
-        '2. Connect your wallet (or it will use the provided address)',
-        '3. You will see PayPal payment instructions',
-        '4. Open PayPal and send the payment',
-        '5. Use the exact amount and reference shown',
-        '6. ZKP2P will verify your payment via ZK proof',
-        '7. USDT0 will be sent to your wallet on Plasma',
+        "1. Open the ZKP2P link in your browser",
+        "2. Connect your wallet (or it will use the provided address)",
+        "3. You will see PayPal payment instructions",
+        "4. Open PayPal and send the payment",
+        "5. Use the exact amount and reference shown",
+        "6. ZKP2P will verify your payment via ZK proof",
+        "7. USDT0 will be sent to your wallet on Plasma",
       ],
     };
 
@@ -275,13 +371,13 @@ export class ZKP2PClient {
     });
 
     if (options.suggestedAmount) {
-      params.append('amount', options.suggestedAmount);
+      params.append("amount", options.suggestedAmount);
     }
     if (options.platform) {
-      params.append('platform', options.platform);
+      params.append("platform", options.platform);
     }
     if (options.agentName) {
-      params.append('name', options.agentName);
+      params.append("name", options.agentName);
     }
 
     return `${this.baseUrl}/?${params.toString()}`;

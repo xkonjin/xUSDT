@@ -211,8 +211,26 @@ export async function POST(request: Request, context: RouteParams) {
       return NextResponse.json({ error: "Claim has expired" }, { status: 400 });
     }
 
+    // Atomically lock the claim to prevent double-claiming (TOCTOU protection).
+    // updateMany with a status condition acts as an optimistic lock.
+    const lockResult = await prisma.claim.updateMany({
+      where: { id: claim.id, status: "pending" },
+      data: { status: "processing" },
+    });
+
+    if (lockResult.count === 0) {
+      return NextResponse.json(
+        { error: "Claim is already being processed" },
+        { status: 409 }
+      );
+    }
+
     // Validate escrow address is configured
     if (!ESCROW_ADDRESS) {
+      await prisma.claim.update({
+        where: { id: claim.id },
+        data: { status: "pending" },
+      });
       return NextResponse.json(
         { error: "Escrow address not configured" },
         { status: 500 }
@@ -243,22 +261,34 @@ export async function POST(request: Request, context: RouteParams) {
     });
 
     if (escrowBalance < amountInUnits) {
+      await prisma.claim.update({
+        where: { id: claim.id },
+        data: { status: "pending" },
+      });
       return NextResponse.json(
         { error: "Insufficient escrow balance. Please contact support." },
         { status: 500 }
       );
     }
 
-    // Transfer from escrow to claimer using a simple transfer
-    // The RELAYER wallet must be the owner/operator of the escrow address
-    // or the escrow must have approved the RELAYER
-    // For MVP: We assume RELAYER IS the escrow (MERCHANT_ADDRESS == RELAYER wallet)
-    const txHash = await walletClient.writeContract({
-      address: USDT0_ADDRESS,
-      abi: USDT0_ABI,
-      functionName: "transfer",
-      args: [claimerAddress as Address, amountInUnits],
-    });
+    let txHash: `0x${string}`;
+    try {
+      // Transfer from escrow to claimer
+      // For MVP: RELAYER IS the escrow (MERCHANT_ADDRESS == RELAYER wallet)
+      txHash = await walletClient.writeContract({
+        address: USDT0_ADDRESS,
+        abi: USDT0_ABI,
+        functionName: "transfer",
+        args: [claimerAddress as Address, amountInUnits],
+      });
+    } catch (txError) {
+      // Revert lock on tx submission failure
+      await prisma.claim.update({
+        where: { id: claim.id },
+        data: { status: "pending" },
+      });
+      throw txError;
+    }
 
     // Wait for confirmation
     const receipt = await publicClient.waitForTransactionReceipt({
@@ -267,13 +297,17 @@ export async function POST(request: Request, context: RouteParams) {
     });
 
     if (receipt.status !== "success") {
+      await prisma.claim.update({
+        where: { id: claim.id },
+        data: { status: "pending" },
+      });
       return NextResponse.json(
         { error: "Transaction reverted" },
         { status: 500 }
       );
     }
 
-    // Update claim status
+    // Finalize claim status
     await prisma.claim.update({
       where: { id: claim.id },
       data: {
@@ -294,6 +328,7 @@ export async function POST(request: Request, context: RouteParams) {
         body: `Your payment of $${claim.amount} USDT0 was claimed!`,
         data: {
           claimId: claim.id,
+          amount: claim.amount,
           txHash,
           claimedBy: claimerAddress,
         },

@@ -1,10 +1,10 @@
 /**
  * Rate Limiter for API routes
  * VENMO-003: Implement rate limiting middleware
- * 
+ *
  * Uses in-memory Map-based storage for development.
  * In production, this could be backed by Redis for distributed rate limiting.
- * 
+ *
  * Limits:
  * - Payment routes (submit-transfer, claims, requests): 10/min
  * - Read routes: 100/min
@@ -81,7 +81,7 @@ export class RateLimiter {
     // Check if over limit
     if (entry.count > config.maxRequests) {
       const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
-      
+
       return {
         allowed: false,
         remaining: 0,
@@ -143,6 +143,11 @@ export const RATE_LIMIT_CONFIGS = {
     maxRequests: 30,
     windowMs: 60 * 1000, // 1 minute
   },
+  // Auth routes: 5 requests per minute
+  auth: {
+    maxRequests: 5,
+    windowMs: 60 * 1000, // 1 minute
+  },
 } as const;
 
 // Singleton instance for use across the application
@@ -151,9 +156,9 @@ let globalRateLimiter: RateLimiter | null = null;
 export function getRateLimiter(): RateLimiter {
   if (!globalRateLimiter) {
     globalRateLimiter = new RateLimiter();
-    
+
     // Set up periodic cleanup (every 5 minutes)
-    if (typeof setInterval !== 'undefined') {
+    if (typeof setInterval !== "undefined") {
       setInterval(() => {
         globalRateLimiter?.cleanup();
       }, 5 * 60 * 1000);
@@ -168,50 +173,50 @@ export function getRateLimiter(): RateLimiter {
 export function getClientIP(request: Request): string {
   // Check various headers for client IP
   const headers = request.headers;
-  
+
   // Vercel / Cloudflare headers
-  const forwarded = headers.get('x-forwarded-for');
+  const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    return forwarded.split(",")[0].trim();
   }
-  
+
   // Cloudflare specific
-  const cfConnectingIP = headers.get('cf-connecting-ip');
+  const cfConnectingIP = headers.get("cf-connecting-ip");
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
+
   // Real IP header (nginx)
-  const realIP = headers.get('x-real-ip');
+  const realIP = headers.get("x-real-ip");
   if (realIP) {
     return realIP;
   }
-  
+
   // Fallback
-  return 'unknown';
+  return "unknown";
 }
 
 /**
  * Determine route type based on pathname
  */
-export function getRouteType(pathname: string): 'payment' | 'read' {
+export function getRouteType(pathname: string): "payment" | "read" {
   // Payment routes that modify state
   const paymentPatterns = [
-    '/api/submit-transfer',
-    '/api/claims',
-    '/api/requests',
-    '/api/payment-links',
-    '/api/share-links',
-    '/api/referrals/pay',
-    '/api/relay',
-    '/api/notify',
+    "/api/submit-transfer",
+    "/api/claims",
+    "/api/requests",
+    "/api/payment-links",
+    "/api/share-links",
+    "/api/referrals/pay",
+    "/api/relay",
+    "/api/notify",
   ];
-  
+
   for (const pattern of paymentPatterns) {
     if (pathname.startsWith(pattern)) {
-      return 'payment';
+      return "payment";
     }
   }
-  
-  return 'read';
+
+  return "read";
 }
