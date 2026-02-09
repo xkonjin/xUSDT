@@ -89,6 +89,7 @@ export const ClaySheet = forwardRef<HTMLDivElement, ClaySheetProps>(
         className="fixed inset-0 z-[1060] flex"
         aria-modal="true"
         role="dialog"
+        aria-label="Side panel"
       >
         {/* Backdrop */}
         <div
@@ -110,7 +111,9 @@ export const ClaySheet = forwardRef<HTMLDivElement, ClaySheetProps>(
             isHorizontal
               ? "border-l border-r border-slate-200/60 border-t border-b border-transparent"
               : "border-t border-b border-slate-200/60 border-l border-r border-transparent",
-            isHorizontal ? "rounded-l-[2rem] rounded-r-none" : "rounded-t-[2rem] rounded-b-none",
+            isHorizontal
+              ? "rounded-l-[2rem] rounded-r-none"
+              : "rounded-t-[2rem] rounded-b-none",
             positionStyles[position],
             sizeStyles[size][position],
             "transition-transform duration-300",
@@ -172,5 +175,3 @@ export const ClaySheetFooter = forwardRef<HTMLDivElement, ClaySheetFooterProps>(
 );
 
 ClaySheetFooter.displayName = "ClaySheetFooter";
-
-

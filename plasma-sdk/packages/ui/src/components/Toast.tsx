@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  useCallback,
+} from "react";
 import { CheckCircle, AlertCircle, Info, X, AlertTriangle } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -53,7 +59,10 @@ function ToastContainer() {
   const { toasts } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-3 max-w-sm">
+    <div
+      className="fixed bottom-4 right-4 z-50 flex flex-col gap-3 max-w-sm"
+      aria-live="polite"
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
@@ -117,6 +126,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       <button
         onClick={() => removeToast(toast.id)}
         className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />
       </button>

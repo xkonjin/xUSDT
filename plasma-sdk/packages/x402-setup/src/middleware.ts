@@ -6,7 +6,7 @@ import type { X402Config } from "./types";
 import { verifyPayment } from "./verify";
 
 const PLASMA_CHAIN_ID = 98866;
-const USDT0_ADDRESS = "0x..."; // TODO: Replace
+const USDT0_ADDRESS = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
 void PLASMA_CHAIN_ID;
 
 export interface MiddlewareConfig extends X402Config {

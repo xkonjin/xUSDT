@@ -1,9 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, MessageCircle, Send, Mail, Share2, Twitter } from "lucide-react";
+import {
+  X,
+  Copy,
+  Check,
+  MessageCircle,
+  Send,
+  Mail,
+  Share2,
+  Twitter,
+} from "lucide-react";
 
-export type ShareChannel = "whatsapp" | "telegram" | "sms" | "email" | "twitter" | "copy" | "native";
+export type ShareChannel =
+  | "whatsapp"
+  | "telegram"
+  | "sms"
+  | "email"
+  | "twitter"
+  | "copy"
+  | "native";
 
 export interface ShareSheetProps {
   isOpen: boolean;
@@ -15,14 +31,36 @@ export interface ShareSheetProps {
 }
 
 const shareChannels = [
-  { id: "whatsapp" as const, label: "WhatsApp", icon: MessageCircle, color: "#25D366" },
+  {
+    id: "whatsapp" as const,
+    label: "WhatsApp",
+    icon: MessageCircle,
+    color: "#25D366",
+  },
   { id: "telegram" as const, label: "Telegram", icon: Send, color: "#0088cc" },
-  { id: "sms" as const, label: "Message", icon: MessageCircle, color: "#34C759" },
+  {
+    id: "sms" as const,
+    label: "Message",
+    icon: MessageCircle,
+    color: "#34C759",
+  },
   { id: "email" as const, label: "Email", icon: Mail, color: "#EA4335" },
-  { id: "twitter" as const, label: "X/Twitter", icon: Twitter, color: "#1DA1F2" },
+  {
+    id: "twitter" as const,
+    label: "X/Twitter",
+    icon: Twitter,
+    color: "#1DA1F2",
+  },
 ];
 
-export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: ShareSheetProps) {
+export function ShareSheet({
+  isOpen,
+  onClose,
+  title,
+  message,
+  url,
+  onShare,
+}: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -34,19 +72,34 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
 
     switch (channel) {
       case "whatsapp":
-        window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, "_blank");
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(fullMessage)}`,
+          "_blank"
+        );
         break;
       case "telegram":
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(message)}`, "_blank");
+        window.open(
+          `https://t.me/share/url?url=${encodeURIComponent(
+            url
+          )}&text=${encodeURIComponent(message)}`,
+          "_blank"
+        );
         break;
       case "sms":
         window.location.href = `sms:?body=${encodeURIComponent(fullMessage)}`;
         break;
       case "email":
-        window.location.href = `mailto:?subject=${encodeURIComponent(title || "Check this out")}&body=${encodeURIComponent(fullMessage)}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(
+          title || "Check this out"
+        )}&body=${encodeURIComponent(fullMessage)}`;
         break;
       case "twitter":
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(fullMessage)}`, "_blank");
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            fullMessage
+          )}`,
+          "_blank"
+        );
         break;
     }
 
@@ -87,13 +140,19 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || "Share"}
+      >
         <div className="bg-[rgb(20,20,25)] rounded-t-3xl border-t border-white/10 p-6 pb-8 max-w-lg mx-auto">
           {/* Handle */}
           <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6" />
@@ -104,6 +163,7 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
             <button
               onClick={onClose}
               className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              aria-label="Close share sheet"
             >
               <X className="w-5 h-5 text-white/60" />
             </button>
@@ -117,11 +177,14 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
                 onClick={() => handleShare(channel.id)}
                 className="flex flex-col items-center gap-2 group"
               >
-                <div 
+                <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110"
                   style={{ backgroundColor: `${channel.color}20` }}
                 >
-                  <channel.icon className="w-6 h-6" style={{ color: channel.color }} />
+                  <channel.icon
+                    className="w-6 h-6"
+                    style={{ color: channel.color }}
+                  />
                 </div>
                 <span className="text-xs text-white/60">{channel.label}</span>
               </button>
@@ -130,9 +193,7 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
 
           {/* Copy link */}
           <div className="bg-white/5 rounded-2xl p-4 flex items-center gap-3">
-            <div className="flex-1 truncate text-white/60 text-sm">
-              {url}
-            </div>
+            <div className="flex-1 truncate text-white/60 text-sm">{url}</div>
             <button
               onClick={handleCopy}
               className="flex items-center gap-2 px-4 py-2 bg-[rgb(0,212,255)] text-black rounded-xl font-semibold hover:bg-[rgb(0,190,230)] transition-colors"
@@ -164,7 +225,9 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes slide-up {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
@@ -172,7 +235,9 @@ export function ShareSheet({ isOpen, onClose, title, message, url, onShare }: Sh
         .animate-slide-up {
           animation: slide-up 0.3s ease-out;
         }
-      `}} />
+      `,
+        }}
+      />
     </>
   );
 }

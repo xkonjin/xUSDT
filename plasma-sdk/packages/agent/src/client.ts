@@ -210,7 +210,6 @@ export class PlasmaPayClient {
     if (!balance.hasGas) {
       this.emit({ type: "gas_low", balance: balance.xpl });
       if (this.config.autoGas) {
-        // TODO: Auto-refill gas
         this.log("Low gas balance, auto-refill not yet implemented");
       }
     }

@@ -1,10 +1,10 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 import { cn } from "../lib/utils";
 
 export interface ClayInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   error?: string;
   hint?: string;
@@ -30,16 +30,24 @@ const ClayInput = forwardRef<HTMLInputElement, ClayInputProps>(
       rightIcon,
       size = "md",
       type = "text",
+      id: externalId,
       ...props
     },
     ref
   ) => {
+    const generatedId = useId();
+    const inputId = externalId || generatedId;
     const hasError = !!error;
+    const errorId = hasError ? `${inputId}-error` : undefined;
+    const hintId = hint && !hasError ? `${inputId}-hint` : undefined;
 
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-semibold text-slate-700 mb-2 ml-1">
+          <label
+            htmlFor={inputId}
+            className="block text-sm font-semibold text-slate-700 mb-2 ml-1"
+          >
             {label}
           </label>
         )}
@@ -51,7 +59,10 @@ const ClayInput = forwardRef<HTMLInputElement, ClayInputProps>(
           )}
           <input
             ref={ref}
+            id={inputId}
             type={type}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorId || hintId || undefined}
             className={cn(
               "w-full",
               "bg-gradient-to-br from-slate-50 to-slate-100",
@@ -80,12 +91,17 @@ const ClayInput = forwardRef<HTMLInputElement, ClayInputProps>(
           )}
         </div>
         {error && (
-          <p className="mt-2 text-sm text-red-500 font-medium ml-1 flex items-center gap-1">
+          <p
+            id={errorId}
+            className="mt-2 text-sm text-red-500 font-medium ml-1 flex items-center gap-1"
+          >
             {error}
           </p>
         )}
         {hint && !error && (
-          <p className="mt-2 text-sm text-slate-500 ml-1">{hint}</p>
+          <p id={hintId} className="mt-2 text-sm text-slate-500 ml-1">
+            {hint}
+          </p>
         )}
       </div>
     );

@@ -125,9 +125,10 @@ export class PlasmaLiFiClient {
     try {
       const quote = await getQuote(quoteRequest);
       return this.formatQuote(quote);
-    } catch (error: any) {
-      this.log("Quote error", { error: error.message });
-      throw new Error(`Failed to get swap quote: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log("Quote error", { error: message });
+      throw new Error(`Failed to get swap quote: ${message}`);
     }
   }
 
@@ -182,9 +183,10 @@ export class PlasmaLiFiClient {
           status: "pending",
         };
       }
-    } catch (error: any) {
-      this.log("Swap execution error", { error: error.message });
-      throw new Error(`Swap execution failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log("Swap execution error", { error: message });
+      throw new Error(`Swap execution failed: ${message}`);
     }
   }
 
@@ -213,8 +215,9 @@ export class PlasmaLiFiClient {
           },
           logoURI: chain.logoURI,
         }));
-    } catch (error: any) {
-      this.log("Failed to get chains", { error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log("Failed to get chains", { error: message });
       return [];
     }
   }
@@ -236,8 +239,9 @@ export class PlasmaLiFiClient {
         logoURI: token.logoURI,
         priceUsd: token.priceUSD,
       }));
-    } catch (error: any) {
-      this.log("Failed to get tokens", { error: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log("Failed to get tokens", { error: message });
       return [];
     }
   }
@@ -262,7 +266,7 @@ export class PlasmaLiFiClient {
   // Private Methods
   // ============================================================================
 
-  private formatQuote(quote: any): SwapQuote {
+  private formatQuote(quote: unknown): SwapQuote {
     const route = quote as Route;
     const action = route.steps[0]?.action;
     const estimate = route.steps[0]?.estimate;
@@ -294,7 +298,9 @@ export class PlasmaLiFiClient {
         0
       ),
       gasCostUsd: route.gasCostUSD || "0",
-      priceImpact: parseFloat((estimate as any)?.priceImpact || "0"),
+      priceImpact: parseFloat(
+        (estimate as unknown as Record<string, string>)?.priceImpact || "0"
+      ),
       exchangeRate: this.calculateExchangeRate(
         action?.fromAmount,
         estimate?.toAmount,
@@ -462,8 +468,9 @@ export class PlasmaLiFiClient {
         })),
         rawRoute: route,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to get send quote: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get send quote: ${message}`);
     }
   }
 
@@ -522,8 +529,9 @@ export class PlasmaLiFiClient {
           destinationChain: quote.recipientReceives.chainId,
         };
       }
-    } catch (error: any) {
-      throw new Error(`Send execution failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Send execution failed: ${message}`);
     }
   }
 

@@ -1,10 +1,10 @@
 /**
  * @plasma-pay/gas-manager - Type definitions
- * 
+ *
  * Types for auto gas management on Plasma
  */
 
-import type { Address, Hex } from 'viem';
+import type { Address, Hex } from "viem";
 
 // ============================================================================
 // Configuration Types
@@ -117,12 +117,12 @@ export interface RefillResult {
 // ============================================================================
 
 export type GasManagerEvent =
-  | { type: 'balance_checked'; data: GasBalance }
-  | { type: 'balance_low'; data: GasBalance }
-  | { type: 'balance_critical'; data: GasBalance }
-  | { type: 'refill_started'; amount: bigint }
-  | { type: 'refill_completed'; data: RefillResult }
-  | { type: 'refill_failed'; error: string };
+  | { type: "balance_checked"; data: GasBalance }
+  | { type: "balance_low"; data: GasBalance }
+  | { type: "balance_critical"; data: GasBalance }
+  | { type: "refill_started"; amount: bigint }
+  | { type: "refill_completed"; data: RefillResult }
+  | { type: "refill_failed"; error: string };
 
 export type GasManagerEventHandler = (event: GasManagerEvent) => void;
 
@@ -131,7 +131,7 @@ export type GasManagerEventHandler = (event: GasManagerEvent) => void;
 // ============================================================================
 
 export const PLASMA_CHAIN_ID = 98866;
-export const PLASMA_RPC_URL = 'https://rpc.plasma.xyz';
+export const PLASMA_RPC_URL = "https://rpc.plasma.xyz";
 
 // Default gas values
 export const DEFAULT_MIN_BALANCE = BigInt(10_000_000_000_000_000); // 0.01 XPL
@@ -144,8 +144,11 @@ export const ESTIMATED_ERC20_GAS = BigInt(65_000);
 export const ESTIMATED_GAS_PRICE = BigInt(1_000_000_000); // 1 gwei
 
 // Token addresses
-export const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace
-export const XPL_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // Native token
+export const USDT0_ADDRESS =
+  "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb" as Address;
+export const XPL_ADDRESS =
+  "0x0000000000000000000000000000000000000000" as Address; // Native token
 
-// Swap router for USDT0 -> XPL
-export const GAS_SWAP_ROUTER = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace
+// Swap router for USDT0 -> XPL (no canonical router yet)
+export const GAS_SWAP_ROUTER =
+  "0x0000000000000000000000000000000000000000" as Address;

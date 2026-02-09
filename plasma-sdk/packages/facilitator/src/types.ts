@@ -1,6 +1,6 @@
 /**
  * @plasma-pay/facilitator - Type Definitions
- * 
+ *
  * These types implement the FacilitatorEvmSigner interface from @x402/evm
  * for Plasma chain USDT0 payments.
  */
@@ -42,11 +42,11 @@ export interface PlasmaChainConfig {
 
 export const PLASMA_MAINNET: PlasmaChainConfig = {
   chainId: 98866,
-  name: 'Plasma',
-  rpcUrl: 'https://rpc.plasma.io',
-  explorerUrl: 'https://explorer.plasma.io',
-  usdt0Address: '0x0000000000000000000000000000000000000000' as Address, // TODO: Replace with actual
-  nativeSymbol: 'XPL',
+  name: "Plasma",
+  rpcUrl: "https://rpc.plasma.io",
+  explorerUrl: "https://explorer.plasma.io",
+  usdt0Address: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb" as Address,
+  nativeSymbol: "XPL",
 };
 
 // ============================================================================
@@ -150,7 +150,7 @@ export interface WaitForTransactionReceiptArgs {
 
 /** Transaction receipt result */
 export interface TransactionReceiptResult {
-  status: 'success' | 'reverted';
+  status: "success" | "reverted";
   blockNumber?: bigint;
   gasUsed?: bigint;
   transactionHash: TransactionHash;
@@ -158,31 +158,33 @@ export interface TransactionReceiptResult {
 
 /**
  * FacilitatorEvmSigner Interface
- * 
+ *
  * This interface must be implemented to create an X402 facilitator.
  * Based on @x402/evm FacilitatorEvmSigner.
  */
 export interface FacilitatorEvmSigner {
   /** Get all addresses this facilitator can use for signing */
   getAddresses(): Address[];
-  
+
   /** Get bytecode at an address */
   getCode(args: GetCodeArgs): Promise<Hex | undefined>;
-  
+
   /** Read contract state */
   readContract(args: ReadContractArgs): Promise<unknown>;
-  
+
   /** Verify an EIP-712 typed data signature */
   verifyTypedData(args: VerifyTypedDataArgs): Promise<boolean>;
-  
+
   /** Write to a contract (state-changing transaction) */
   writeContract(args: WriteContractArgs): Promise<TransactionHash>;
-  
+
   /** Send a raw transaction */
   sendTransaction(args: SendTransactionArgs): Promise<TransactionHash>;
-  
+
   /** Wait for a transaction to be mined */
-  waitForTransactionReceipt(args: WaitForTransactionReceiptArgs): Promise<TransactionReceiptResult>;
+  waitForTransactionReceipt(
+    args: WaitForTransactionReceiptArgs
+  ): Promise<TransactionReceiptResult>;
 }
 
 // ============================================================================
@@ -207,10 +209,10 @@ export interface PlasmaFacilitatorConfig {
 // ============================================================================
 
 /** X402 Payment scheme identifier */
-export type X402Scheme = 
-  | 'eip3009-transfer-with-auth'
-  | 'erc20-gasless-router'
-  | 'eip3009-receive';
+export type X402Scheme =
+  | "eip3009-transfer-with-auth"
+  | "erc20-gasless-router"
+  | "eip3009-receive";
 
 /** X402 Payment payload */
 export interface X402PaymentPayload {
@@ -228,7 +230,7 @@ export interface X402PaymentPayload {
 
 /** X402 Payment header */
 export interface X402PaymentHeader {
-  'X-Payment': string;
+  "X-Payment": string;
 }
 
 /** X402 Payment result */
@@ -244,41 +246,41 @@ export interface X402PaymentResult {
 
 export const USDT0_ABI = [
   // ERC-20 Standard
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function decimals() view returns (uint8)',
-  'function totalSupply() view returns (uint256)',
-  'function balanceOf(address owner) view returns (uint256)',
-  'function transfer(address to, uint256 value) returns (bool)',
-  'function transferFrom(address from, address to, uint256 value) returns (bool)',
-  'function approve(address spender, uint256 value) returns (bool)',
-  'function allowance(address owner, address spender) view returns (uint256)',
-  
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function transfer(address to, uint256 value) returns (bool)",
+  "function transferFrom(address from, address to, uint256 value) returns (bool)",
+  "function approve(address spender, uint256 value) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+
   // EIP-3009 TransferWithAuthorization
-  'function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)',
-  'function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)',
-  'function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)',
-  'function authorizationState(address authorizer, bytes32 nonce) view returns (bool)',
-  
+  "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function receiveWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
+  "function authorizationState(address authorizer, bytes32 nonce) view returns (bool)",
+
   // EIP-712 Domain
-  'function DOMAIN_SEPARATOR() view returns (bytes32)',
-  
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+
   // Events
-  'event Transfer(address indexed from, address indexed to, uint256 value)',
-  'event Approval(address indexed owner, address indexed spender, uint256 value)',
-  'event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)',
-  'event AuthorizationCanceled(address indexed authorizer, bytes32 indexed nonce)',
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+  "event Approval(address indexed owner, address indexed spender, uint256 value)",
+  "event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)",
+  "event AuthorizationCanceled(address indexed authorizer, bytes32 indexed nonce)",
 ] as const;
 
 // ============================================================================
 // EIP-712 Type Hashes for EIP-3009
 // ============================================================================
 
-export const TRANSFER_WITH_AUTHORIZATION_TYPEHASH = 
-  'TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)';
+export const TRANSFER_WITH_AUTHORIZATION_TYPEHASH =
+  "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)";
 
 export const RECEIVE_WITH_AUTHORIZATION_TYPEHASH =
-  'ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)';
+  "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)";
 
 export const CANCEL_AUTHORIZATION_TYPEHASH =
-  'CancelAuthorization(address authorizer,bytes32 nonce)';
+  "CancelAuthorization(address authorizer,bytes32 nonce)";

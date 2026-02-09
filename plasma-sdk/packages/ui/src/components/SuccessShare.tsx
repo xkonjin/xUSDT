@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Share2, X, MessageCircle, Send, Twitter } from "lucide-react";
 
-export type ShareAction = "payment" | "bill_split" | "savings" | "stream" | "claim";
+export type ShareAction =
+  | "payment"
+  | "bill_split"
+  | "savings"
+  | "stream"
+  | "claim";
 
 export interface SuccessShareProps {
   isVisible: boolean;
@@ -15,19 +20,29 @@ export interface SuccessShareProps {
   onShare?: (channel: string) => void;
 }
 
-const actionMessages: Record<ShareAction, (amount?: number, recipient?: string) => string> = {
-  payment: (amount, recipient) => 
-    recipient 
-      ? `Just sent $${amount?.toFixed(2)} to ${recipient} instantly with Plasma Pay - zero fees!`
-      : `Just sent $${amount?.toFixed(2)} instantly with Plasma Pay - zero fees!`,
-  bill_split: (amount) => 
-    `Split a $${amount?.toFixed(2)} bill with friends in seconds using Splitzy!`,
-  savings: (amount) => 
-    `Cancelled subscriptions and saved $${amount?.toFixed(2)}/month with SubKiller!`,
-  stream: (amount) => 
+const actionMessages: Record<
+  ShareAction,
+  (amount?: number, recipient?: string) => string
+> = {
+  payment: (amount, recipient) =>
+    recipient
+      ? `Just sent $${amount?.toFixed(
+          2
+        )} to ${recipient} instantly with Plasma Pay - zero fees!`
+      : `Just sent $${amount?.toFixed(
+          2
+        )} instantly with Plasma Pay - zero fees!`,
+  bill_split: (amount) =>
+    `Split a $${amount?.toFixed(
+      2
+    )} bill with friends in seconds using Splitzy!`,
+  savings: (amount) =>
+    `Cancelled subscriptions and saved $${amount?.toFixed(
+      2
+    )}/month with SubKiller!`,
+  stream: (amount) =>
     `Created a $${amount?.toFixed(2)} payment stream with Plasma Stream!`,
-  claim: (amount) => 
-    `Just claimed $${amount?.toFixed(2)} on Plasma Pay!`,
+  claim: (amount) => `Just claimed $${amount?.toFixed(2)} on Plasma Pay!`,
 };
 
 const actionEmojis: Record<ShareAction, string> = {
@@ -51,7 +66,10 @@ export function SuccessSharePrompt({
 
   if (!isVisible) return null;
 
-  const message = `${actionEmojis[action]} ${actionMessages[action](amount, recipientName)}`;
+  const message = `${actionEmojis[action]} ${actionMessages[action](
+    amount,
+    recipientName
+  )}`;
 
   const handleShare = async (channel: string) => {
     setIsSharing(true);
@@ -61,18 +79,35 @@ export function SuccessSharePrompt({
 
     switch (channel) {
       case "whatsapp":
-        window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, "_blank");
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(fullMessage)}`,
+          "_blank"
+        );
         break;
       case "telegram":
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(message)}`, "_blank");
+        window.open(
+          `https://t.me/share/url?url=${encodeURIComponent(
+            shareUrl
+          )}&text=${encodeURIComponent(message)}`,
+          "_blank"
+        );
         break;
       case "twitter":
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(fullMessage)}`, "_blank");
+        window.open(
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            fullMessage
+          )}`,
+          "_blank"
+        );
         break;
       case "native":
         if (navigator.share) {
           try {
-            await navigator.share({ title: "Plasma Pay", text: message, url: shareUrl });
+            await navigator.share({
+              title: "Plasma Pay",
+              text: message,
+              url: shareUrl,
+            });
           } catch {
             // User cancelled
           }
@@ -84,11 +119,17 @@ export function SuccessSharePrompt({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Share your achievement"
+    >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Card */}
@@ -97,6 +138,7 @@ export function SuccessSharePrompt({
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+          aria-label="Close"
         >
           <X className="w-5 h-5 text-white/40" />
         </button>
@@ -174,7 +216,9 @@ export function SuccessSharePrompt({
         </button>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes bounce-in {
           0% { transform: translateY(100%) scale(0.9); opacity: 0; }
           50% { transform: translateY(-10px) scale(1.02); }
@@ -183,7 +227,9 @@ export function SuccessSharePrompt({
         .animate-bounce-in {
           animation: bounce-in 0.4s ease-out;
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 }

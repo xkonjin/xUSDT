@@ -7,10 +7,10 @@
  *
  * The service is determined by the STREAM_CONTRACT_ADDRESS environment variable:
  * - Not set or empty: Uses MockStreamService (database)
- * - Set to contract address: Uses ContractStreamService (TODO: implement)
+ * - Set to contract address: Will use ContractStreamService (not yet implemented)
  */
 
-import { prisma } from '@plasma-pay/db';
+import { prisma } from "@plasma-pay/db";
 import {
   IStreamContract,
   Stream,
@@ -19,7 +19,7 @@ import {
   WithdrawResult,
   CancelResult,
   BalanceInfo,
-} from './stream-contract';
+} from "./stream-contract";
 
 // Re-export types for convenience
 export type { Stream, CreateStreamParams };
@@ -27,14 +27,14 @@ export type { Stream, CreateStreamParams };
 /**
  * Service type identifier for debugging/logging
  */
-export type ServiceType = 'mock' | 'contract';
+export type ServiceType = "mock" | "contract";
 
 /**
  * Extended interface with service type identification
  */
 export interface StreamService extends IStreamContract {
   getServiceType(): ServiceType;
-  
+
   // Convenience aliases matching current API naming
   withdraw(streamId: string, recipientAddress: string): Promise<WithdrawResult>;
   cancel(streamId: string, senderAddress: string): Promise<CancelResult>;
@@ -48,7 +48,7 @@ export interface StreamService extends IStreamContract {
  */
 class MockStreamService implements StreamService {
   getServiceType(): ServiceType {
-    return 'mock';
+    return "mock";
   }
 
   async createStream(params: CreateStreamParams): Promise<CreateStreamResult> {
@@ -78,7 +78,7 @@ class MockStreamService implements StreamService {
           sender: sender.toLowerCase(),
           recipient: recipient.toLowerCase(),
           depositAmount: depositAmountBigInt.toString(),
-          withdrawnAmount: '0',
+          withdrawnAmount: "0",
           startTime: now,
           endTime: now + duration,
           cliffTime: now + cliffDuration,
@@ -92,7 +92,7 @@ class MockStreamService implements StreamService {
       // Generate mock transaction hash (simulates on-chain tx)
       const mockTxHash = `0x${Array.from({ length: 64 }, () =>
         Math.floor(Math.random() * 16).toString(16)
-      ).join('')}`;
+      ).join("")}`;
 
       return {
         success: true,
@@ -116,7 +116,8 @@ class MockStreamService implements StreamService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create stream',
+        error:
+          error instanceof Error ? error.message : "Failed to create stream",
       };
     }
   }
@@ -128,7 +129,10 @@ class MockStreamService implements StreamService {
     return this.withdraw(streamId, recipientAddress);
   }
 
-  async withdraw(streamId: string, recipientAddress: string): Promise<WithdrawResult> {
+  async withdraw(
+    streamId: string,
+    recipientAddress: string
+  ): Promise<WithdrawResult> {
     try {
       // Fetch stream from database
       const stream = await prisma.stream.findUnique({
@@ -136,17 +140,17 @@ class MockStreamService implements StreamService {
       });
 
       if (!stream) {
-        return { success: false, error: 'Stream not found' };
+        return { success: false, error: "Stream not found" };
       }
 
       // Verify caller is recipient
       if (stream.recipient.toLowerCase() !== recipientAddress.toLowerCase()) {
-        return { success: false, error: 'Only the recipient can withdraw' };
+        return { success: false, error: "Only the recipient can withdraw" };
       }
 
       // Check stream is active
       if (!stream.active) {
-        return { success: false, error: 'Stream is not active' };
+        return { success: false, error: "Stream is not active" };
       }
 
       // Calculate withdrawable amount
@@ -159,7 +163,7 @@ class MockStreamService implements StreamService {
       if (now < stream.cliffTime) {
         return {
           success: false,
-          error: 'Cliff period not reached',
+          error: "Cliff period not reached",
         };
       }
 
@@ -172,13 +176,15 @@ class MockStreamService implements StreamService {
 
       // Withdrawable = vested - already withdrawn
       const withdrawable =
-        totalVested > withdrawnAmount ? totalVested - withdrawnAmount : BigInt(0);
+        totalVested > withdrawnAmount
+          ? totalVested - withdrawnAmount
+          : BigInt(0);
 
       if (withdrawable === BigInt(0)) {
         return {
           success: false,
-          error: 'No funds available to withdraw',
-          amount: '0',
+          error: "No funds available to withdraw",
+          amount: "0",
         };
       }
 
@@ -196,7 +202,7 @@ class MockStreamService implements StreamService {
       // Generate mock transaction hash
       const mockTxHash = `0x${Array.from({ length: 64 }, () =>
         Math.floor(Math.random() * 16).toString(16)
-      ).join('')}`;
+      ).join("")}`;
 
       return {
         success: true,
@@ -214,12 +220,15 @@ class MockStreamService implements StreamService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Withdraw failed',
+        error: error instanceof Error ? error.message : "Withdraw failed",
       };
     }
   }
 
-  async cancelStream(streamId: string, senderAddress: string): Promise<CancelResult> {
+  async cancelStream(
+    streamId: string,
+    senderAddress: string
+  ): Promise<CancelResult> {
     return this.cancel(streamId, senderAddress);
   }
 
@@ -231,22 +240,22 @@ class MockStreamService implements StreamService {
       });
 
       if (!stream) {
-        return { success: false, error: 'Stream not found' };
+        return { success: false, error: "Stream not found" };
       }
 
       // Verify caller is sender
       if (stream.sender.toLowerCase() !== senderAddress.toLowerCase()) {
-        return { success: false, error: 'Only the sender can cancel' };
+        return { success: false, error: "Only the sender can cancel" };
       }
 
       // Check stream is cancelable
       if (!stream.cancelable) {
-        return { success: false, error: 'This stream is not cancelable' };
+        return { success: false, error: "This stream is not cancelable" };
       }
 
       // Check stream is active
       if (!stream.active) {
-        return { success: false, error: 'Stream is already inactive' };
+        return { success: false, error: "Stream is already inactive" };
       }
 
       // Calculate vested amount at cancellation time
@@ -288,7 +297,7 @@ class MockStreamService implements StreamService {
       // Generate mock transaction hash
       const mockTxHash = `0x${Array.from({ length: 64 }, () =>
         Math.floor(Math.random() * 16).toString(16)
-      ).join('')}`;
+      ).join("")}`;
 
       return {
         success: true,
@@ -300,13 +309,15 @@ class MockStreamService implements StreamService {
           alreadyWithdrawn: withdrawnAmount.toString(),
           remainingForRecipient: remainingForRecipient.toString(),
           refundForSender: refundForSender.toString(),
-          refundForSenderFormatted: `${Number(refundForSender) / 1_000_000} USDT0`,
+          refundForSenderFormatted: `${
+            Number(refundForSender) / 1_000_000
+          } USDT0`,
         },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Cancel failed',
+        error: error instanceof Error ? error.message : "Cancel failed",
       };
     }
   }
@@ -343,10 +354,10 @@ class MockStreamService implements StreamService {
 
     if (!stream) {
       return {
-        withdrawable: '0',
-        vested: '0',
-        withdrawn: '0',
-        total: '0',
+        withdrawable: "0",
+        vested: "0",
+        withdrawn: "0",
+        total: "0",
       };
     }
 
@@ -358,8 +369,8 @@ class MockStreamService implements StreamService {
     // Before cliff, nothing is withdrawable
     if (now < stream.cliffTime) {
       return {
-        withdrawable: '0',
-        vested: '0',
+        withdrawable: "0",
+        vested: "0",
         withdrawn: withdrawnAmount.toString(),
         total: depositAmount.toString(),
       };
@@ -386,15 +397,15 @@ class MockStreamService implements StreamService {
 
   async getStreamsByAddress(
     address: string,
-    role: 'sending' | 'receiving'
+    role: "sending" | "receiving"
   ): Promise<Stream[]> {
     const normalizedAddress = address.toLowerCase();
     const streams = await prisma.stream.findMany({
       where:
-        role === 'sending'
+        role === "sending"
           ? { sender: normalizedAddress }
           : { recipient: normalizedAddress },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return streams.map((stream) => ({
@@ -414,60 +425,8 @@ class MockStreamService implements StreamService {
   }
 }
 
-/**
- * Contract Stream Service (TODO: Implement)
- *
- * Real on-chain implementation using Sablier-style streaming contracts.
- * This will integrate with deployed smart contracts on Plasma chain.
- */
-// TODO: Implement ContractStreamService when ready to integrate real contracts
-// class ContractStreamService implements StreamService {
-//   private contractAddress: string;
-//   private provider: ethers.Provider;
-//
-//   constructor(contractAddress: string) {
-//     this.contractAddress = contractAddress;
-//     // TODO: Initialize provider from RPC URL
-//     // this.provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_PLASMA_RPC);
-//   }
-//
-//   getServiceType(): ServiceType {
-//     return 'contract';
-//   }
-//
-//   async createStream(params: CreateStreamParams): Promise<CreateStreamResult> {
-//     // TODO: Implement contract interaction
-//     // 1. Approve token transfer
-//     // 2. Call contract.createStream()
-//     // 3. Wait for transaction and parse stream ID from event
-//     throw new Error('Not implemented');
-//   }
-//
-//   async withdraw(streamId: string, recipientAddress: string): Promise<WithdrawResult> {
-//     // TODO: Call contract.withdraw()
-//     throw new Error('Not implemented');
-//   }
-//
-//   async cancel(streamId: string, senderAddress: string): Promise<CancelResult> {
-//     // TODO: Call contract.cancel()
-//     throw new Error('Not implemented');
-//   }
-//
-//   async getStream(streamId: string): Promise<Stream | null> {
-//     // TODO: Call contract.getStream() view function
-//     throw new Error('Not implemented');
-//   }
-//
-//   async balanceOf(streamId: string): Promise<BalanceInfo> {
-//     // TODO: Call contract.balanceOf() view function
-//     throw new Error('Not implemented');
-//   }
-//
-//   async getStreamsByAddress(address: string, role: 'sending' | 'receiving'): Promise<Stream[]> {
-//     // TODO: Use subgraph or index contract events
-//     throw new Error('Not implemented');
-//   }
-// }
+// ContractStreamService: not yet implemented.
+// When ready, create a class implementing StreamService with on-chain Sablier-style streaming.
 
 // Singleton instance
 let streamServiceInstance: StreamService | null = null;
@@ -475,8 +434,8 @@ let streamServiceInstance: StreamService | null = null;
 /**
  * Get the stream service instance
  *
- * Returns MockStreamService if STREAM_CONTRACT_ADDRESS is not set,
- * otherwise returns ContractStreamService (TODO: implement).
+ * Returns MockStreamService. When ContractStreamService is implemented,
+ * this will switch based on STREAM_CONTRACT_ADDRESS.
  *
  * Environment variables:
  * - STREAM_CONTRACT_ADDRESS: Contract address for real implementation
@@ -490,15 +449,12 @@ export function getStreamService(): StreamService {
   const contractAddress = process.env.STREAM_CONTRACT_ADDRESS;
 
   if (contractAddress && contractAddress.length > 0) {
-    // TODO: Return ContractStreamService when implemented
-    // streamServiceInstance = new ContractStreamService(contractAddress);
     console.warn(
-      'STREAM_CONTRACT_ADDRESS is set but ContractStreamService is not yet implemented. Using MockStreamService.'
+      "STREAM_CONTRACT_ADDRESS is set but ContractStreamService is not yet implemented. Using MockStreamService."
     );
-    streamServiceInstance = new MockStreamService();
-  } else {
-    streamServiceInstance = new MockStreamService();
   }
+
+  streamServiceInstance = new MockStreamService();
 
   return streamServiceInstance;
 }

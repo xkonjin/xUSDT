@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useCallback } from "react";
+import { forwardRef, useEffect, useCallback, useId } from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -39,6 +39,8 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
     },
     ref
   ) => {
+    const titleId = useId();
+
     // Handle escape key
     const handleEscape = useCallback(
       (e: KeyboardEvent) => {
@@ -68,6 +70,7 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
         className="fixed inset-0 z-[1050] flex items-center justify-center p-4"
         aria-modal="true"
         role="dialog"
+        aria-labelledby={title ? titleId : undefined}
       >
         {/* Backdrop */}
         <div
@@ -97,7 +100,10 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
             <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-200/50">
               <div className="flex-1">
                 {title && (
-                  <h2 className="text-2xl font-bold text-slate-800 mb-1">
+                  <h2
+                    id={titleId}
+                    className="text-2xl font-bold text-slate-800 mb-1"
+                  >
                     {title}
                   </h2>
                 )}
@@ -154,5 +160,3 @@ export const ClayModalFooter = forwardRef<HTMLDivElement, ClayModalFooterProps>(
 );
 
 ClayModalFooter.displayName = "ClayModalFooter";
-
-

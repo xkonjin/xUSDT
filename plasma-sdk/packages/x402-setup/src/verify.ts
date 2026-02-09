@@ -7,7 +7,7 @@ import type { Address, Hex } from "viem";
 import type { PaymentProof, VerificationResult } from "./types";
 
 const PLASMA_CHAIN_ID = 98866;
-const USDT0_ADDRESS = "0x0000000000000000000000000000000000000000" as Address; // TODO: Replace with actual
+const USDT0_ADDRESS = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb" as Address;
 
 // Used nonces cache to prevent replay attacks (in production, use Redis or database)
 const usedNonces = new Set<string>();

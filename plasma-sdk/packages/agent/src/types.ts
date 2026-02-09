@@ -1,10 +1,10 @@
 /**
  * @plasma-pay/agent - Type definitions
- * 
+ *
  * Core types for the Plasma Pay SDK
  */
 
-import type { Hex, Address } from 'viem';
+import type { Hex, Address } from "viem";
 
 // ============================================================================
 // Configuration Types
@@ -51,7 +51,7 @@ export interface PlasmaPayConfig {
    * Preferred network for payments
    * @default "plasma"
    */
-  preferredNetwork?: 'plasma' | 'base' | 'ethereum';
+  preferredNetwork?: "plasma" | "base" | "ethereum";
 
   /**
    * Enable debug logging
@@ -101,7 +101,7 @@ export interface PlasmaWallet {
 // ============================================================================
 
 export interface PaymentRequired {
-  type: 'payment-required';
+  type: "payment-required";
   version: string;
   invoiceId: string;
   paymentOptions: PaymentOption[];
@@ -131,14 +131,14 @@ export interface PaymentOption {
   nonce?: Hex;
 }
 
-export type PaymentScheme = 
-  | 'eip3009-transfer-with-auth'
-  | 'eip3009-receive'
-  | 'erc20-gasless-router'
-  | 'direct-transfer';
+export type PaymentScheme =
+  | "eip3009-transfer-with-auth"
+  | "eip3009-receive"
+  | "erc20-gasless-router"
+  | "direct-transfer";
 
 export interface PaymentSubmitted {
-  type: 'payment-submitted';
+  type: "payment-submitted";
   invoiceId: string;
   authorization: EIP3009Authorization | RouterAuthorization;
   scheme: PaymentScheme;
@@ -168,7 +168,7 @@ export interface RouterAuthorization {
 }
 
 export interface PaymentReceipt {
-  type: 'payment-completed';
+  type: "payment-completed";
   invoiceId: string;
   txHash: Hex;
   timestamp: number;
@@ -237,38 +237,42 @@ export class PlasmaPayError extends Error {
   code: PlasmaPayErrorCode;
   details?: Record<string, unknown>;
 
-  constructor(code: PlasmaPayErrorCode, message: string, details?: Record<string, unknown>) {
+  constructor(
+    code: PlasmaPayErrorCode,
+    message: string,
+    details?: Record<string, unknown>
+  ) {
     super(message);
-    this.name = 'PlasmaPayError';
+    this.name = "PlasmaPayError";
     this.code = code;
     this.details = details;
   }
 }
 
 export type PlasmaPayErrorCode =
-  | 'INSUFFICIENT_BALANCE'
-  | 'INSUFFICIENT_GAS'
-  | 'PAYMENT_REJECTED'
-  | 'PAYMENT_EXPIRED'
-  | 'INVALID_SIGNATURE'
-  | 'NETWORK_ERROR'
-  | 'FACILITATOR_ERROR'
-  | 'AMOUNT_EXCEEDS_MAX'
-  | 'UNSUPPORTED_SCHEME'
-  | 'WALLET_NOT_CONFIGURED'
-  | 'INVALID_CONFIG';
+  | "INSUFFICIENT_BALANCE"
+  | "INSUFFICIENT_GAS"
+  | "PAYMENT_REJECTED"
+  | "PAYMENT_EXPIRED"
+  | "INVALID_SIGNATURE"
+  | "NETWORK_ERROR"
+  | "FACILITATOR_ERROR"
+  | "AMOUNT_EXCEEDS_MAX"
+  | "UNSUPPORTED_SCHEME"
+  | "WALLET_NOT_CONFIGURED"
+  | "INVALID_CONFIG";
 
 // ============================================================================
 // Event Types
 // ============================================================================
 
 export type PlasmaPayEvent =
-  | { type: 'payment_required'; data: PaymentRequired }
-  | { type: 'payment_submitted'; data: PaymentSubmitted }
-  | { type: 'payment_completed'; data: PaymentReceipt }
-  | { type: 'payment_failed'; error: PlasmaPayError }
-  | { type: 'gas_low'; balance: bigint }
-  | { type: 'gas_refilled'; txHash: Hex };
+  | { type: "payment_required"; data: PaymentRequired }
+  | { type: "payment_submitted"; data: PaymentSubmitted }
+  | { type: "payment_completed"; data: PaymentReceipt }
+  | { type: "payment_failed"; error: PlasmaPayError }
+  | { type: "gas_low"; balance: bigint }
+  | { type: "gas_refilled"; txHash: Hex };
 
 export type PlasmaPayEventHandler = (event: PlasmaPayEvent) => void;
 
@@ -277,12 +281,13 @@ export type PlasmaPayEventHandler = (event: PlasmaPayEvent) => void;
 // ============================================================================
 
 export const PLASMA_CHAIN_ID = 98866;
-export const PLASMA_RPC_URL = 'https://rpc.plasma.xyz';
-export const USDT0_ADDRESS = '0x0000000000000000000000000000000000000000' as Address; // TODO: Replace with actual
+export const PLASMA_RPC_URL = "https://rpc.plasma.xyz";
+export const USDT0_ADDRESS =
+  "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb" as Address;
 export const USDT0_DECIMALS = 6;
 export const XPL_DECIMALS = 18;
 
 // CAIP-2 identifiers
-export const PLASMA_CAIP2 = 'eip155:98866';
-export const BASE_CAIP2 = 'eip155:8453';
-export const ETHEREUM_CAIP2 = 'eip155:1';
+export const PLASMA_CAIP2 = "eip155:98866";
+export const BASE_CAIP2 = "eip155:8453";
+export const ETHEREUM_CAIP2 = "eip155:1";
