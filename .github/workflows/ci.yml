@@ -88,12 +88,6 @@ jobs:
         working-directory: plasma-sdk
       - run: npx playwright install --with-deps chromium
         working-directory: plasma-sdk
-      - name: Start dev servers
-        working-directory: plasma-sdk
-        run: |
-          npm run dev -- --filter=subkiller &
-          npm run dev -- --filter=plasma-venmo &
-          sleep 10
       - name: Run E2E tests (Chromium only)
         working-directory: plasma-sdk
         run: npx playwright test --project=chromium

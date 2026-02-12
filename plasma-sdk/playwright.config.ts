@@ -40,28 +40,28 @@ export default defineConfig({
   webServer: [
     {
       // Start SubKiller dev server on port 3001
-      command: 'cd apps/subkiller && npm run dev',
+      command: 'cd apps/subkiller && env -u npm_config_workspace -u npm_config_workspaces ../../node_modules/.bin/next dev --port 3001',
       url: 'http://localhost:3001',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
     {
       // Start Plasma Venmo dev server on port 3002
-      command: 'cd apps/plasma-venmo && npm run dev',
+      command: 'cd apps/plasma-venmo && env -u npm_config_workspace -u npm_config_workspaces ../../node_modules/.bin/next dev --port 3002',
       url: 'http://localhost:3002',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
     {
       // Start Bill Split dev server on port 3004
-      command: 'cd apps/bill-split && npm run dev',
+      command: 'cd apps/bill-split && env -u npm_config_workspace -u npm_config_workspaces ../../node_modules/.bin/next dev --port 3004',
       url: 'http://localhost:3004',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
     {
       // Start Plasma Predictions dev server on port 3005
-      command: 'cd apps/plasma-predictions && npm run dev',
+      command: 'cd apps/plasma-predictions && env -u npm_config_workspace -u npm_config_workspaces ../../node_modules/.bin/next dev --port 3005',
       url: 'http://localhost:3005',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
