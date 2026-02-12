@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClayAvatar, ClayAvatarGroup } from '../components/ClayAvatar';
+import { ClayAvatar, ClayAvatarGroup } from '../ClayAvatar';
 
 // Mock Next.js Image component
 jest.mock('next/image', () => ({

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ClayInput } from '../components/ClayInput';
+import { ClayInput } from '../ClayInput';
 
 describe('ClayInput', () => {
   it('renders input correctly', () => {

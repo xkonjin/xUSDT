@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClaySection } from '../components/ClaySection';
+import { ClaySection } from '../ClaySection';
 
 describe('ClaySection', () => {
   it('renders children correctly', () => {

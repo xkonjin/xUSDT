@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ClayAlert } from '../components/ClayAlert';
+import { ClayAlert } from '../ClayAlert';
 
 describe('ClayAlert', () => {
   it('renders children correctly', () => {

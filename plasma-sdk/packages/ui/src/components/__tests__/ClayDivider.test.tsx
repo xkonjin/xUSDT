@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClayDivider } from '../components/ClayDivider';
+import { ClayDivider } from '../ClayDivider';
 
 describe('ClayDivider', () => {
   it('renders correctly', () => {

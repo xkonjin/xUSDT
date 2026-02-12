@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClayProgress, ClayProgressSteps } from '../components/ClayProgress';
+import { ClayProgress, ClayProgressSteps } from '../ClayProgress';
 
 describe('ClayProgress', () => {
   it('renders progress bar correctly', () => {

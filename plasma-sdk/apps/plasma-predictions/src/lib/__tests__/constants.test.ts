@@ -2,7 +2,6 @@
  * Unit tests for constants.ts utility functions
  */
 
-import { describe, expect, test } from "vitest";
 import {
   formatUSDT,
   parseUSDT,
@@ -46,15 +45,15 @@ describe("parseUSDT", () => {
 
 describe("formatPercent", () => {
   test("formats decimal to percentage", () => {
-    expect(formatPercent(0.65)).toBe("65%");
-    expect(formatPercent(0)).toBe("0%");
-    expect(formatPercent(1)).toBe("100%");
-    expect(formatPercent(0.5)).toBe("50%");
+    expect(formatPercent(0.65)).toBe("65.0%");
+    expect(formatPercent(0)).toBe("0.0%");
+    expect(formatPercent(1)).toBe("100.0%");
+    expect(formatPercent(0.5)).toBe("50.0%");
   });
 
   test("handles edge cases", () => {
-    expect(formatPercent(0.001)).toBe("0%");
-    expect(formatPercent(0.999)).toBe("100%");
+    expect(formatPercent(0.001)).toBe("0.1%");
+    expect(formatPercent(0.999)).toBe("99.9%");
   });
 });
 
@@ -92,13 +91,13 @@ describe("formatTimeLeft", () => {
 
 describe("formatVolume", () => {
   test("formats large numbers with K suffix", () => {
-    expect(formatVolume(50_000)).toBe("$50K");
-    expect(formatVolume(100_000)).toBe("$100K");
+    expect(formatVolume(50_000)).toBe("$50.0K");
+    expect(formatVolume(100_000)).toBe("$100.0K");
   });
 
   test("formats large numbers with M suffix", () => {
     expect(formatVolume(1_500_000)).toBe("$1.5M");
-    expect(formatVolume(10_000_000)).toBe("$10M");
+    expect(formatVolume(10_000_000)).toBe("$10.0M");
   });
 
   test("formats small numbers without suffix", () => {

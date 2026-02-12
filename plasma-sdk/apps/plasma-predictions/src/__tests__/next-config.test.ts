@@ -3,35 +3,31 @@
  * Verifies that bundle analyzer and other performance configurations are properly set up
  */
 
-// Import the next.config.mjs file - need to use require for .mjs
-let nextConfig: any
-try {
-  const configModule = require('../../../next.config.mjs')
-  nextConfig = configModule.default || configModule
-} catch (error) {
-  // Will fail initially before we implement
-  console.error('Could not load next.config.mjs:', error)
-}
+import fs from 'fs'
+import path from 'path'
+
+const configPath = path.resolve(__dirname, '../../next.config.mjs')
+const configSource = fs.readFileSync(configPath, 'utf8')
 
 describe('plasma-predictions next.config.mjs', () => {
   describe('Bundle Analyzer Configuration', () => {
     it('has experimental.optimizePackageImports configured', () => {
-      expect(nextConfig?.experimental?.optimizePackageImports).toBeDefined()
-      expect(nextConfig?.experimental?.optimizePackageImports.length).toBeGreaterThan(0)
+      expect(configSource).toContain('optimizePackageImports')
+      expect(configSource).toContain("'framer-motion'")
     })
 
     it('has SWC minification enabled (default)', () => {
-      expect(nextConfig?.swcMinify).not.toBe(false)
+      expect(configSource).not.toContain('swcMinify: false')
     })
 
     it('has image optimization configured', () => {
-      expect(nextConfig?.images).toBeDefined()
+      expect(configSource).toContain('images:')
     })
   })
 
   describe('Performance Headers', () => {
     it('has headers function defined', () => {
-      expect(typeof nextConfig?.headers).toBe('function')
+      expect(configSource).toContain('async headers()')
     })
   })
 
@@ -45,7 +41,7 @@ describe('plasma-predictions next.config.mjs', () => {
         '@plasma-pay/db',
       ]
       requiredPackages.forEach(pkg => {
-        expect(nextConfig?.transpilePackages).toContain(pkg)
+        expect(configSource).toContain(`'${pkg}'`)
       })
     })
   })

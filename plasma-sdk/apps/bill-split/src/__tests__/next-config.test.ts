@@ -6,7 +6,7 @@
 // Import the next.config.mjs file - need to use require for .mjs
 let nextConfig: any
 try {
-  const configModule = require('../../../next.config.mjs')
+  const configModule = require('../../next.config.mjs')
   nextConfig = configModule.default || configModule
 } catch (error) {
   // Will fail initially before we implement

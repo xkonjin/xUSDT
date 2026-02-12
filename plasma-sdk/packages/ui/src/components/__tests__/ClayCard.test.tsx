@@ -6,7 +6,7 @@ import {
   ClayCardTitle,
   ClayCardContent,
   ClayCardFooter,
-} from '../components/ClayCard';
+} from '../ClayCard';
 
 describe('ClayCard', () => {
   it('renders children correctly', () => {

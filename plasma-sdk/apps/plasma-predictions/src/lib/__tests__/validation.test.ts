@@ -2,7 +2,6 @@
  * Unit tests for validation.ts utility functions
  */
 
-import { describe, expect, test } from "vitest";
 import {
   validateEthereumAddress,
   validateBetAmount,

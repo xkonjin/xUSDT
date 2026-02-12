@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClayBadge } from '../components/ClayBadge';
+import { ClayBadge } from '../ClayBadge';
 
 describe('ClayBadge', () => {
   it('renders children correctly', () => {

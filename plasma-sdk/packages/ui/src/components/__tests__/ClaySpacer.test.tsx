@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ClaySpacer } from '../components/ClaySpacer';
+import { ClaySpacer } from '../ClaySpacer';
 
 describe('ClaySpacer', () => {
   it('renders correctly', () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PaymentProgress, PaymentStatus } from '../components/PaymentProgress';
+import { PaymentProgress, PaymentStatus } from '../PaymentProgress';
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
