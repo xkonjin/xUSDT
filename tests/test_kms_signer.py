@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 # It's better to import the module that is being tested
-from gateways.kms import signer as kms_signer
+from agent.kms import signer as kms_signer
 
 class TestKmsSigner(unittest.TestCase):
     """

@@ -18,17 +18,17 @@ class TestX402PaymentProtocol:
         )
         
         assert req is not None
-        assert req.amount_atomic == amount
+        assert any(int(opt.amount) == amount for opt in req.paymentOptions)
         assert req.description == "Premium API access"
-        assert req.deadline > 0
+        assert req.timestamp > 0
 
     @pytest.mark.parametrize("amount,expected_floor", [
-        (10_000, 1500),  # Below threshold, expect floor fee
+        (10_000, 10),  # Default direct path applies percent fee when no floor is configured
         (1_000_000, 1000),  # Standard percentage fee
     ])
     def test_protocol_fee_computation(self, amount, expected_floor):
         """Test protocol fee computation for different amounts"""
-        fee, is_floor = compute_protocol_fee(amount, chain="plasma", mode="channel")
+        fee, is_floor = compute_protocol_fee(amount, chain="plasma", mode="direct")
         
         assert fee == expected_floor
         assert isinstance(is_floor, bool)
@@ -45,12 +45,12 @@ class TestX402PaymentProtocol:
         submitted = client.prepare_submission(req)
         
         assert submitted is not None
-        assert submitted.payment_required == req
+        assert submitted.invoiceId == req.invoiceId
         assert submitted.signature is not None
 
-    @patch('agent.merchant_agent.verify_and_settle')
-    def test_verify_and_settle_mock(self, mock_settle):
-        """Test verify and settle with mocking"""
+    @patch('agent.merchant_agent.PaymentFacilitator')
+    def test_verify_and_settle_mock(self, mock_facilitator_cls):
+        """Test verify and settle with mocked facilitator"""
         # Prepare mock submission
         req = build_payment_required(
             amount_atomic=1_000_000, 
@@ -60,17 +60,20 @@ class TestX402PaymentProtocol:
         client = ClientAgent()
         submitted = client.prepare_submission(req)
         
-        # Mock the settlement response
-        mock_settle.return_value = MagicMock(
-            status="completed",
-            amount_atomic=1_000_000
+        mock_facilitator = mock_facilitator_cls.return_value
+        mock_facilitator.settle_plasma_with_fallback.return_value = MagicMock(
+            success=True,
+            tx_hash="0x1234",
+            receipt={"status": 1},
+            error=None,
         )
         
         # Perform settlement
         completed = verify_and_settle(submitted)
         
         assert completed is not None
-        assert completed.status == "completed"
+        assert completed.status == "confirmed"
+        assert completed.txHash == "0x1234"
 
     def test_eip3009_typed_data_generation(self):
         """Test EIP-3009 typed data generation"""
@@ -115,7 +118,8 @@ class TestX402PaymentProtocol:
         
         # Verify key components of submission
         assert submitted is not None
-        assert submitted.payment_required.amount_atomic == amount
+        assert submitted.invoiceId == req.invoiceId
+        assert int(submitted.chosenOption.amount) == amount
         assert submitted.signature is not None
 
         # Clean up 

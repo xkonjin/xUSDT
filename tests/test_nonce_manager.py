@@ -2,7 +2,7 @@
 import unittest
 import redis
 from unittest.mock import patch, MagicMock
-from src.payment.nonce_manager import NonceManager
+from agent.nonce_manager import NonceManager
 
 class TestNonceManager(unittest.TestCase):
 

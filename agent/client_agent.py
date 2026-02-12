@@ -45,7 +45,7 @@ class ClientAgent:
         priority = {"plasma": 0, "ethereum": 1} if plasma_first else {"ethereum": 0, "plasma": 1}
         ordered = sorted(opts, key=lambda o: priority.get(o.network, 99))
         chosen = ordered[0]
-        return chosen.dict(by_alias=True), chosen.scheme
+        return chosen.model_dump(by_alias=True), chosen.scheme
 
     def prepare_channel_receipt(self, req: PaymentRequired) -> dict:
         """Build and sign a channel receipt when channel-first is recommended.
@@ -120,7 +120,7 @@ class ClientAgent:
         token = chosen_dict["token"]
         to_addr = chosen_dict["recipient"]
         chain_id = int(chosen_dict["chainId"]) 
-        deadline = int(chosen_dict["deadline"]) 
+        deadline = int(chosen_dict.get("deadline") or (_now() + 600)) 
 
         from_addr = self.client_acct.address
 
@@ -211,7 +211,7 @@ class ClientAgent:
                 scheme=scheme,
             )
 
-        if scheme == "eip3009-receive":
+        if scheme in ("eip3009-receive", "eip3009-receive-with-auth"):
             # Router-based atomic pay+mint path
             # Sign ReceiveWithAuthorization to the router (so router can receive),
             # then router forwards to treasury and mints the NFT.
@@ -271,9 +271,8 @@ class ClientAgent:
                 invoiceId=req.invoiceId,
                 chosenOption=chosen,
                 signature=sig,
-                scheme=scheme,
+                scheme="eip3009-receive-with-auth",
             )
 
         raise ValueError(f"Unsupported scheme: {scheme}")
-
 

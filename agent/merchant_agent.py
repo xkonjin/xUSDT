@@ -89,7 +89,7 @@ def build_payment_required(
         token=settings.USDT0_ADDRESS,
         tokenSymbol="USDT0",
         amount=str(amount_atomic),
-        decimals=6,
+        tokenDecimals=6,
         recipient=settings.MERCHANT_ADDRESS,
         scheme="eip3009-transfer-with-auth",
         nonce=uuid.uuid4().hex.ljust(64, "0"),  # server-suggested 32-byte hex
@@ -113,7 +113,7 @@ def build_payment_required(
             token=settings.USDT_ADDRESS,
             tokenSymbol="USDT",
             amount=str(amount_atomic),
-            decimals=6,
+            tokenDecimals=6,
             recipient=settings.MERCHANT_ADDRESS,
             scheme="erc20-gasless-router",
             routerContract=settings.ROUTER_ADDRESS,
@@ -216,22 +216,27 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
     if existing is not None:
         return existing
 
+    now = _now()
+
     # Extract payment data from either old or new format
     opt, sig_v, sig_r, sig_s = _extract_payment_data(submitted)
+    scheme = submitted.scheme or getattr(submitted.chosenOption, "scheme", None)
     # Minimal off-chain checks
     if opt.to.lower() != settings.MERCHANT_ADDRESS.lower():
         pc = PaymentCompleted(
             invoiceId=submitted.invoiceId,
             txHash="0x0",
             network=opt.network,
+            chainId=int(getattr(opt, "chainId", settings.PLASMA_CHAIN_ID)),
             status="failed",
+            timestamp=now,
             receipt={"error": "recipient_mismatch"},
         )
         _store_invoice(submitted.invoiceId, pc)
         return pc
 
     facilitator = PaymentFacilitator()
-    if submitted.scheme == "erc20-gasless-router":
+    if scheme == "erc20-gasless-router":
         res = facilitator.settle_ethereum_router(
             token=opt.token,
             from_addr=opt.from_,
@@ -246,13 +251,15 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             invoiceId=submitted.invoiceId,
             txHash=res.tx_hash or "0x0",
             network="ethereum",
+            chainId=settings.ETH_CHAIN_ID,
             status="confirmed" if res.success else "failed",
+            timestamp=now,
             receipt=(res.receipt if res.receipt else {"error": res.error}),
         )
         _store_invoice(submitted.invoiceId, pc)
         return pc
 
-    if submitted.scheme == "eip3009-transfer-with-auth":
+    if scheme == "eip3009-transfer-with-auth":
         # Use exact bounds from the signed payload
         va = int(opt.validAfter) if opt.validAfter is not None else (int(opt.deadline) - 600)
         vb = int(opt.validBefore) if opt.validBefore is not None else int(opt.deadline)
@@ -302,7 +309,9 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
             invoiceId=submitted.invoiceId,
             txHash=res.tx_hash or "0x0",
             network="plasma",
+            chainId=settings.PLASMA_CHAIN_ID,
             status="confirmed" if res.success else "failed",
+            timestamp=now,
             receipt=(res.receipt if res.receipt else {"error": res.error}),
             tokenId=(int(token_id) if token_id is not None else None),
         )
@@ -313,10 +322,11 @@ def verify_and_settle(submitted: PaymentSubmitted, user_ip: str = "unknown") -> 
         invoiceId=submitted.invoiceId,
         txHash="0x0",
         network=opt.network,
+        chainId=int(getattr(opt, "chainId", settings.PLASMA_CHAIN_ID)),
         status="failed",
+        timestamp=now,
         receipt={"error": "unsupported_scheme"},
     )
     _store_invoice(submitted.invoiceId, pc)
     return pc
-
 

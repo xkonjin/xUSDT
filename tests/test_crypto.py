@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from eth_account import Account
-from eth_account.messages import encode_structured_data
+from eth_account.messages import encode_typed_data
 
 from agent_local.crypto import build_router_typed_data, build_eip3009_typed_data, random_nonce32
 
@@ -21,7 +21,7 @@ def test_eip712_router_sign_and_recover():
         nonce=0,
         deadline=2_000_000_000,
     )
-    msg = encode_structured_data(primitive=td)
+    msg = encode_typed_data(full_message=td)
     sig = Account.sign_message(msg, private_key=acct.key)
     recovered = Account.recover_message(msg, signature=sig.signature)
     assert recovered == acct.address
@@ -44,7 +44,7 @@ def test_eip3009_sign_and_recover():
         valid_before=1_800_000_000,
         nonce32=random_nonce32(),
     )
-    msg = encode_structured_data(primitive=td)
+    msg = encode_typed_data(full_message=td)
     sig = Account.sign_message(msg, private_key=acct.key)
     recovered = Account.recover_message(msg, signature=sig.signature)
     assert recovered == acct.address
