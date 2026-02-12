@@ -1,4 +1,6 @@
 import pytest
+
+pytest.importorskip("brownie")
 from brownie import PlasmaPaymentChannel, accounts, reverts
 
 @pytest.fixture

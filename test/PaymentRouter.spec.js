@@ -9,7 +9,7 @@ describe("PaymentRouter", function () {
     const usdt = await MockUSDT.deploy("USD Tether", "USDT", 6);
     await usdt.waitForDeployment();
 
-    const PaymentRouter = await ethers.getContractFactory("PaymentRouter");
+    const PaymentRouter = await ethers.getContractFactory("contracts/PaymentRouter.sol:PaymentRouter");
     const router = await PaymentRouter.deploy();
     await router.waitForDeployment();
 

@@ -4,7 +4,7 @@ import uuid
 from typing import Tuple, Dict, Any
 
 from eth_account import Account
-from eth_account.messages import encode_structured_data
+from eth_account.messages import encode_typed_data
 from web3 import Web3
 
 
@@ -65,7 +65,7 @@ def sign_typed_data(private_key: str, typed_data: Dict[str, Any]) -> Tuple[int, 
 
     Returns (v, r_hex, s_hex)
     """
-    signable = encode_structured_data(primitive=typed_data)
+    signable = encode_typed_data(full_message=typed_data)
     signed = Account.sign_message(signable, private_key=private_key)
     return signed.v, Web3.to_hex(signed.r), Web3.to_hex(signed.s)
 
