@@ -54,20 +54,20 @@ export async function GET(request: Request) {
     }
 
     // Combine and dedupe bills
-    const allBills = [...createdBills, ...participatingBills];
+    const allBills: Array<(typeof createdBills)[number]> = [...createdBills, ...participatingBills];
     const uniqueBillIds = new Set<string>();
-    const uniqueBills = allBills.filter(bill => {
+    const uniqueBills = allBills.filter((bill) => {
       if (uniqueBillIds.has(bill.id)) return false;
       uniqueBillIds.add(bill.id);
       return true;
     });
 
     // Convert to balance calculator format
-    const bills: Bill[] = uniqueBills.map(bill => ({
+    const bills: Bill[] = uniqueBills.map((bill) => ({
       id: bill.id,
       creatorAddress: bill.creatorAddress,
       total: bill.total,
-      participants: bill.participants.map(p => ({
+      participants: bill.participants.map((p): BillParticipant => ({
         id: p.id,
         name: p.name,
         email: p.email,

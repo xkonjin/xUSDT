@@ -397,7 +397,7 @@ class MockStreamService implements StreamService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return streams.map((stream) => ({
+    return streams.map((stream: (typeof streams)[number]) => ({
       id: stream.id,
       sender: stream.sender,
       recipient: stream.recipient,
