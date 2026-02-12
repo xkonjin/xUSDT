@@ -7,7 +7,6 @@ import { ethers } from 'ethers';
  */
 
 const RELAYER_PRIVATE_KEY = process.env.RELAYER_PRIVATE_KEY;
-const MERCHANT_ADDRESS = process.env.MERCHANT_ADDRESS;
 const USDT0_ADDRESS = process.env.NEXT_PUBLIC_USDT0_ADDRESS;
 const PLASMA_RPC = process.env.NEXT_PUBLIC_PLASMA_RPC;
 const API_AUTH_SECRET = process.env.API_AUTH_SECRET;
@@ -148,25 +147,34 @@ export async function POST(request: NextRequest) {
       to,
       amount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Payment processing error:', error);
 
+    const maybeError = error as { code?: unknown; message?: unknown };
+    const errorCode = typeof maybeError.code === 'string' ? maybeError.code : undefined;
+    const errorMessage =
+      typeof maybeError.message === 'string'
+        ? maybeError.message
+        : error instanceof Error
+          ? error.message
+          : 'Payment processing failed';
+
     // Handle specific errors
-    if (error.code === 'INSUFFICIENT_FUNDS') {
+    if (errorCode === 'INSUFFICIENT_FUNDS') {
       return NextResponse.json(
         { error: 'Insufficient balance' },
         { status: 400 }
       );
     }
 
-    if (error.code === 'NONCE_EXPIRED') {
+    if (errorCode === 'NONCE_EXPIRED') {
       return NextResponse.json(
         { error: 'Authorization expired' },
         { status: 400 }
       );
     }
 
-    if (error.message?.includes('already used')) {
+    if (errorMessage.includes('already used')) {
       return NextResponse.json(
         { error: 'Authorization already used' },
         { status: 400 }
@@ -174,13 +182,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error.message || 'Payment processing failed' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     service: 'Plenmo Payment API',
     version: '1.0.0',

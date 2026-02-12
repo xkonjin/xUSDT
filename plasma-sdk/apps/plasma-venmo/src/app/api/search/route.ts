@@ -91,7 +91,7 @@ export async function GET(request: Request) {
 
     // Search contacts (from transaction history + user settings)
     if (type === 'all' || type === 'contacts') {
-      results.contacts = await searchContacts(lowerQuery, address);
+      results.contacts = await searchContacts(lowerQuery);
     }
 
     // Search transactions
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
 /**
  * Search contacts from user settings and transaction history
  */
-async function searchContacts(query: string, userAddress: Address | null): Promise<Contact[]> {
+async function searchContacts(query: string): Promise<Contact[]> {
   const contacts: Contact[] = [];
   const seenAddresses = new Set<string>();
 

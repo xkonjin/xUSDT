@@ -8,7 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma, hashClaimToken, notifications as notifyHelpers } from '@plasma-pay/db';
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, http, type Address } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC, plasmaMainnet } from '@plasma-pay/core';
 import { getValidatedRelayerKey } from '@/lib/validation';
@@ -301,4 +301,3 @@ export async function POST(
     );
   }
 }
-

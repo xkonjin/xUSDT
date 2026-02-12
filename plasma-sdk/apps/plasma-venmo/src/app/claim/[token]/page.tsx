@@ -164,7 +164,7 @@ export default function ClaimPage({
         }
 
         setClaim(data.claim);
-      } catch (err) {
+      } catch {
         setError("Failed to load claim");
       } finally {
         setLoading(false);
@@ -445,4 +445,3 @@ export default function ClaimPage({
     </main>
   );
 }
-

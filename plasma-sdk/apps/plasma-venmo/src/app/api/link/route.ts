@@ -30,10 +30,6 @@ const linkStore = new Map<string, LinkData>();
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify API authentication (optional for link generation)
-    const authHeader = request.headers.get('authorization');
-    const isAuthenticated = authHeader === `Bearer ${API_AUTH_SECRET}`;
-
     // Parse request body
     const body: LinkRequest = await request.json();
     const { recipient, amount, note, expiresIn } = body;
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
       if (amountBN <= 0n) {
         throw new Error('Amount must be positive');
       }
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: 'Invalid amount' },
         { status: 400 }
@@ -101,11 +97,12 @@ export async function POST(request: NextRequest) {
       expiresAt,
       qrCode: `${BASE_URL}/api/qr?url=${encodeURIComponent(linkUrl)}`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Link generation error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to generate link';
 
     return NextResponse.json(
-      { error: error.message || 'Failed to generate link' },
+      { error: message },
       { status: 500 }
     );
   }
@@ -147,11 +144,12 @@ export async function GET(request: NextRequest) {
       success: true,
       ...linkData,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Link retrieval error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to retrieve link';
 
     return NextResponse.json(
-      { error: error.message || 'Failed to retrieve link' },
+      { error: message },
       { status: 500 }
     );
   }
@@ -193,11 +191,12 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Link deleted',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Link deletion error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete link';
 
     return NextResponse.json(
-      { error: error.message || 'Failed to delete link' },
+      { error: message },
       { status: 500 }
     );
   }

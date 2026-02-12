@@ -3,18 +3,32 @@ import type { Address } from "viem";
 
 // Lazy-load Privy client to avoid build-time initialization errors
 let privyClient: import("@privy-io/server-auth").PrivyClient | null = null;
+let privyClientPromise: Promise<import("@privy-io/server-auth").PrivyClient | null> | null = null;
 
-function getPrivyClient() {
+async function getPrivyClient(): Promise<import("@privy-io/server-auth").PrivyClient | null> {
   if (isMockMode()) return null;
   if (!privyClient) {
+    if (privyClientPromise) {
+      return privyClientPromise;
+    }
+
     const privyAppId = process.env.PRIVY_APP_ID || "";
     const privyAppSecret = process.env.PRIVY_APP_SECRET || "";
-    if (!privyAppId || !privyAppSecret) {
-      return null;
-    }
-    // Dynamic import to avoid build-time initialization
-    const { PrivyClient } = require("@privy-io/server-auth");
-    privyClient = new PrivyClient(privyAppId, privyAppSecret);
+    if (!privyAppId || !privyAppSecret) return null;
+
+    privyClientPromise = (async () => {
+      try {
+        const { PrivyClient } = await import("@privy-io/server-auth");
+        privyClient = new PrivyClient(privyAppId, privyAppSecret);
+        return privyClient;
+      } catch {
+        return null;
+      } finally {
+        privyClientPromise = null;
+      }
+    })();
+
+    return privyClientPromise;
   }
   return privyClient;
 }
@@ -61,7 +75,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const privy = getPrivyClient();
+    const privy = await getPrivyClient();
     if (!privy) {
       if (isMockMode()) {
         return NextResponse.json({

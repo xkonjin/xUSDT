@@ -11,7 +11,22 @@
 
 import { NextResponse } from 'next/server';
 import { prisma, notifications as notifyHelpers, type PaymentRequest } from '@plasma-pay/db';
-import type { Address } from 'viem';
+
+type RequestSummary = {
+  id: string;
+  fromAddress: string;
+  fromEmail?: string | null;
+  toIdentifier: string;
+  toAddress?: string | null;
+  amount: number;
+  currency: string;
+  memo?: string | null;
+  status: string;
+  expiresAt: string;
+  paidAt?: string;
+  txHash?: string | null;
+  createdAt: string;
+};
 
 /**
  * POST /api/requests
@@ -184,10 +199,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const results: {
-      sent: any[];
-      received: any[];
-    } = {
+    const results: { sent: RequestSummary[]; received: RequestSummary[] } = {
       sent: [],
       received: [],
     };
@@ -217,17 +229,12 @@ export async function GET(request: Request) {
 
     // Get received requests
     if (type === 'all' || type === 'received') {
-      const whereConditions: any[] = [
-        { toAddress: address },
-      ];
-
-      if (email) {
-        whereConditions.push({ toIdentifier: email.toLowerCase() });
-      }
-
       const received = await prisma.paymentRequest.findMany({
         where: {
-          OR: whereConditions,
+          OR: [
+            { toAddress: address },
+            ...(email ? [{ toIdentifier: email.toLowerCase() }] : []),
+          ],
           status: 'pending',
         },
         orderBy: { createdAt: 'desc' },
@@ -266,4 +273,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

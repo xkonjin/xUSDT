@@ -82,10 +82,71 @@ const buttonStyle = `display: inline-block; background: linear-gradient(135deg, 
 const buttonStylePrimary = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%); color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;`;
 
 // Email templates for different notification types
-const EMAIL_TEMPLATES: Record<NotificationType, {
-  subject: (data: any) => string;
-  html: (data: any) => string;
-}> = {
+type TemplateBase = Record<string, unknown>;
+
+type PaymentReceivedTemplateData = TemplateBase & {
+  amount: number | string;
+  senderAddress?: string;
+  memo?: string;
+  txHash?: string;
+};
+
+type PaymentRequestTemplateData = TemplateBase & {
+  fromEmail?: string;
+  fromAddress?: string;
+  amount: number | string;
+  memo?: string;
+};
+
+type ClaimAvailableTemplateData = TemplateBase & {
+  amount: number | string;
+  senderEmail?: string;
+  senderAddress?: string;
+  memo?: string;
+  claimUrl: string;
+  txHash?: string;
+};
+
+type PaymentCompletedTemplateData = TemplateBase & {
+  amount: number | string;
+  txHash?: string;
+};
+
+type RequestDeclinedTemplateData = TemplateBase & {
+  amount: number | string;
+  reason?: string;
+};
+
+type BillCreatedTemplateData = TemplateBase & {
+  title: string;
+  total: number | string;
+  billId: string;
+};
+
+type BillShareAssignedTemplateData = TemplateBase & {
+  share: number | string;
+  title: string;
+  paymentUrl: string;
+};
+
+type TemplateDataMap = {
+  payment_received: PaymentReceivedTemplateData;
+  payment_request: PaymentRequestTemplateData;
+  claim_available: ClaimAvailableTemplateData;
+  payment_completed: PaymentCompletedTemplateData;
+  request_declined: RequestDeclinedTemplateData;
+  bill_created: BillCreatedTemplateData;
+  bill_share_assigned: BillShareAssignedTemplateData;
+};
+
+type EmailTemplateMap = {
+  [K in NotificationType]: {
+    subject: (data: TemplateDataMap[K]) => string;
+    html: (data: TemplateDataMap[K]) => string;
+  };
+};
+
+const EMAIL_TEMPLATES: EmailTemplateMap = {
   payment_received: {
     subject: (data) => `You received $${data.amount} USDT0`,
     html: (data) => wrapEmailTemplate(`
@@ -143,7 +204,7 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
     `),
   },
   request_declined: {
-    subject: (data) => `Payment request declined`,
+    subject: () => `Payment request declined`,
     html: (data) => wrapEmailTemplate(`
       <h2 style="margin: 0 0 16px; font-size: 28px; color: #f87171;">Request Declined</h2>
       <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
@@ -388,4 +449,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

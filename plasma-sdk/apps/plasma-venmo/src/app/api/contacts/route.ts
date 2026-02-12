@@ -13,10 +13,6 @@ import { checkRateLimit, rateLimitResponse, validateAddress } from '@/lib/api-ut
 import { RATE_LIMIT_CONFIGS } from '@/lib/rate-limiter';
 
 // Validation helpers
-function isValidAddress(address: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
-}
-
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }

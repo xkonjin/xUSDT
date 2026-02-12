@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Send, Clock, AlertCircle, RefreshCw, Copy, Check, Link2 } from "lucide-react";
+import { Send, Clock, AlertCircle, RefreshCw, Copy, Check } from "lucide-react";
 import type { Address } from "viem";
 import { Avatar } from "./ui/Avatar";
 import { RequestSkeleton } from "./ui/Skeleton";
@@ -30,10 +30,9 @@ interface SentRequest {
 
 interface SentRequestsProps {
   walletAddress: Address | undefined;
-  onRefresh?: () => void;
 }
 
-export function SentRequests({ walletAddress, onRefresh }: SentRequestsProps) {
+export function SentRequests({ walletAddress }: SentRequestsProps) {
   const [requests, setRequests] = useState<SentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

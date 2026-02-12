@@ -150,8 +150,8 @@ export function ExternalWalletPayModal({
             </button>
           </div>
 
-          {/* Step 2: Amount */}
-          <div className="bg-white/5 rounded-2xl p-4">
+	          {/* Step 2: Amount */}
+	          <div className="bg-white/5 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">2</span>
               <span className="text-white font-medium text-sm">Send Amount</span>
@@ -171,11 +171,20 @@ export function ExternalWalletPayModal({
                   <Copy className="w-4 h-4 text-white/50" />
                 )}
               </button>
-            </div>
-          </div>
+	            </div>
+	          </div>
 
-          {/* Step 3: Recipient */}
-          <div className="bg-white/5 rounded-2xl p-4">
+	          {memo && (
+	            <div className="bg-white/5 rounded-2xl p-4">
+	              <div className="flex items-center gap-2 mb-2">
+	                <span className="text-white font-medium text-sm">Memo</span>
+	              </div>
+	              <p className="text-white/60 text-sm break-words">{memo}</p>
+	            </div>
+	          )}
+
+	          {/* Step 3: Recipient */}
+	          <div className="bg-white/5 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">3</span>
               <span className="text-white font-medium text-sm">Send To Address</span>

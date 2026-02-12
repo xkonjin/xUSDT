@@ -195,7 +195,7 @@ export function withAPIMiddleware<T>(
   return async (request: Request): Promise<NextResponse> => {
     // Rate limiting
     if (rateLimit !== false) {
-      const { allowed, headers, retryAfter } = checkRateLimit(request, rateLimit);
+      const { allowed, retryAfter } = checkRateLimit(request, rateLimit);
       
       if (!allowed && retryAfter) {
         return rateLimitResponse(retryAfter);

@@ -56,7 +56,7 @@ export async function POST(request: Request) {
             if (!chunk) continue;
             send(chunk);
           }
-        } catch (error) {
+        } catch {
           const fallback =
             "I can help with sending, requesting, or adding funds. Try hovering a button.";
           send(fallback);

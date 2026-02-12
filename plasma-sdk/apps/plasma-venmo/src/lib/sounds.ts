@@ -14,7 +14,11 @@ let audioContext: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioCtor =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return null;
+    audioContext = new AudioCtor();
   }
   return audioContext;
 }
@@ -94,7 +98,7 @@ const sounds: Record<SoundType, () => void> = {
 export function playSound(type: SoundType): void {
   try {
     sounds[type]?.();
-  } catch (e) {
+  } catch {
     // Silently fail - audio not critical
   }
 }

@@ -40,8 +40,8 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>("wallets");
   
-  const { balance, formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
-  const { wallets, embeddedWallet, externalWallets, hasExternalWallet } = useAllWallets();
+  const { formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
+  const { wallets, embeddedWallet, externalWallets } = useAllWallets();
   const { connectWallet, loading: connectingWallet } = useConnectExternalWallet();
 
   if (!isOpen) return null;

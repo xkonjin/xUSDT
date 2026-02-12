@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
 /**
  * Middleware to add security headers to all responses.
@@ -10,7 +9,7 @@ import type { NextRequest } from 'next/server'
  * - Referrer-Policy: Controls referrer information
  * - Permissions-Policy: Restricts browser features
  */
-export function middleware(request: NextRequest) {
+export function middleware() {
   const response = NextResponse.next()
 
   // Security headers

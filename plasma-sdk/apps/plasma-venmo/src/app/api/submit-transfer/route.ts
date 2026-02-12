@@ -4,7 +4,6 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { USDT0_ADDRESS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 import { getValidatedRelayerKey } from '@/lib/validation';
-import { withRateLimit, getClientIP, getRouteType } from '@/lib/rate-limiter-redis';
 
 // Server-side amount limits (in USDT0 with 6 decimals)
 const MIN_AMOUNT = parseUnits('0.01', 6); // $0.01 minimum
@@ -37,9 +36,6 @@ const TRANSFER_WITH_AUTH_ABI = [
 export async function POST(request: Request) {
   try {
     // Rate limiting check (Redis-based for production)
-    const ip = getClientIP(request);
-    const routeType = getRouteType('/api/submit-transfer');
-
     // Try Redis rate limiter first, fallback to permissive if unavailable
     try {
       // Dynamic import to avoid build issues if @vercel/kv not installed

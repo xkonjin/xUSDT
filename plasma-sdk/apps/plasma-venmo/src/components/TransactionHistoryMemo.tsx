@@ -14,16 +14,14 @@ interface Transaction {
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
-  address: string;
 }
 
 /**
  * Memoized transaction history component
- * Only re-renders when transactions or address changes
+ * Only re-renders when transactions changes
  */
 export const TransactionHistory = memo(function TransactionHistory({
   transactions,
-  address,
 }: TransactionHistoryProps) {
   if (transactions.length === 0) {
     return (

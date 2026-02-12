@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, Share2, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
+import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import type { Address } from "viem";
 import { PaymentLinkSkeleton } from "./ui/Skeleton";
 import { EmptyState } from "./ui/EmptyState";
@@ -392,4 +392,3 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     </div>
   );
 }
-

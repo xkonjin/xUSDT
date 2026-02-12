@@ -11,6 +11,7 @@ import { FundWalletButton } from "@/components/FundWallet";
 import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
+import { ModalContent, ModalPortal } from "@/components/ui/ModalPortal";
 import { Send, HandCoins, RefreshCw, Shield, Zap, QrCode, ArrowDownLeft, UserPlus } from "lucide-react";
 import { SocialFeed } from "@/components/SocialFeed";
 import { SentRequests } from "@/components/SentRequests";
@@ -18,17 +19,72 @@ import { useContacts } from "@/hooks/useContacts";
 
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } = usePlasmaWallet();
-  const { balance, formatted, refresh } = useUSDT0Balance();
+  const { formatted, refresh } = useUSDT0Balance();
   const [activeTab, setActiveTab] = useState<"send" | "request">("send");
   const [showAddContact, setShowAddContact] = useState(false);
+  const [addingContact, setAddingContact] = useState(false);
+  const [addContactError, setAddContactError] = useState<string | null>(null);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactIdentifier, setNewContactIdentifier] = useState("");
   
   const userEmail = user?.email?.address;
   
   // Fetch real contacts from API
-  const { contacts, recentContacts, loading: contactsLoading, error: contactsError } = useContacts({
+  const { contacts, recentContacts, loading: contactsLoading, error: contactsError, addContact, fetchContacts } = useContacts({
     address: wallet?.address,
     autoFetch: true,
   });
+
+  const closeAddContactModal = () => {
+    setShowAddContact(false);
+    setAddContactError(null);
+    setAddingContact(false);
+    setNewContactName("");
+    setNewContactIdentifier("");
+  };
+
+  const handleAddContact = async () => {
+    const identifier = newContactIdentifier.trim();
+    const nameInput = newContactName.trim();
+
+    if (!identifier) {
+      setAddContactError("Enter an email, phone number, or wallet address.");
+      return;
+    }
+
+    const isEmail = identifier.includes("@");
+    const normalizedPhone = identifier.replace(/[\s\-()]/g, "");
+    const isPhone = /^\+?\d{10,}$/.test(normalizedPhone);
+    const isWallet = /^0x[a-fA-F0-9]{40}$/.test(identifier);
+
+    const email = isEmail ? identifier.toLowerCase() : undefined;
+    const phone = isPhone ? normalizedPhone : undefined;
+    const contactAddress = isWallet ? identifier : undefined;
+
+    if (!email && !phone && !contactAddress) {
+      setAddContactError("Use a valid email, phone number, or wallet address.");
+      return;
+    }
+
+    const fallbackName = isEmail
+      ? identifier.split("@")[0]
+      : isPhone
+        ? `Contact ${normalizedPhone.slice(-4)}`
+        : `${identifier.slice(0, 6)}...${identifier.slice(-4)}`;
+    const name = nameInput || fallbackName;
+
+    setAddingContact(true);
+    setAddContactError(null);
+
+    const created = await addContact({ name, email, phone, contactAddress });
+    if (!created) {
+      setAddContactError("Failed to add contact. Please try again.");
+      setAddingContact(false);
+      return;
+    }
+
+    closeAddContactModal();
+  };
   
   // Get quick send contacts: favorites first, then recent, limit to 6
   const quickSendContacts = [
@@ -134,6 +190,23 @@ export default function HomePage() {
               Add
             </button>
           </div>
+
+          {contactsError && (
+            <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-red-200 text-xs font-body truncate">
+                  {contactsError}
+                </p>
+                <button
+                  type="button"
+                  onClick={fetchContacts}
+                  className="text-red-100/80 hover:text-red-100 text-xs font-medium"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
           
           {contactsLoading ? (
             <div className="contact-grid">
@@ -186,7 +259,7 @@ export default function HomePage() {
         <PaymentRequests wallet={wallet} userEmail={userEmail} onRefresh={refresh} />
         
         {/* Sent Requests - Outgoing with Resend button */}
-        <SentRequests walletAddress={wallet?.address} onRefresh={refresh} />
+        <SentRequests walletAddress={wallet?.address} />
 
         {/* Tab Switcher */}
         <div className="clay-tabs" role="tablist" aria-label="Payment type">
@@ -265,6 +338,66 @@ export default function HomePage() {
           <span>Scan</span>
         </button>
       </nav>
+
+      <ModalPortal isOpen={showAddContact} onClose={closeAddContactModal} zIndex={120}>
+        <ModalContent title="Add Contact" onClose={closeAddContactModal}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleAddContact();
+            }}
+          >
+            <div className="space-y-2">
+              <label className="text-white/60 text-sm font-medium font-body">
+                Name (optional)
+              </label>
+              <input
+                type="text"
+                value={newContactName}
+                onChange={(e) => setNewContactName(e.target.value)}
+                placeholder="Alice"
+                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm font-body focus:outline-none focus:border-plenmo-500/50 transition-colors"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-white/60 text-sm font-medium font-body">
+                Email, phone, or wallet address
+              </label>
+              <input
+                type="text"
+                value={newContactIdentifier}
+                onChange={(e) => setNewContactIdentifier(e.target.value)}
+                placeholder="alice@example.com, +15551234567, or 0x..."
+                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm font-body focus:outline-none focus:border-plenmo-500/50 transition-colors"
+              />
+            </div>
+
+            {addContactError && (
+              <p className="text-red-300 text-sm font-body">{addContactError}</p>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeAddContactModal}
+                className="flex-1 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white/70 hover:text-white transition-colors text-sm font-medium font-body"
+                disabled={addingContact}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-b from-[rgb(0,212,255)] to-[rgb(0,180,220)] text-black font-semibold hover:opacity-95 transition-opacity text-sm font-body disabled:opacity-60"
+                disabled={addingContact}
+              >
+                {addingContact ? "Adding..." : "Add Contact"}
+              </button>
+            </div>
+          </form>
+        </ModalContent>
+      </ModalPortal>
     </main>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Send, User, DollarSign, AlertCircle, Wallet, CheckCircle, Zap } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
-import { useAssistantReaction, getUserFriendlyError, PaymentProgress, type PaymentStatus } from "@plasma-pay/ui";
+import { useAssistantReaction, PaymentProgress, type PaymentStatus } from "@plasma-pay/ui";
 import { sendMoney } from "@/lib/send";
 import { MIN_AMOUNT, MAX_AMOUNT, AMOUNT_TOO_SMALL, AMOUNT_TOO_LARGE } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";

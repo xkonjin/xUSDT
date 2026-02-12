@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import type { Contact } from "./ContactList";
 
 interface RecentContactsProps {

@@ -37,13 +37,17 @@ export function unregisterServiceWorker() {
 }
 
 // Install prompt handling - using global function from layout
+type PWAInstallWindow = Window & {
+  triggerPWAInstall?: () => Promise<boolean> | boolean;
+};
+
 export async function promptInstall() {
   if (typeof window === 'undefined') {
     return false;
   }
 
   // Use the global function exposed in layout
-  const globalWindow = window as any;
+  const globalWindow = window as PWAInstallWindow;
   if (typeof globalWindow.triggerPWAInstall === 'function') {
     return globalWindow.triggerPWAInstall();
   }
@@ -56,10 +60,12 @@ export function isInstalled() {
     return false;
   }
 
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+
   // Check if running as PWA
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    nav.standalone === true
   );
 }
 

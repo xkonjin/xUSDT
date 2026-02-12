@@ -71,7 +71,7 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
       if (stored) {
         setRecentSearches(JSON.parse(stored));
       }
-    } catch (e) {
+    } catch {
       // Ignore localStorage errors
     }
   }, []);
@@ -82,7 +82,7 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
     setRecentSearches(updated);
     try {
       localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-    } catch (e) {
+    } catch {
       // Ignore localStorage errors
     }
   }, [recentSearches]);

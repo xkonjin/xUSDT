@@ -70,12 +70,10 @@ export async function GET(request: NextRequest) {
       name,
       timestamp: Date.now(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Balance check error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to fetch balance';
 
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch balance' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

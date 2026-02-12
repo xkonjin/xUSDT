@@ -20,7 +20,7 @@ const VALID_PROVIDERS: BridgeProvider[] = ['lifi', 'debridge', 'squid', 'across'
 
 export async function GET(request: Request) {
   // Rate limiting
-  const { allowed, headers, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.read);
+  const { allowed, retryAfter } = checkRateLimit(request, RATE_LIMIT_CONFIGS.read);
   if (!allowed && retryAfter) {
     return rateLimitResponse(retryAfter);
   }
