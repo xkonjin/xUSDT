@@ -116,7 +116,7 @@ export function isOnline() {
     return true;
   }
 
-  return navigator.onLine;
+  return typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
 }
 
 export function setupNetworkListeners(
@@ -124,7 +124,7 @@ export function setupNetworkListeners(
   onOffline: () => void
 ) {
   if (typeof window === 'undefined') {
-    return;
+    return () => {};
   }
 
   window.addEventListener('online', onOnline);

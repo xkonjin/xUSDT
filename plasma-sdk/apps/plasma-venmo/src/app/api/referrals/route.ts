@@ -24,11 +24,18 @@ export async function GET(request: NextRequest) {
 
   // Calculate stats
   const totalReferred = referralsMade.length;
-  const pendingRewards = referralsMade.filter(r => r.rewardStatus === "pending").length;
-  const paidRewards = referralsMade.filter(r => r.rewardStatus === "paid").length;
+  const pendingRewards = referralsMade.filter(
+    (r: (typeof referralsMade)[number]) => r.rewardStatus === "pending"
+  ).length;
+  const paidRewards = referralsMade.filter(
+    (r: (typeof referralsMade)[number]) => r.rewardStatus === "paid"
+  ).length;
   const totalEarned = referralsMade
-    .filter(r => r.rewardStatus === "paid")
-    .reduce((sum, r) => sum + r.rewardAmount, 0);
+    .filter((r: (typeof referralsMade)[number]) => r.rewardStatus === "paid")
+    .reduce(
+      (sum: number, r: (typeof referralsMade)[number]) => sum + r.rewardAmount,
+      0
+    );
 
   return NextResponse.json({
     stats: {

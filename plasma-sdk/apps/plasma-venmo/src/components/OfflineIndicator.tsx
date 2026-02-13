@@ -8,7 +8,11 @@ export function OfflineIndicator() {
   const [showMessage, setShowMessage] = useState(false);
 
   useEffect(() => {
-    setOnline(isOnline());
+    const initialOnline = isOnline();
+    setOnline(initialOnline);
+    if (!initialOnline) {
+      setShowMessage(true);
+    }
 
     const cleanup = setupNetworkListeners(
       () => {
@@ -31,6 +35,7 @@ export function OfflineIndicator() {
 
   return (
     <div
+      data-testid="offline-indicator"
       className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${
         showMessage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}

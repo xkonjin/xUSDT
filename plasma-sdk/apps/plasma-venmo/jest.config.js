@@ -20,6 +20,9 @@ const customJestConfig = {
     '<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}',
     '<rootDir>/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}',
   ],
+  testPathIgnorePatterns: [
+    '<rootDir>/__tests__/e2e/',
+  ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',

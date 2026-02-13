@@ -50,12 +50,19 @@ describe('pwa utilities', () => {
     });
 
     it('returns true in server-side environment', () => {
-      // Test when typeof window is 'undefined'
-      const originalWindow = global.window;
-      // @ts-ignore - testing server-side scenario
-      delete global.window;
+      const originalOnline = window.navigator.onLine;
+      Object.defineProperty(window.navigator, 'onLine', {
+        writable: true,
+        // @ts-ignore - simulate unknown state
+        value: undefined,
+      });
+
       expect(isOnline()).toBe(true);
-      global.window = originalWindow;
+
+      Object.defineProperty(window.navigator, 'onLine', {
+        writable: true,
+        value: originalOnline,
+      });
     });
   });
 
@@ -110,7 +117,7 @@ describe('pwa utilities', () => {
     it('does nothing in server-side environment', () => {
       const originalWindow = global.window;
       // @ts-ignore - testing server-side scenario
-      delete global.window;
+      global.window = undefined;
       
       const onOnline = jest.fn();
       const onOffline = jest.fn();

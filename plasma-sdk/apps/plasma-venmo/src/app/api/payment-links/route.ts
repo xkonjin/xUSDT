@@ -134,7 +134,7 @@ export async function GET(request: Request) {
 
     // Generate URLs for each link
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
-    const linksWithUrls = paymentLinks.map((link) => ({
+    const linksWithUrls = paymentLinks.map((link: (typeof paymentLinks)[number]) => ({
       id: link.id,
       creatorAddress: link.creatorAddress,
       amount: link.amount,
@@ -168,4 +168,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

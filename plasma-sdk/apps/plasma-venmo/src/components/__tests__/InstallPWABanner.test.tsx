@@ -84,7 +84,11 @@ describe('InstallPWABanner', () => {
     window.dispatchEvent(new Event('pwa-installable'));
     
     await waitFor(() => {
-      expect(screen.getByText('Get quick access and work offline. Install app for best experience.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Get quick access and work offline. Install the app for the best experience.'
+        )
+      ).toBeInTheDocument();
     });
   });
 

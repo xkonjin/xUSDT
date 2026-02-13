@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
   });
 
   const txCount = todayLogs.length;
-  const totalCostUsd = todayLogs.reduce((sum: number, log) => sum + log.gasCostUsd, 0);
+  const totalCostUsd = todayLogs.reduce(
+    (sum: number, log: (typeof todayLogs)[number]) => sum + log.gasCostUsd,
+    0
+  );
 
   const eligible = txCount < DAILY_TX_LIMIT && totalCostUsd < DAILY_USD_LIMIT;
 

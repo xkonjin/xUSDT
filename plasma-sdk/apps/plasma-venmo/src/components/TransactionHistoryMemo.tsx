@@ -81,7 +81,6 @@ export const TransactionHistory = memo(function TransactionHistory({
 }, (prevProps, nextProps) => {
   // Custom comparison function for better memoization
   return (
-    prevProps.address === nextProps.address &&
     prevProps.transactions.length === nextProps.transactions.length &&
     prevProps.transactions[0]?.id === nextProps.transactions[0]?.id
   );

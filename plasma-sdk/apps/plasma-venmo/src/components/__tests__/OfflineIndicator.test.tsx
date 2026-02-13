@@ -22,14 +22,17 @@ describe('OfflineIndicator', () => {
     expect(screen.queryByText('No internet connection')).not.toBeInTheDocument();
   });
 
-  it('does not render when offline initially (message timeout not triggered)', () => {
+  it('renders offline message when offline initially', async () => {
     const { isOnline, setupNetworkListeners } = require('@/lib/pwa');
     isOnline.mockReturnValue(false);
     setupNetworkListeners.mockReturnValue(jest.fn());
 
     render(<OfflineIndicator />);
     expect(screen.queryByText('Back online')).not.toBeInTheDocument();
-    expect(screen.queryByText('No internet connection')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('No internet connection')).toBeInTheDocument();
+    });
   });
 
   it('shows online message when coming back online', async () => {
@@ -274,7 +277,7 @@ describe('OfflineIndicator', () => {
     }
     
     await waitFor(() => {
-      const container = screen.getByText('No internet connection').closest('div');
+      const container = screen.getByTestId('offline-indicator');
       expect(container).toHaveClass('fixed');
       expect(container).toHaveClass('top-4');
       expect(container).toHaveClass('left-1/2');
@@ -299,7 +302,7 @@ describe('OfflineIndicator', () => {
     }
     
     await waitFor(() => {
-      const container = screen.getByText('No internet connection').closest('div');
+      const container = screen.getByTestId('offline-indicator');
       expect(container).toHaveClass('transition-all');
       expect(container).toHaveClass('duration-300');
     });
