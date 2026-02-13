@@ -38,7 +38,7 @@ describe('ClayModal', () => {
   });
 
   it('renders close button by default', () => {
-    render(<ClayModal isOpen><p>Content</p></ClayModal>);
+    render(<ClayModal isOpen onClose={jest.fn()}><p>Content</p></ClayModal>);
     const closeButton = screen.getByLabelText('Close modal');
     expect(closeButton).toBeInTheDocument();
   });

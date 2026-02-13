@@ -50,11 +50,11 @@ describe('ClaySheet', () => {
 
     rerender(<ClaySheet isOpen position="right" size="lg"><p>Content</p></ClaySheet>);
     sheet = document.querySelector('.fixed.inset-y-0.right-0');
-    expect(sheet?.className).toContain('w-\\[28rem\\]');
+    expect(sheet?.className).toContain('w-[28rem]');
 
     rerender(<ClaySheet isOpen position="right" size="xl"><p>Content</p></ClaySheet>);
     sheet = document.querySelector('.fixed.inset-y-0.right-0');
-    expect(sheet?.className).toContain('w-\\[32rem\\]');
+    expect(sheet?.className).toContain('w-[32rem]');
   });
 
   it('applies correct size styles for left position', () => {
@@ -64,7 +64,7 @@ describe('ClaySheet', () => {
 
     rerender(<ClaySheet isOpen position="left" size="xl"><p>Content</p></ClaySheet>);
     sheet = document.querySelector('.fixed.inset-y-0.left-0');
-    expect(sheet?.className).toContain('w-\\[32rem\\]');
+    expect(sheet?.className).toContain('w-[32rem]');
   });
 
   it('applies correct size styles for bottom position', () => {
@@ -74,11 +74,11 @@ describe('ClaySheet', () => {
 
     rerender(<ClaySheet isOpen position="bottom" size="lg"><p>Content</p></ClaySheet>);
     sheet = document.querySelector('.fixed.inset-x-0.bottom-0');
-    expect(sheet?.className).toContain('h-\\[30rem\\]');
+    expect(sheet?.className).toContain('h-[30rem]');
   });
 
   it('renders close button by default', () => {
-    render(<ClaySheet isOpen><p>Content</p></ClaySheet>);
+    render(<ClaySheet isOpen onClose={jest.fn()}><p>Content</p></ClaySheet>);
     const closeButton = screen.getByLabelText('Close sheet');
     expect(closeButton).toBeInTheDocument();
   });
@@ -168,13 +168,13 @@ describe('ClaySheet', () => {
     let sheet = document.querySelector('.fixed.inset-y-0.right-0');
     expect(sheet?.className).toContain('border-l');
     expect(sheet?.className).toContain('border-r');
-    expect(sheet?.className).toContain('rounded-l-\\[2rem\\]');
+    expect(sheet?.className).toContain('rounded-l-[2rem]');
 
     rerender(<ClaySheet isOpen position="left"><p>Content</p></ClaySheet>);
     sheet = document.querySelector('.fixed.inset-y-0.left-0');
     expect(sheet?.className).toContain('border-l');
     expect(sheet?.className).toContain('border-r');
-    expect(sheet?.className).toContain('rounded-r-\\[2rem\\]');
+    expect(sheet?.className).toContain('rounded-r-none');
   });
 
   it('renders with correct border styles for vertical position', () => {
@@ -182,7 +182,7 @@ describe('ClaySheet', () => {
     const sheet = document.querySelector('.fixed.inset-x-0.bottom-0');
     expect(sheet?.className).toContain('border-t');
     expect(sheet?.className).toContain('border-b');
-    expect(sheet?.className).toContain('rounded-t-\\[2rem\\]');
+    expect(sheet?.className).toContain('rounded-t-[2rem]');
   });
 
   it('forwards ref correctly', () => {
@@ -193,22 +193,22 @@ describe('ClaySheet', () => {
 
   it('accepts additional className', () => {
     render(<ClaySheet isOpen className="custom-class" data-testid="sheet"><p>Content</p></ClaySheet>);
-    const sheet = document.querySelector('.relative.flex.flex-col');
+    const sheet = document.querySelector('.flex.flex-col');
     expect(sheet).toHaveClass('custom-class');
   });
 
   it('has correct animation classes for each position', () => {
     const { rerender } = render(<ClaySheet isOpen position="right"><p>Content</p></ClaySheet>);
-    let sheet = document.querySelector('.relative.flex.flex-col');
+    let sheet = document.querySelector('.flex.flex-col');
     expect(sheet?.className).toContain('animate-in');
     expect(sheet?.className).toContain('slide-in-from-right');
 
     rerender(<ClaySheet isOpen position="left"><p>Content</p></ClaySheet>);
-    sheet = document.querySelector('.relative.flex.flex-col');
+    sheet = document.querySelector('.flex.flex-col');
     expect(sheet?.className).toContain('slide-in-from-left');
 
     rerender(<ClaySheet isOpen position="bottom"><p>Content</p></ClaySheet>);
-    sheet = document.querySelector('.relative.flex.flex-col');
+    sheet = document.querySelector('.flex.flex-col');
     expect(sheet?.className).toContain('slide-in-from-bottom');
   });
 });

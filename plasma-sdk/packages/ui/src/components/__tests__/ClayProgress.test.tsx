@@ -193,7 +193,8 @@ describe('ClayProgressSteps', () => {
 
   it('applies active styles correctly', () => {
     render(<ClayProgressSteps steps={mockSteps} />);
-    const secondStep = document.querySelectorAll('.rounded-full')[1];
+    const secondStepLabel = screen.getByText('Step 2');
+    const secondStep = secondStepLabel.parentElement?.querySelector('.rounded-full');
     expect(secondStep?.className).toContain('from-blue-400');
     expect(secondStep?.className).toContain('to-blue-500');
     expect(secondStep?.className).toContain('scale-110');
@@ -201,20 +202,21 @@ describe('ClayProgressSteps', () => {
 
   it('applies pending styles correctly', () => {
     render(<ClayProgressSteps steps={mockSteps} />);
-    const thirdStep = document.querySelectorAll('.rounded-full')[2];
+    const thirdStepLabel = screen.getByText('Step 3');
+    const thirdStep = thirdStepLabel.parentElement?.querySelector('.rounded-full');
     expect(thirdStep?.className).toContain('from-slate-200');
     expect(thirdStep?.className).toContain('to-slate-300');
   });
 
   it('renders connector lines between steps', () => {
     render(<ClayProgressSteps steps={mockSteps} />);
-    const connectors = document.querySelectorAll('.flex-1.h-0.5');
+    const connectors = document.querySelectorAll('div.flex-1.h-0\\.5');
     expect(connectors).toHaveLength(2);
   });
 
   it('applies completed style to connector when step is completed', () => {
     render(<ClayProgressSteps steps={mockSteps} />);
-    const connectors = document.querySelectorAll('.flex-1.h-0.5');
+    const connectors = document.querySelectorAll('div.flex-1.h-0\\.5');
     expect(connectors[0]?.className).toContain('bg-emerald-400');
   });
 
@@ -251,7 +253,7 @@ describe('ClayProgressSteps', () => {
     const singleStep = [{ label: 'Only Step', completed: false, active: true }];
     render(<ClayProgressSteps steps={singleStep} />);
     expect(screen.getByText('Only Step')).toBeInTheDocument();
-    const connectors = document.querySelectorAll('.flex-1.h-0.5');
+    const connectors = document.querySelectorAll('div.flex-1.h-0\\.5');
     expect(connectors).toHaveLength(0);
   });
 

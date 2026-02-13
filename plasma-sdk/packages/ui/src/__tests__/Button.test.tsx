@@ -58,7 +58,7 @@ describe('Button', () => {
     render(<Button loading>Submit</Button>);
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
-    expect(screen.getByTestId('loader-icon')).toBeInTheDocument();
+    expect(screen.getByTestId('loader2')).toBeInTheDocument();
     expect(button).toHaveTextContent('Loading...');
   });
 

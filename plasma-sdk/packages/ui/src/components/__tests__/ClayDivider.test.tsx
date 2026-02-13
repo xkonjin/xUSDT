@@ -141,8 +141,8 @@ describe('ClayDivider', () => {
 
   it('handles empty label', () => {
     render(<ClayDivider label="" />);
-    const label = screen.queryByText('');
-    expect(label).toBeInTheDocument();
+    const label = document.querySelector('span');
+    expect(label).not.toBeInTheDocument();
   });
 
   it('handles long label text', () => {

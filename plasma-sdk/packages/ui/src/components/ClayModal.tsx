@@ -4,7 +4,8 @@ import { forwardRef, useEffect, useCallback } from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/utils";
 
-export interface ClayModalProps {
+export interface ClayModalProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onClose" | "children"> {
   isOpen?: boolean;
   onClose?: () => void;
   title?: string;
@@ -28,6 +29,7 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
   (
     {
       isOpen = false,
+      className = "",
       onClose,
       title,
       description,
@@ -36,6 +38,7 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
       showCloseButton = true,
       closeOnOverlayClick = true,
       closeOnEscape = true,
+      ...props
     },
     ref
   ) => {
@@ -65,9 +68,10 @@ export const ClayModal = forwardRef<HTMLDivElement, ClayModalProps>(
 
     return (
       <div
-        className="fixed inset-0 z-[1050] flex items-center justify-center p-4"
+        className={cn("fixed inset-0 z-[1050] flex items-center justify-center p-4", className)}
         aria-modal="true"
         role="dialog"
+        {...props}
       >
         {/* Backdrop */}
         <div
@@ -154,5 +158,3 @@ export const ClayModalFooter = forwardRef<HTMLDivElement, ClayModalFooterProps>(
 );
 
 ClayModalFooter.displayName = "ClayModalFooter";
-
-

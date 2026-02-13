@@ -10,16 +10,16 @@ describe('ClayAlert', () => {
   });
 
   it('renders string children as paragraph', () => {
-    render(<ClayAlert>String alert</ClayAlert>);
-    const p = screen.getByRole('paragraph');
+    const { container } = render(<ClayAlert>String alert</ClayAlert>);
+    const p = container.querySelector('p');
     expect(p).toBeInTheDocument();
     expect(p).toHaveTextContent('String alert');
   });
 
   it('renders non-string children as is', () => {
-    render(<ClayAlert><div data-testid="custom">Custom content</div></ClayAlert>);
+    const { container } = render(<ClayAlert><div data-testid="custom">Custom content</div></ClayAlert>);
     expect(screen.getByTestId('custom')).toBeInTheDocument();
-    const p = screen.queryByRole('paragraph');
+    const p = container.querySelector('p');
     expect(p).not.toBeInTheDocument();
   });
 
@@ -118,19 +118,19 @@ describe('ClayAlert', () => {
 
   it('applies correct icon color based on variant', () => {
     const { rerender } = render(<ClayAlert variant="info">Info</ClayAlert>);
-    let iconContainer = document.querySelector('.flex-shrink-0.mt-0.5');
+    let iconContainer = document.querySelector('.flex-shrink-0.mt-0\\.5');
     expect(iconContainer).toHaveClass('text-blue-600');
 
     rerender(<ClayAlert variant="success">Success</ClayAlert>);
-    iconContainer = document.querySelector('.flex-shrink-0.mt-0.5');
+    iconContainer = document.querySelector('.flex-shrink-0.mt-0\\.5');
     expect(iconContainer).toHaveClass('text-emerald-600');
 
     rerender(<ClayAlert variant="warning">Warning</ClayAlert>);
-    iconContainer = document.querySelector('.flex-shrink-0.mt-0.5');
+    iconContainer = document.querySelector('.flex-shrink-0.mt-0\\.5');
     expect(iconContainer).toHaveClass('text-amber-600');
 
     rerender(<ClayAlert variant="danger">Danger</ClayAlert>);
-    iconContainer = document.querySelector('.flex-shrink-0.mt-0.5');
+    iconContainer = document.querySelector('.flex-shrink-0.mt-0\\.5');
     expect(iconContainer).toHaveClass('text-red-600');
   });
 

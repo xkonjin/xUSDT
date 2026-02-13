@@ -144,7 +144,7 @@ describe('ClayInput', () => {
 
   it('forwards ref correctly', () => {
     const ref = React.createRef<HTMLInputElement>();
-    render(<ClayInput ref={ref}>Input</ClayInput>);
+    render(<ClayInput ref={ref} />);
     expect(ref.current).toBeInstanceOf(HTMLInputElement);
   });
 

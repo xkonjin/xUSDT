@@ -94,8 +94,9 @@ describe('ClaySection', () => {
 
   it('renders as section element', () => {
     render(<ClaySection>Content</ClaySection>);
-    const section = screen.getByTestId('section');
-    expect(section.tagName).toBe('SECTION');
+    const section = screen.getByText('Content').closest('section');
+    expect(section).toBeInTheDocument();
+    expect(section?.tagName).toBe('SECTION');
   });
 
   it('applies max width to inner container', () => {

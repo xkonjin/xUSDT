@@ -4,11 +4,10 @@ import Image from "next/image";
 import { forwardRef } from "react";
 import { cn } from "../lib/utils";
 
-export interface ClayAvatarProps {
+export interface ClayAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string;
   src?: string;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  className?: string;
   status?: "online" | "offline" | "busy" | "away";
   rounded?: "full" | "2xl";
 }
@@ -63,7 +62,7 @@ function getInitials(name: string): string {
 }
 
 export const ClayAvatar = forwardRef<HTMLDivElement, ClayAvatarProps>(
-  ({ name, src, size = "md", className, status, rounded = "full" }, ref) => {
+  ({ name, src, size = "md", className, status, rounded = "full", ...props }, ref) => {
     const initials = getInitials(name);
     const bgColor = getAvatarColor(name);
 
@@ -76,6 +75,7 @@ export const ClayAvatar = forwardRef<HTMLDivElement, ClayAvatarProps>(
           roundedClasses[rounded],
           className
         )}
+        {...props}
       >
         <div
           className={cn(
@@ -115,7 +115,7 @@ export const ClayAvatar = forwardRef<HTMLDivElement, ClayAvatarProps>(
 
 ClayAvatar.displayName = "ClayAvatar";
 
-export interface ClayAvatarGroupProps {
+export interface ClayAvatarGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   names: string[];
   srcs?: string[];
   max?: number;
@@ -129,41 +129,50 @@ const spacingClasses = {
   lg: "-space-x-5",
 };
 
-export const ClayAvatarGroup = ({
-  names,
-  srcs = [],
-  max = 4,
-  size = "md",
-  spacing = "md",
-}: ClayAvatarGroupProps) => {
-  const visible = names.slice(0, max);
-  const remaining = names.length - max;
+export const ClayAvatarGroup = forwardRef<HTMLDivElement, ClayAvatarGroupProps>(
+  (
+    {
+      names,
+      srcs = [],
+      max = 4,
+      size = "md",
+      spacing = "md",
+      className = "",
+      ...props
+    },
+    ref
+  ) => {
+    const visible = names.slice(0, max);
+    const remaining = names.length - max;
 
-  return (
-    <div className={cn("flex", spacingClasses[spacing])}>
-      {visible.map((name, i) => (
-        <ClayAvatar
-          key={i}
-          name={name}
-          src={srcs[i]}
-          size={size}
-          className="ring-3 ring-white shadow-clay-sm"
-        />
-      ))}
-      {remaining > 0 && (
-        <div
-          className={cn(
-            "rounded-full flex items-center justify-center font-bold text-slate-600 shadow-clay-sm ring-3 ring-white",
-            sizeClasses[size]
-          )}
-        >
-          +{remaining}
-        </div>
-      )}
-    </div>
-  );
-};
+    return (
+      <div
+        ref={ref}
+        className={cn("flex", spacingClasses[spacing], className)}
+        {...props}
+      >
+        {visible.map((name, i) => (
+          <ClayAvatar
+            key={i}
+            name={name}
+            src={srcs[i]}
+            size={size}
+            className="ring-3 ring-white shadow-clay-sm"
+          />
+        ))}
+        {remaining > 0 && (
+          <div
+            className={cn(
+              "rounded-full flex items-center justify-center font-bold text-slate-600 shadow-clay-sm ring-3 ring-white",
+              sizeClasses[size]
+            )}
+          >
+            +{remaining}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
 ClayAvatarGroup.displayName = "ClayAvatarGroup";
-
-

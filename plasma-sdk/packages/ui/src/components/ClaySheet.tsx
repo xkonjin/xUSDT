@@ -4,7 +4,8 @@ import { forwardRef, useEffect, useCallback } from "react";
 import { X } from "lucide-react";
 import { cn } from "../lib/utils";
 
-export interface ClaySheetProps {
+export interface ClaySheetProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onClose" | "children"> {
   isOpen?: boolean;
   onClose?: () => void;
   position?: "right" | "left" | "bottom";
@@ -52,9 +53,11 @@ export const ClaySheet = forwardRef<HTMLDivElement, ClaySheetProps>(
       position = "right",
       size = "lg",
       children,
+      className = "",
       showCloseButton = true,
       closeOnOverlayClick = true,
       closeOnEscape = true,
+      ...props
     },
     ref
   ) => {
@@ -116,8 +119,10 @@ export const ClaySheet = forwardRef<HTMLDivElement, ClaySheetProps>(
             "transition-transform duration-300",
             position === "right" && "animate-in slide-in-from-right",
             position === "left" && "animate-in slide-in-from-left",
-            position === "bottom" && "animate-in slide-in-from-bottom"
+            position === "bottom" && "animate-in slide-in-from-bottom",
+            className
           )}
+          {...props}
         >
           {/* Header */}
           {showCloseButton && onClose && (
@@ -172,5 +177,4 @@ export const ClaySheetFooter = forwardRef<HTMLDivElement, ClaySheetFooterProps>(
 );
 
 ClaySheetFooter.displayName = "ClaySheetFooter";
-
 

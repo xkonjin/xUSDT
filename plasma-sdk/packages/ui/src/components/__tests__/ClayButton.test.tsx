@@ -118,7 +118,7 @@ describe('ClayButton', () => {
     const icon = screen.getByTestId('icon');
     expect(icon).toBeInTheDocument();
     // Icon should appear before text
-    expect(button.childNodes[0]).toBe(icon);
+    expect(button.firstChild).toContainElement(icon);
   });
 
   it('renders icon on the right', () => {
@@ -131,7 +131,7 @@ describe('ClayButton', () => {
     const icon = screen.getByTestId('icon');
     expect(icon).toBeInTheDocument();
     // Icon should appear after text
-    expect(button.lastChild).toBe(icon);
+    expect(button.lastChild).toContainElement(icon);
   });
 
   it('renders without icon', () => {

@@ -63,12 +63,12 @@ const ClayInput = forwardRef<HTMLInputElement, ClayInputProps>(
               "focus:border-blue-400/70",
               "focus:shadow-[inset_4px_4px_8px_rgba(163,177,198,0.4),inset_-4px_-4px_8px_rgba(255,255,255,0.9),0_0_0_3px_rgba(59,130,246,0.1)]",
               "disabled:opacity-50 disabled:cursor-not-allowed",
+              sizeStyles[size],
               leftIcon ? "pl-12" : "",
               rightIcon ? "pr-12" : "",
               hasError
                 ? "border-red-400/70 focus:border-red-400 focus:shadow-[inset_4px_4px_8px_rgba(163,177,198,0.4),inset_-4px_-4px_8px_rgba(255,255,255,0.9),0_0_0_3px_rgba(239,68,68,0.1)]"
                 : "",
-              sizeStyles[size],
               className
             )}
             {...props}
