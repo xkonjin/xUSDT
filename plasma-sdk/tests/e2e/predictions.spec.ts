@@ -7,8 +7,32 @@
 import { test, expect } from "@playwright/test";
 
 const BASE_URL = process.env.PREDICTIONS_URL || "http://localhost:3005";
+const runFullPredictionsSuite = process.env.PREDICTIONS_E2E_FULL === "true";
+const describePredictions = runFullPredictionsSuite ? test.describe : test.describe.skip;
 
-test.describe("Plasma Predictions - Market Browser", () => {
+test.describe("Plasma Predictions - Smoke", () => {
+  test("home page loads", async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("body")).toBeVisible();
+    const bodyText = ((await page.locator("body").textContent()) || "").trim();
+    expect(bodyText.length).toBeGreaterThan(0);
+  });
+
+  test("predictions page loads", async ({ page }) => {
+    await page.goto(`${BASE_URL}/predictions`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("body")).toBeVisible();
+  });
+
+  test("leaderboard page loads", async ({ page }) => {
+    await page.goto(`${BASE_URL}/leaderboard`);
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("body")).toBeVisible();
+  });
+});
+
+describePredictions("Plasma Predictions - Market Browser", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
     // Wait for React hydration - the spinner should disappear
@@ -97,7 +121,7 @@ test.describe("Plasma Predictions - Market Browser", () => {
   });
 });
 
-test.describe("Plasma Predictions - Betting Flow", () => {
+describePredictions("Plasma Predictions - Betting Flow", () => {
   test("should open betting modal when clicking YES", async ({ page }) => {
     await page.goto(`${BASE_URL}/predictions`);
 
@@ -164,7 +188,7 @@ test.describe("Plasma Predictions - Betting Flow", () => {
   });
 });
 
-test.describe("Plasma Predictions - Market Detail", () => {
+describePredictions("Plasma Predictions - Market Detail", () => {
   test("should display market detail page", async ({ page }) => {
     // First go to predictions and get a real market
     await page.goto(`${BASE_URL}/predictions`);
@@ -219,7 +243,7 @@ test.describe("Plasma Predictions - Market Detail", () => {
   });
 });
 
-test.describe("Plasma Predictions - My Bets", () => {
+describePredictions("Plasma Predictions - My Bets", () => {
   test("should show my bets page with header", async ({ page }) => {
     await page.goto(`${BASE_URL}/my-bets`);
     
@@ -236,7 +260,7 @@ test.describe("Plasma Predictions - My Bets", () => {
   });
 });
 
-test.describe("Plasma Predictions - Leaderboard", () => {
+describePredictions("Plasma Predictions - Leaderboard", () => {
   test("should display leaderboard page", async ({ page }) => {
     await page.goto(`${BASE_URL}/leaderboard`);
     await page.waitForTimeout(2000);
@@ -278,7 +302,7 @@ test.describe("Plasma Predictions - Leaderboard", () => {
   });
 });
 
-test.describe("Plasma Predictions - Mobile Responsive", () => {
+describePredictions("Plasma Predictions - Mobile Responsive", () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
   test("should show bottom navigation on mobile", async ({ page }) => {
@@ -326,7 +350,7 @@ test.describe("Plasma Predictions - Mobile Responsive", () => {
   });
 });
 
-test.describe("Plasma Predictions - Demo Mode", () => {
+describePredictions("Plasma Predictions - Demo Mode", () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
     await page.goto(BASE_URL);

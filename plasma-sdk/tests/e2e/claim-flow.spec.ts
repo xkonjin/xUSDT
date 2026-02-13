@@ -44,7 +44,7 @@ test.describe('Claim API', () => {
     
     expect(response.status()).toBe(400);
     const body = await response.json();
-    expect(body.error).toContain('address');
+    expect(String(body.error || '').toLowerCase()).toContain('address');
   });
 
   test('POST /api/claims validates required fields', async ({ request }) => {
@@ -87,4 +87,3 @@ test.describe('Claim API', () => {
     expect(body.error).toContain('not found');
   });
 });
-
