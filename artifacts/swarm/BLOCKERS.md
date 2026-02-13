@@ -1,70 +1,95 @@
 # BLOCKERS
 
-Updated: 2026-02-12T15:03:01Z
+Updated: 2026-02-13T13:33:15Z
 Workspace: /Users/a002/DEV/xUSDT
 
-## 1) PR Review Loop Cannot Close (P0/P1-equivalent test gates still red)
+## Blocker 1 - System Python Gate Fails
 Status: BLOCKED
 
-Open blockers:
-- `@plasma-pay/venmo` lint fails:
-  - Command: `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-venmo && npm run lint`
-  - Error: Next lint invalid/removed options (`useEslintrc`, `extensions`, etc.)
-- `@plasma-pay/venmo` tests fail:
-  - Command: `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-venmo && npm run test`
-  - Result: 7 failed suites, 19 passed suites.
-- `@plasma-pay/ui` tests fail:
-  - Command: `cd /Users/a002/DEV/xUSDT/plasma-sdk/packages/ui && npm run test`
-  - Result: 10 failed suites, 9 passed suites.
-- E2E regression fails:
-  - Command: `cd /Users/a002/DEV/xUSDT/plasma-sdk && npx playwright test --project=chromium`
-  - Evidence: `/Users/a002/DEV/xUSDT/plasma-sdk/test-results/.last-run.json` shows 74 failed tests.
+Missing item:
+- `pytest` is not installed in system `python3` (`/opt/homebrew/opt/python@3.14/bin/python3.14`).
 
-Exact next commands:
-1. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-venmo && npm run lint && npm run test`
-2. `cd /Users/a002/DEV/xUSDT/plasma-sdk/packages/ui && npm run test`
-3. `cd /Users/a002/DEV/xUSDT/plasma-sdk && npx playwright test --project=chromium`
+Exact command attempted:
+- `cd /Users/a002/DEV/xUSDT && PYTHONPATH=. python3 -m pytest -q`
 
-## 2) System Python Gate Fails on Default Runtime
+Exact error:
+- `/opt/homebrew/opt/python@3.14/bin/python3.14: No module named pytest`
+
+Exact next command(s) user must run:
+1. `python3 -m pip install pytest`
+2. `cd /Users/a002/DEV/xUSDT && PYTHONPATH=. python3 -m pytest -q`
+
+What resumes automatically after unblock:
+- Phase-4 python regression gate becomes green on the default interpreter path.
+
+---
+
+## Blocker 2 - Vercel Project Config Is Incompatible With Monorepo Workspace Builds
 Status: BLOCKED
 
-- Required command fails:
-  - `cd /Users/a002/DEV/xUSDT && PYTHONPATH=. python3 -m pytest -q`
-  - Error: `No module named pytest` (system python3.14 environment)
-- Workaround command passes in py311 venv:
-  - `python3.11 -m venv .venv311 && ./.venv311/bin/pip install -r requirements.txt && PYTHONPATH=. PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 ./.venv311/bin/python -m pytest -q`
+Missing item:
+- Vercel projects are configured with `Node.js 24.x` and app-local root/install model that cannot resolve internal workspace packages (`@plasma-pay/*`).
 
-Exact next commands:
-1. `python3.11 -m venv /Users/a002/DEV/xUSDT/.venv311`
-2. `/Users/a002/DEV/xUSDT/.venv311/bin/pip install -r /Users/a002/DEV/xUSDT/requirements.txt`
-3. `cd /Users/a002/DEV/xUSDT && PYTHONPATH=. PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 ./.venv311/bin/python -m pytest -q`
+Exact commands attempted and errors:
+1. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-venmo && npx vercel --yes --scope jins-projects-d67d72af`
+- Error: `The provided path "~/DEV/xUSDT/plasma-sdk/apps/plasma-venmo/plasma-sdk/apps/plasma-venmo" does not exist.`
 
-## 3) Production Validation Blocked for Required Apps (predictions/bill-split)
+2. `cd /Users/a002/DEV/xUSDT && npx vercel --yes --scope jins-projects-d67d72af`
+- Deploy URL: `https://plasma-venmo-d93fn8j2g-jins-projects-d67d72af.vercel.app`
+- Error in build logs: `Module not found: Can't resolve '@plasma-pay/share'` and `Can't resolve 'ethers'`
+
+3. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-predictions && npx vercel --yes --scope jins-projects-d67d72af --name plasma-predictions`
+- Deploy URL: `https://plasma-predictions-mp612lj0c-jins-projects-d67d72af.vercel.app`
+- Error in build logs: `npm ERR! 404 Not Found - @plasma-pay/core@*`
+
+4. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/bill-split && npx vercel --yes --scope jins-projects-d67d72af --name bill-split`
+- Deploy URL: `https://bill-split-akkdhhzrb-jins-projects-d67d72af.vercel.app`
+- Error in build logs: `npm ERR! 404 Not Found - @plasma-pay/aggregator@*`
+
+Exact next command(s) user must run:
+1. `open "https://vercel.com/jins-projects-d67d72af/plasma-venmo/settings"`
+2. `open "https://vercel.com/jins-projects-d67d72af/plasma-predictions/settings"`
+3. `open "https://vercel.com/jins-projects-d67d72af/bill-split/settings"`
+4. In each project, set:
+- Node.js Version: `20.x`
+- Root Directory: `plasma-sdk`
+- Install Command: `npm ci`
+- Build Command:
+  - venmo: `npm run build --workspace @plasma-pay/venmo`
+  - predictions: `npm run build --workspace @plasma-pay/predictions`
+  - bill-split: `npm run build --workspace @plasma-pay/bill-split`
+5. Then run deploys from repo root:
+- `cd /Users/a002/DEV/xUSDT && npx vercel link --yes --scope jins-projects-d67d72af --project plasma-venmo && npx vercel --yes --scope jins-projects-d67d72af && npx vercel --prod --yes --scope jins-projects-d67d72af`
+- `cd /Users/a002/DEV/xUSDT && npx vercel link --yes --scope jins-projects-d67d72af --project plasma-predictions && npx vercel --yes --scope jins-projects-d67d72af && npx vercel --prod --yes --scope jins-projects-d67d72af`
+- `cd /Users/a002/DEV/xUSDT && npx vercel link --yes --scope jins-projects-d67d72af --project bill-split && npx vercel --yes --scope jins-projects-d67d72af && npx vercel --prod --yes --scope jins-projects-d67d72af`
+
+What resumes automatically after unblock:
+- Phase-5 preview/canary then production deploy attempts for required apps.
+- Phase-5/6 live smoke validation and post-production audit closure.
+
+---
+
+## Blocker 3 - Current Production Health Is Not Release-Ready
 Status: BLOCKED
 
-- Live check evidence:
-  - `https://plasma-predictions.vercel.app` => `404 DEPLOYMENT_NOT_FOUND`
-  - `https://plasma-predictions.vercel.app/api/markets` => `404 DEPLOYMENT_NOT_FOUND`
-  - `https://bill-split.vercel.app/api/bills` => `404` (route absent on that deployment)
-- Local Vercel link exists only for `plasma-venmo`.
+Missing item:
+- Runtime production dependencies/config are not fully configured for venmo relayer path.
 
-Exact next commands:
-1. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-predictions && npx vercel link --yes`
-2. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-predictions && npx vercel --yes`
-3. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/plasma-predictions && npx vercel --prod --yes`
-4. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/bill-split && npx vercel link --yes`
-5. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/bill-split && npx vercel --yes`
-6. `cd /Users/a002/DEV/xUSDT/plasma-sdk/apps/bill-split && npx vercel --prod --yes`
+Exact commands attempted:
+- `curl -i https://plasma-venmo.vercel.app/api/health`
+- `curl -i https://plasma-venmo.vercel.app/api/relay`
 
-## 4) Full Auth/Payment Production Journeys Need Test Identities and Safe Funds
-Status: BLOCKED
+Exact error signals:
+- `/api/health` returns `503` with body containing `"status":"unhealthy"`
+- `/api/relay` returns `503` with body `{"error":"Gasless relayer not configured"}`
 
-Missing inputs:
-- Dedicated test accounts/wallets for production smoke (sender/recipient).
-- Explicit approval for production-value payment path execution.
+Exact next command(s) user must run:
+1. Configure required production env vars in Vercel project `plasma-venmo` (relayer secret, RPC, Redis/rate-limit vars).
+2. Re-deploy venmo production:
+- `cd /Users/a002/DEV/xUSDT && npx vercel link --yes --scope jins-projects-d67d72af --project plasma-venmo && npx vercel --prod --yes --scope jins-projects-d67d72af`
+3. Re-validate health:
+- `curl -i https://plasma-venmo.vercel.app/api/health`
+- `curl -i https://plasma-venmo.vercel.app/api/relay`
 
-Exact next commands (after credentials/data provided):
-1. `cd /Users/a002/DEV/xUSDT/plasma-sdk && npx playwright test tests/e2e/full-flow.spec.ts --project=chromium`
-2. `curl -i https://plasma-venmo.vercel.app/api/health`
-3. `curl -i https://plasma-predictions.vercel.app/api/markets`
-4. `curl -i "https://bill-split.vercel.app/api/bills?address=<TEST_WALLET>"`
+What resumes automatically after unblock:
+- Security go/no-go can be re-evaluated from NO-GO to GO if all required production endpoints are healthy.

@@ -1,45 +1,33 @@
 # Open Risks And Next Steps
 
-Generated: 2026-02-12T15:03:54Z
+Generated: 2026-02-13T13:33:15Z
 Workspace: /Users/a002/DEV/xUSDT
 
 ## Open Risks
 
 ### P0
-- `plasma-venmo` health endpoint is unhealthy in production (`/api/health` returns `503`).
-- `plasma-predictions` production deployment is missing (`DEPLOYMENT_NOT_FOUND`).
+- `plasma-venmo` production `/api/health` returns `503` (unhealthy).
+- `plasma-predictions` production domain is missing (`DEPLOYMENT_NOT_FOUND`).
+- `bill-split` expected production smoke API path `/api/bills` returns `404`.
 
 ### P1
-- High regression volume in Playwright Chromium suite (74 failed tests).
-- `@plasma-pay/venmo` lint/test gates fail, blocking merge confidence.
-- `@plasma-pay/ui` test suite has broad drift (10 failing suites).
+- Vercel project settings are incompatible with this monorepo workspace model for app-scoped projects (`@plasma-pay/*` install/resolve failures).
+- Node version in Vercel projects is `24.x`; this is outside the documented safe deployment target in app guidance.
 
 ### P2
-- System python runtime gate fails (`python3 -m pytest -q`), requiring non-default py311 venv workaround.
-- `bill-split` production host does not expose expected API smoke route (`/api/bills` returned 404).
+- Default system-python regression command fails due missing `pytest` on `python3.14`.
+- Production security-header consistency is not verified across all required apps (predictions unavailable).
 
 ### P3
-- Residual lint warnings in several apps (e.g., mobile unused variable, bill-split image warnings).
-- Build-time warnings around metadata viewport and third-party dependency traces.
+- Non-blocking build/test warnings remain (metadata viewport and test-console warnings).
 
 ## Next Steps (Execution Order)
-1. Unblock venmo lint config incompatibility and fix failing venmo unit/integration tests.
-2. Triage `@plasma-pay/ui` failing suites (API drift between tests and current component contracts).
-3. Burn down Playwright failures by category:
-   - accessibility suite
-   - bill-split API/landing expectations
-   - claim/full-flow expectation drift
-4. Establish deterministic python test runtime in CI (pin py311/py312 and install pytest path explicitly).
-5. Link/deploy `plasma-predictions` Vercel project, then rerun live smoke.
-6. Validate bill-split production API routing with deployed app config (or update smoke endpoint to correct route shape).
-7. Re-run full regression bundle:
-   - `cd /Users/a002/DEV/xUSDT && npm run lint && npm run build && npm run test`
-   - `cd /Users/a002/DEV/xUSDT && PYTHONPATH=. python3 -m pytest -q` (or approved py311 path)
-   - `cd /Users/a002/DEV/xUSDT/v0 && npm run build`
-   - `cd /Users/a002/DEV/xUSDT/plasma-sdk && npm run build`
-   - `cd /Users/a002/DEV/xUSDT/plasma-sdk && npx playwright test --project=chromium`
-8. Only after all above pass:
-   - open module-scoped PRs
-   - run two independent reviewer passes per PR
-   - resolve P0/P1 findings
-   - merge and perform final post-prod review.
+1. Apply blocker fixes from `/Users/a002/DEV/xUSDT/artifacts/swarm/BLOCKERS.md`.
+2. Re-run deploy sequence (preview then prod) for venmo, predictions, bill-split.
+3. Re-run production smoke and update:
+- `/Users/a002/DEV/xUSDT/artifacts/swarm/PROD_SMOKE_RAW.txt`
+- `/Users/a002/DEV/xUSDT/artifacts/swarm/PROD_VALIDATION_REPORT.md`
+4. Re-run post-prod audit and refresh:
+- `/Users/a002/DEV/xUSDT/artifacts/swarm/POST_PROD_REVIEW.md`
+- `/Users/a002/DEV/xUSDT/artifacts/swarm/SECURITY_GO_NO_GO.md`
+5. When all P0/P1 are closed, proceed with final hardening PR(s) and merge.
