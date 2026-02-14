@@ -21,12 +21,20 @@ import {
   Smartphone,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   createTransferParams,
   buildTransferAuthorizationTypedData,
 } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { parseUserFriendlyError } from "@/lib/validation";
+import { ModalPortal } from "@/components/ui/ModalPortal";
+
+// Lazy-load ZKP2P onramp (heavy component with balance polling)
+const ZKP2POnrampV2 = dynamic(
+  () => import("@/components/onramp/ZKP2POnrampV2"),
+  { ssr: false }
+);
 
 // Type for payment link data
 interface PaymentLinkData {
@@ -91,22 +99,6 @@ function splitSignature(signature: `0x${string}`): {
   return { v, r, s };
 }
 
-// ZKP2P URL builder
-function buildZKP2PUrl(
-  amount: string,
-  recipientAddress: string,
-  method: string
-): string {
-  const params = new URLSearchParams({
-    amount,
-    recipient: recipientAddress,
-    platform: method,
-    chainId: "98866",
-    token: USDT0_ADDRESS,
-  });
-  return `https://www.zkp2p.xyz/swap?${params.toString()}`;
-}
-
 export default function PayPage({ params }: { params: { linkId: string } }) {
   const linkId = params.linkId;
 
@@ -122,6 +114,7 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [showFiatOnramp, setShowFiatOnramp] = useState(false);
 
   // Fetch payment link details
   useEffect(() => {
@@ -224,15 +217,18 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
     }
   }, [wallet, paymentLink, amount, linkId, balance]);
 
-  // Handle fiat payment via ZKP2P
-  const handleFiatPayment = useCallback(
-    (methodId: string) => {
-      if (!paymentLink || !amount) return;
-      const url = buildZKP2PUrl(amount, paymentLink.creatorAddress, methodId);
-      window.open(url, "_blank", "noopener,noreferrer");
-    },
-    [paymentLink, amount]
-  );
+  // Handle fiat payment — show ZKP2P guided onramp
+  const handleFiatPayment = useCallback(() => {
+    if (!paymentLink || !amount) return;
+    setShowFiatOnramp(true);
+  }, [paymentLink, amount]);
+
+  // Handle ZKP2P onramp success — mark payment link as paid
+  const handleFiatSuccess = useCallback(() => {
+    setShowFiatOnramp(false);
+    setSuccess("fiat-zkp2p");
+    setPaymentLink((prev) => (prev ? { ...prev, status: "paid" } : null));
+  }, []);
 
   // Derive display name from creator info
   const recipientName =
@@ -462,7 +458,7 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
                   setError("Enter an amount first");
                   return;
                 }
-                handleFiatPayment(method.id);
+                handleFiatPayment();
               }}
               disabled={!method.available || paying}
               className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.08] transition-colors disabled:opacity-40 disabled:cursor-not-allowed group"
@@ -568,6 +564,22 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
             amount={amount || paymentLink.amount?.toString() || "0"}
             onClose={() => setSelectedMethod(null)}
           />
+        )}
+
+        {/* ZKP2P Fiat Onramp Modal */}
+        {showFiatOnramp && paymentLink && (
+          <ModalPortal
+            isOpen={true}
+            onClose={() => setShowFiatOnramp(false)}
+            zIndex={110}
+          >
+            <ZKP2POnrampV2
+              recipientAddress={paymentLink.creatorAddress}
+              defaultAmount={amount || paymentLink.amount?.toString()}
+              onSuccess={handleFiatSuccess}
+              onClose={() => setShowFiatOnramp(false)}
+            />
+          </ModalPortal>
         )}
       </div>
     </main>
