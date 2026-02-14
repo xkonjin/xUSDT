@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAddress, getAddress } from "viem";
 
 /**
  * POST /api/stripe-onramp
@@ -22,19 +23,28 @@ export async function POST(request: Request) {
   try {
     const { walletAddress, amount, currency = "usd" } = await request.json();
 
-    if (!walletAddress) {
+    if (!walletAddress || !isAddress(walletAddress)) {
       return NextResponse.json(
-        { error: "Wallet address required" },
+        { error: "Invalid wallet address" },
         { status: 400 }
       );
     }
 
+    if (amount) {
+      const parsed = parseFloat(amount);
+      if (isNaN(parsed) || parsed <= 0 || parsed > 100000) {
+        return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+      }
+    }
+
+    const normalizedAddress = getAddress(walletAddress);
+
     // Create onramp session via Stripe API
     const params = new URLSearchParams();
-    params.set("wallet_addresses[ethereum]", walletAddress);
+    params.set("wallet_addresses[ethereum]", normalizedAddress);
     params.set("source_currency", currency);
     if (amount) {
-      params.set("source_amount", amount);
+      params.set("source_amount", parseFloat(amount).toString());
     }
     // USDC is the closest stablecoin Stripe supports
     params.set("destination_currencies[]", "usdc");
@@ -59,7 +69,7 @@ export async function POST(request: Request) {
       console.error("[stripe-onramp] Session creation failed:", error);
       return NextResponse.json(
         { error: "Failed to create onramp session" },
-        { status: response.status }
+        { status: 500 }
       );
     }
 

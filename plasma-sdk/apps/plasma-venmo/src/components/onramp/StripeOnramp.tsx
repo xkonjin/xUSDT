@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CreditCard, Loader2, AlertCircle, X } from "lucide-react";
 
 interface StripeOnrampProps {
@@ -19,40 +19,58 @@ export function StripeOnramp({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const initRef = useRef(false);
 
-  const createSession = useCallback(async () => {
-    setLoading(true);
+  const retrySession = () => {
+    initRef.current = false;
+    setClientSecret(null);
     setError(null);
-    try {
-      const response = await fetch("/api/stripe-onramp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress,
-          amount,
-          currency: "usd",
-        }),
-      });
+    setLoading(true);
+  };
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to initialize payment");
-      }
-
-      const data = await response.json();
-      setClientSecret(data.clientSecret);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to initialize payment"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [walletAddress, amount]);
-
+  // Create session on mount (guarded against StrictMode double-call)
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    let cancelled = false;
+
+    async function createSession() {
+      try {
+        const response = await fetch("/api/stripe-onramp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress,
+            amount,
+            currency: "usd",
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to initialize payment");
+        }
+
+        const data = await response.json();
+        if (!cancelled) setClientSecret(data.clientSecret);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to initialize payment"
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
     createSession();
-  }, [createSession]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress, amount, error]);
 
   // Load Stripe onramp element when we have clientSecret
   useEffect(() => {
@@ -77,19 +95,32 @@ export function StripeOnramp({
 
         // Stripe Crypto Onramp session via Stripe.js
         const stripeExt = stripe as unknown as Record<string, unknown>;
-        const createSession = stripeExt.createCryptoOnrampSession as
-          | ((opts: Record<string, unknown>) => {
-              mount: (el: string) => void;
-              addEventListener?: (
-                event: string,
-                cb: (e: { payload: { session: { status: string } } }) => void
-              ) => void;
-            })
-          | undefined;
-        const onrampSession = createSession?.({
+        const createFn = stripeExt.createCryptoOnrampSession;
+
+        if (typeof createFn !== "function") {
+          if (mounted) {
+            console.error(
+              "[stripe-onramp] createCryptoOnrampSession not available on Stripe instance"
+            );
+            setError(
+              "Stripe crypto onramp is not available. Try another payment method."
+            );
+          }
+          return;
+        }
+
+        const onrampSession = (
+          createFn as (opts: Record<string, unknown>) => {
+            mount: (el: string) => void;
+            addEventListener?: (
+              event: string,
+              cb: (e: { payload: { session: { status: string } } }) => void
+            ) => void;
+          }
+        )({
           clientSecret: clientSecret!,
           appearance: {
-            theme: "night" as const,
+            theme: "night",
             variables: {
               colorPrimary: "#1DB954",
               colorBackground: "#141419",
@@ -98,24 +129,15 @@ export function StripeOnramp({
           },
         });
 
-        if (onrampSession?.mount) {
-          onrampSession.mount("#stripe-onramp-element");
-          onrampSession.addEventListener?.(
-            "onramp_session_updated",
-            (event: { payload: { session: { status: string } } }) => {
-              if (event.payload.session.status === "fulfillment_complete") {
-                onSuccess?.();
-              }
+        onrampSession.mount("#stripe-onramp-element");
+        onrampSession.addEventListener?.(
+          "onramp_session_updated",
+          (event: { payload: { session: { status: string } } }) => {
+            if (event.payload.session.status === "fulfillment_complete") {
+              onSuccess?.();
             }
-          );
-        } else {
-          // Fallback: redirect to Stripe hosted onramp
-          if (mounted) {
-            setError(
-              "Card payments are being set up. Please try again shortly."
-            );
           }
-        }
+        );
       } catch (err) {
         if (mounted) {
           console.error("[stripe-onramp] Load error:", err);
@@ -163,7 +185,7 @@ export function StripeOnramp({
             <AlertCircle className="w-12 h-12 text-amber-400/60" />
             <p className="text-white/60 text-sm text-center">{error}</p>
             <button
-              onClick={createSession}
+              onClick={retrySession}
               className="text-plenmo-500 text-sm hover:underline"
             >
               Try again
