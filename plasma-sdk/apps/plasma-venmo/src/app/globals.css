@@ -993,3 +993,90 @@ h6 {
     border-width: 2px;
   }
 }
+
+/* ========================================
+   DESIGN-AWARD-LEVEL ANIMATIONS
+   ======================================== */
+
+/* 1. Staggered entrance — keyframes via tailwind.config.ts */
+
+.stagger-1 {
+  animation-delay: 50ms;
+}
+.stagger-2 {
+  animation-delay: 100ms;
+}
+.stagger-3 {
+  animation-delay: 150ms;
+}
+.stagger-4 {
+  animation-delay: 200ms;
+}
+.stagger-5 {
+  animation-delay: 250ms;
+}
+.stagger-6 {
+  animation-delay: 300ms;
+}
+.stagger-7 {
+  animation-delay: 350ms;
+}
+.stagger-8 {
+  animation-delay: 400ms;
+}
+
+/* 2. Scale-in/out — keyframes via tailwind.config.ts */
+
+/* 3. Press/tap feedback animation */
+.press-scale {
+  transition: transform 0.1s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+/* 4. Gradient shimmer — keyframes via tailwind.config.ts */
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* 5. Smooth counter/number animation */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 6. Glow pulse — keyframes via tailwind.config.ts */
+
+/* 7. Scroll reveal helper */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 8. Interactive state consistency classes */
+.interactive-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-2px);
+}
+
+.interactive-card:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 9. Focus-visible ring for accessibility */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.5), 0 0 0 4px rgba(29, 185, 84, 0.2);
+}
