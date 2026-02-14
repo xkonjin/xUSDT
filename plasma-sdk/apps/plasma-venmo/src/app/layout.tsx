@@ -6,7 +6,8 @@
  * Fonts: DM Sans (headings) + Inter (body)
  */
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import type { Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -27,6 +28,14 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#1DB954",
+};
+
 export const metadata = {
   title: "Plenmo - Pay Anyone Instantly",
   description:
@@ -43,13 +52,6 @@ export const metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Plenmo",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    themeColor: "#1DB954",
   },
   icons: {
     icon: [
