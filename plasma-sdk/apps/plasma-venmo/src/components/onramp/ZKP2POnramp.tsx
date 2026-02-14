@@ -173,7 +173,7 @@ export function ZKP2POnramp({
           </p>
           <button
             onClick={openInstallPage}
-            className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white transition hover:opacity-90"
+            className="w-full rounded-lg bg-plenmo-500 hover:bg-plenmo-400 px-4 py-3 font-semibold text-white transition hover:opacity-90"
           >
             Install Peer Extension
           </button>
@@ -207,7 +207,7 @@ export function ZKP2POnramp({
           <button
             onClick={requestConnection}
             disabled={isLoading}
-            className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-plenmo-500 hover:bg-plenmo-400 px-4 py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {isLoading ? "Connecting..." : "Connect Extension"}
           </button>
@@ -227,7 +227,7 @@ export function ZKP2POnramp({
   return (
     <div className="rounded-2xl bg-white shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+      <div className="bg-plenmo-500 hover:bg-plenmo-400 px-6 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Add Funds</h2>
           {onClose && (
@@ -271,7 +271,7 @@ export function ZKP2POnramp({
               <div
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
                   isActive
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+                    ? "bg-plenmo-500 hover:bg-plenmo-400 text-white"
                     : "bg-gray-200 text-gray-500"
                 }`}
               >
@@ -374,7 +374,7 @@ export function ZKP2POnramp({
               <button
                 onClick={handleAmountSubmit}
                 disabled={!amount || parseFloat(amount) <= 0}
-                className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 py-4 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                className="w-full rounded-xl bg-plenmo-500 hover:bg-plenmo-400 py-4 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
               >
                 Continue
               </button>
@@ -569,7 +569,7 @@ export function ZKP2POnramp({
               )}
               <button
                 onClick={onClose}
-                className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 py-4 font-semibold text-white transition hover:opacity-90"
+                className="w-full rounded-xl bg-plenmo-500 hover:bg-plenmo-400 py-4 font-semibold text-white transition hover:opacity-90"
               >
                 Done
               </button>

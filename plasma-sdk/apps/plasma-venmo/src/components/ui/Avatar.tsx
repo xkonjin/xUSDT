@@ -34,7 +34,7 @@ function getAvatarColor(name: string): string {
     "from-purple-500 to-purple-600",
     "from-orange-500 to-orange-600",
     "from-pink-500 to-pink-600",
-    "from-cyan-500 to-cyan-600",
+    "from-teal-500 to-teal-600",
     "from-amber-500 to-amber-600",
   ];
 

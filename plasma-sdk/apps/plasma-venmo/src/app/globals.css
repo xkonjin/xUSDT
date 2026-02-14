@@ -40,9 +40,8 @@
   --accent-green-dark: 22, 163, 74;
   --accent-green-light: 74, 222, 128;
 
-  /* Secondary accents (legacy) */
+  /* Secondary accents */
   --accent-purple: 168, 85, 247;
-  --accent-cyan: 0, 212, 255;
   --accent-pink: 236, 72, 153;
 
   /* Status colors */
@@ -50,8 +49,7 @@
   --warning: 245, 158, 11;
   --error: 239, 68, 68;
 
-  /* Legacy (for backward compatibility) */
-  --plasma-cyan: var(--accent-cyan);
+  /* Legacy aliases */
   --bg-card: var(--bg-elevated);
   --text-muted: var(--text-tertiary);
 }
@@ -382,27 +380,6 @@ h6 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-  }
-
-  /* Cyan gradient text (legacy) */
-  .gradient-text-cyan {
-    background: linear-gradient(
-      135deg,
-      rgb(var(--accent-cyan)) 0%,
-      rgb(var(--accent-purple)) 100%
-    );
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Glow effects (legacy) */
-  .plenmo-glow {
-    box-shadow: 0 0 30px rgba(29, 185, 84, 0.25);
-  }
-
-  .plasma-glow {
-    box-shadow: 0 0 30px rgba(0, 212, 255, 0.25);
   }
 
   /* Contact Grid */
