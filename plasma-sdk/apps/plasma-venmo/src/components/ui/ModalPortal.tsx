@@ -14,15 +14,15 @@ interface ModalPortalProps {
   containerClassName?: string;
 }
 
-export function ModalPortal({ 
-  children, 
-  isOpen, 
-  onClose, 
-  zIndex = 50, 
-  wrapperClassName, 
-  closeOnBackdrop = true, 
-  backdropClassName, 
-  containerClassName 
+export function ModalPortal({
+  children,
+  isOpen,
+  onClose,
+  zIndex = 50,
+  wrapperClassName,
+  closeOnBackdrop = true,
+  backdropClassName,
+  containerClassName,
 }: ModalPortalProps) {
   const [mounted, setMounted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -42,7 +42,7 @@ export function ModalPortal({
         setIsAnimating(true);
       });
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
       setIsAnimating(false);
       // Wait for animation to complete before unmounting
@@ -50,27 +50,27 @@ export function ModalPortal({
         setShouldRender(false);
       }, 200);
       // Restore body scroll
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
       return () => clearTimeout(timer);
     }
-    
+
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
   // Handle escape key to close modal
   useEffect(() => {
     if (!isOpen || !onClose) return;
-    
+
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
-    
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
   const handleBackdropClick = useCallback(() => {
@@ -82,34 +82,37 @@ export function ModalPortal({
   if (!mounted || !shouldRender) return null;
 
   return createPortal(
-    <div 
-      className={`fixed inset-0 flex items-center justify-center p-4 ${containerClassName || ''}`}
+    <div
+      className={`fixed inset-0 flex items-center justify-center p-4 ${
+        containerClassName || ""
+      }`}
       style={{ zIndex }}
       role="dialog"
       aria-modal="true"
     >
       {/* Backdrop with fade animation */}
-      <div 
+      <div
         className={`
           absolute inset-0 bg-black/70 backdrop-blur-md
-          transition-opacity duration-200 ease-out
-          ${isAnimating ? 'opacity-100' : 'opacity-0'}
-          ${backdropClassName || ''}
+          transition-opacity ease-out
+          ${isAnimating ? "opacity-100 duration-200" : "opacity-0 duration-150"}
+          ${backdropClassName || ""}
         `}
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
-      
+
       {/* Content with scale and fade animation */}
-      <div 
+      <div
         className={`
           relative z-10 w-full
-          transition-all duration-200 ease-out
-          ${isAnimating 
-            ? 'opacity-100 scale-100 translate-y-0' 
-            : 'opacity-0 scale-95 translate-y-4'
+          transition-all ease-out
+          ${
+            isAnimating
+              ? "opacity-100 scale-100 translate-y-0 duration-200"
+              : "opacity-0 scale-95 translate-y-4 duration-150"
           }
-          ${wrapperClassName || 'max-w-md'}
+          ${wrapperClassName || "max-w-md"}
         `}
       >
         {children}

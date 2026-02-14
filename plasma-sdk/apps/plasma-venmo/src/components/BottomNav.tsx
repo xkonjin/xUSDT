@@ -40,13 +40,17 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               aria-current={isActive ? "page" : undefined}
               className={`bottom-nav-item ${isActive ? "active" : ""} ${
                 isSend ? "send-btn" : ""
-              }`}
+              } active:scale-95 transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
             >
               <Icon
-                className={`w-5 h-5 ${isSend ? "w-6 h-6" : ""}`}
+                className={`w-5 h-5 ${
+                  isSend ? "w-6 h-6" : ""
+                } transition-all duration-300`}
                 fill={isActive ? "currentColor" : "none"}
               />
-              <span className="text-[10px] font-semibold mt-0.5">{label}</span>
+              <span className="text-[10px] font-semibold mt-0.5 transition-all duration-300">
+                {label}
+              </span>
             </button>
           );
         })}

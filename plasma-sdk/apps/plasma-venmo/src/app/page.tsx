@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { SendMoneyForm } from "@/components/SendMoneyForm";
 import { RequestMoneyForm } from "@/components/RequestMoneyForm";
@@ -37,17 +37,20 @@ import type { Contact } from "@/components/ContactList";
 // Constants
 const QUICK_SEND_LIMIT = 6;
 
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
+const stagger: import("framer-motion").Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+  },
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
+const fadeUp: import("framer-motion").Variants = {
+  hidden: { opacity: 0, y: 12 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: "easeOut" as const },
+    transition: { type: "spring", stiffness: 300, damping: 30 },
   },
 };
 
@@ -64,9 +67,24 @@ export default function HomePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showAddContact, setShowAddContact] = useState(false);
+  const [tabDirection, setTabDirection] = useState(0);
 
-  // Refs for scroll targets
+  // Refs for scroll targets and scroll reveal
   const formSectionRef = useRef<HTMLDivElement>(null);
+  const requestsRef = useRef<HTMLDivElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const socialFeedRef = useRef<HTMLDivElement>(null);
+
+  // Scroll reveal hooks
+  const requestsInView = useInView(requestsRef, {
+    once: true,
+    margin: "-50px",
+  });
+  const historyInView = useInView(historyRef, { once: true, margin: "-50px" });
+  const socialFeedInView = useInView(socialFeedRef, {
+    once: true,
+    margin: "-50px",
+  });
 
   const userEmail = user?.email?.address;
 
@@ -215,13 +233,15 @@ export default function HomePage() {
           </div>
         </div>
 
-        <button
+        <motion.button
           onClick={login}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="relative group clay-button text-lg px-12 py-5 animate-pulse-glow z-10"
         >
           <span className="relative z-10">Get Started Free</span>
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-plenmo-500 to-plenmo-400 opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
-        </button>
+        </motion.button>
 
         <p className="text-white/30 text-sm font-body relative z-10">
           No signup fees. No hidden charges. Ever.
@@ -251,8 +271,9 @@ export default function HomePage() {
               <span className="text-white/50 text-sm font-medium font-body">
                 Your Balance
               </span>
-              <button
+              <motion.button
                 onClick={() => setBalanceVisible(!balanceVisible)}
+                whileTap={{ scale: 0.9 }}
                 className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white/60"
                 aria-label={balanceVisible ? "Hide balance" : "Show balance"}
               >
@@ -261,7 +282,7 @@ export default function HomePage() {
                 ) : (
                   <EyeOff className="w-4 h-4" />
                 )}
-              </button>
+              </motion.button>
             </div>
             <FundWalletButton walletAddress={wallet?.address} />
           </div>
@@ -291,8 +312,10 @@ export default function HomePage() {
 
       {/* Quick Actions Row */}
       <motion.div variants={fadeUp} className="grid grid-cols-3 gap-3">
-        <button
+        <motion.button
           onClick={() => setNavTab("send")}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="quick-action-btn"
           aria-label="Send money"
         >
@@ -302,12 +325,14 @@ export default function HomePage() {
           <span className="text-white/70 text-xs font-semibold font-body mt-2">
             Send
           </span>
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={() => {
             setActiveFormTab("request");
             setNavTab("send");
           }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="quick-action-btn"
           aria-label="Request money"
         >
@@ -317,9 +342,11 @@ export default function HomePage() {
           <span className="text-white/70 text-xs font-semibold font-body mt-2">
             Request
           </span>
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={() => {}}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="quick-action-btn"
           aria-label="Add funds"
         >
@@ -329,7 +356,7 @@ export default function HomePage() {
           <span className="text-white/70 text-xs font-semibold font-body mt-2">
             Add Funds
           </span>
-        </button>
+        </motion.button>
       </motion.div>
 
       {/* Quick Contacts */}
@@ -378,23 +405,31 @@ export default function HomePage() {
             <p className="text-white/30 text-xs mb-5 font-body">
               Add your first contact to start sending
             </p>
-            <button
+            <motion.button
               onClick={() => setShowAddContact(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-plenmo-500/10 border border-plenmo-500/20 text-plenmo-400 text-sm font-medium hover:bg-plenmo-500/20 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               Add Contact
-            </button>
+            </motion.button>
           </div>
         ) : (
-          <div
+          <motion.div
             className="contact-grid"
             role="list"
             aria-label="Quick send contacts"
+            variants={stagger}
+            initial="hidden"
+            animate="show"
           >
             {quickSendContacts.map((contact) => (
-              <button
+              <motion.button
                 key={contact.id}
+                variants={fadeUp}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className="contact-item group"
                 onClick={() => handleSendToContact(contact)}
                 aria-label={`Send to ${
@@ -412,14 +447,18 @@ export default function HomePage() {
                 <span className="text-white/70 text-xs font-medium font-body truncate max-w-full mt-1 group-hover:text-white transition-colors">
                   {contact.name || contact.email?.split("@")[0] || "Unknown"}
                 </span>
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
         )}
       </motion.div>
 
       {/* Payment Requests */}
-      <motion.div variants={fadeUp}>
+      <motion.div
+        ref={requestsRef}
+        animate={requestsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
         <PaymentRequests
           wallet={wallet}
           userEmail={userEmail}
@@ -428,7 +467,11 @@ export default function HomePage() {
       </motion.div>
 
       {/* Recent Activity Preview */}
-      <motion.div variants={fadeUp}>
+      <motion.div
+        ref={historyRef}
+        animate={historyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
         <TransactionHistory address={wallet?.address} compact limit={5} />
       </motion.div>
     </motion.div>
@@ -444,7 +487,13 @@ export default function HomePage() {
       <motion.div variants={fadeUp}>
         <TransactionHistory address={wallet?.address} />
       </motion.div>
-      <motion.div variants={fadeUp}>
+      <motion.div
+        ref={socialFeedRef}
+        animate={
+          socialFeedInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+        }
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
         <SocialFeed address={wallet?.address} />
       </motion.div>
     </motion.div>
@@ -465,8 +514,12 @@ export default function HomePage() {
         role="tablist"
         aria-label="Payment type"
       >
-        <button
-          onClick={() => setActiveFormTab("send")}
+        <motion.button
+          onClick={() => {
+            setTabDirection(activeFormTab === "request" ? -1 : 0);
+            setActiveFormTab("send");
+          }}
+          whileTap={{ scale: 0.97 }}
           role="tab"
           aria-selected={activeFormTab === "send"}
           aria-controls="send-panel"
@@ -474,9 +527,13 @@ export default function HomePage() {
         >
           <Send className="w-4 h-4" />
           Send
-        </button>
-        <button
-          onClick={() => setActiveFormTab("request")}
+        </motion.button>
+        <motion.button
+          onClick={() => {
+            setTabDirection(activeFormTab === "send" ? 1 : 0);
+            setActiveFormTab("request");
+          }}
+          whileTap={{ scale: 0.97 }}
           role="tab"
           aria-selected={activeFormTab === "request"}
           aria-controls="request-panel"
@@ -484,33 +541,41 @@ export default function HomePage() {
         >
           <HandCoins className="w-4 h-4" />
           Request
-        </button>
+        </motion.button>
       </motion.div>
 
       {/* Forms */}
-      <motion.div
-        variants={fadeUp}
-        id={activeFormTab === "send" ? "send-panel" : "request-panel"}
-        role="tabpanel"
-      >
-        {activeFormTab === "send" ? (
-          <SendMoneyForm
-            wallet={wallet}
-            balance={formatted || undefined}
-            onSuccess={refresh}
-            contacts={contacts}
-            contactsLoading={contactsLoading}
-            onPaymentSuccess={handlePaymentSuccess}
-            selectedContact={selectedContact}
-            onClearSelectedContact={handleClearSelectedContact}
-          />
-        ) : (
-          <RequestMoneyForm
-            walletAddress={wallet?.address}
-            userEmail={userEmail}
-            onSuccess={refresh}
-          />
-        )}
+      <motion.div variants={fadeUp}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={activeFormTab}
+            initial={{ opacity: 0, x: tabDirection * 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: tabDirection * -20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            id={activeFormTab === "send" ? "send-panel" : "request-panel"}
+            role="tabpanel"
+          >
+            {activeFormTab === "send" ? (
+              <SendMoneyForm
+                wallet={wallet}
+                balance={formatted || undefined}
+                onSuccess={refresh}
+                contacts={contacts}
+                contactsLoading={contactsLoading}
+                onPaymentSuccess={handlePaymentSuccess}
+                selectedContact={selectedContact}
+                onClearSelectedContact={handleClearSelectedContact}
+              />
+            ) : (
+              <RequestMoneyForm
+                walletAddress={wallet?.address}
+                userEmail={userEmail}
+                onSuccess={refresh}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </motion.div>
 
       <motion.div variants={fadeUp}>
@@ -581,12 +646,14 @@ export default function HomePage() {
             My QR Code
           </span>
         </button>
-        <button
+        <motion.button
           onClick={logout}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           className="flex items-center gap-3 w-full p-4 rounded-2xl hover:bg-red-500/10 transition-colors text-red-400 min-h-[44px]"
         >
           <span className="text-sm font-medium font-body">Sign Out</span>
-        </button>
+        </motion.button>
       </motion.div>
     </motion.div>
   );
@@ -628,13 +695,13 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-4">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={navTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
             {renderTabContent()}
           </motion.div>
