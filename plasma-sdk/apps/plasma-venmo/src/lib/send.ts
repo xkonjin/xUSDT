@@ -13,6 +13,7 @@ import {
   MIN_FEE_USDT0,
   FEE_COLLECTOR_ADDRESS,
 } from "./constants";
+import { getUserFriendlyError } from "./error-messages";
 
 interface SendMoneyOptions {
   recipientIdentifier: string;
@@ -38,12 +39,6 @@ export function calculateRelayFee(amountUnits: bigint): bigint {
   return bpsFee > MIN_FEE_UNITS ? bpsFee : MIN_FEE_UNITS;
 }
 
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (!error || typeof error !== "object") return fallback;
-  const data = error as { message?: string; error?: string };
-  return data.message || data.error || fallback;
-};
-
 export async function sendMoney(
   wallet: PlasmaEmbeddedWallet,
   options: SendMoneyOptions
@@ -61,7 +56,7 @@ export async function sendMoney(
     const error = await resolveResponse.json().catch(() => ({}));
     return {
       success: false,
-      error: getErrorMessage(error, "Failed to resolve recipient"),
+      error: getUserFriendlyError(error),
     };
   }
 
@@ -153,8 +148,7 @@ export async function sendMoney(
 
         if (!submitResponse.ok) {
           const error = await submitResponse.json().catch(() => ({}));
-          const errorMessage = error.message || "Failed to submit transfer";
-          throw new Error(errorMessage);
+          throw error;
         }
 
         return await submitResponse.json();
@@ -169,8 +163,7 @@ export async function sendMoney(
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to submit transfer",
+      error: getUserFriendlyError(error),
     };
   }
 }
@@ -252,7 +245,7 @@ async function createClaimForUnregisteredRecipient(
     const error = await claimResponse.json().catch(() => ({}));
     return {
       success: false,
-      error: getErrorMessage(error, "Failed to create claim"),
+      error: getUserFriendlyError(error),
     };
   }
 
@@ -279,7 +272,7 @@ async function createClaimForUnregisteredRecipient(
     const error = await submitResponse.json().catch(() => ({}));
     return {
       success: false,
-      error: getErrorMessage(error, "Transfer to escrow failed"),
+      error: getUserFriendlyError(error),
     };
   }
 

@@ -2,7 +2,7 @@
 
 /**
  * FundWallet Component
- * 
+ *
  * Allows users to fund their embedded wallet via:
  * 1. ZKP2P on-ramp (Venmo, Zelle, Revolut - trustless P2P)
  * 2. Bridge any token from other chains
@@ -12,12 +12,13 @@
  */
 
 import { useState } from "react";
-import { 
-  Plus, 
-  CreditCard, 
-  Wallet, 
-  Copy, 
-  Check, 
+import dynamic from "next/dynamic";
+import {
+  Plus,
+  CreditCard,
+  Wallet,
+  Copy,
+  Check,
   ExternalLink,
   X,
   ArrowDownLeft,
@@ -26,8 +27,38 @@ import {
   Zap,
 } from "lucide-react";
 import { ModalPortal } from "./ui/ModalPortal";
-import { BridgeDepositModal } from "./BridgeDeposit";
-import { ZKP2POnrampV2 } from "./onramp/ZKP2POnrampV2";
+
+const BridgeDepositModal = dynamic(
+  () =>
+    import("./BridgeDeposit").then((mod) => ({
+      default: mod.BridgeDepositModal,
+    })),
+  {
+    loading: () => (
+      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-white/10 rounded-lg w-1/2" />
+          <div className="h-32 bg-white/10 rounded-lg" />
+          <div className="h-12 bg-white/10 rounded-lg" />
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const ZKP2POnrampV2 = dynamic(() => import("./onramp/ZKP2POnrampV2"), {
+  loading: () => (
+    <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-white/10 rounded-lg w-1/2" />
+        <div className="h-32 bg-white/10 rounded-lg" />
+        <div className="h-12 bg-white/10 rounded-lg" />
+      </div>
+    </div>
+  ),
+  ssr: false,
+});
 
 interface FundWalletProps {
   walletAddress: string | undefined;
@@ -37,18 +68,21 @@ interface FundWalletProps {
 // Transak configuration
 const TRANSAK_API_KEY = process.env.NEXT_PUBLIC_TRANSAK_API_KEY;
 const TRANSAK_ENV = process.env.NEXT_PUBLIC_TRANSAK_ENV || "STAGING"; // STAGING or PRODUCTION
-const isTransakConfigured = Boolean(TRANSAK_API_KEY && TRANSAK_API_KEY !== "your-transak-api-key");
+const isTransakConfigured = Boolean(
+  TRANSAK_API_KEY && TRANSAK_API_KEY !== "your-transak-api-key"
+);
 
 function getTransakUrl(walletAddress: string, amount?: number): string {
   if (!TRANSAK_API_KEY) {
     console.warn("Transak API key not configured");
     return "#";
   }
-  
-  const baseUrl = TRANSAK_ENV === "PRODUCTION" 
-    ? "https://global.transak.com" 
-    : "https://global-stg.transak.com";
-  
+
+  const baseUrl =
+    TRANSAK_ENV === "PRODUCTION"
+      ? "https://global.transak.com"
+      : "https://global-stg.transak.com";
+
   const params = new URLSearchParams({
     apiKey: TRANSAK_API_KEY,
     cryptoCurrencyCode: "USDT",
@@ -60,16 +94,20 @@ function getTransakUrl(walletAddress: string, amount?: number): string {
     isFeeCalculationHidden: "true",
     exchangeScreenTitle: "Add Funds to Plenmo",
   });
-  
+
   if (amount) {
     params.set("defaultFiatAmount", amount.toString());
     params.set("fiatCurrency", "USD");
   }
-  
+
   return `${baseUrl}?${params.toString()}`;
 }
 
-export function FundWalletButton({ walletAddress }: { walletAddress: string | undefined }) {
+export function FundWalletButton({
+  walletAddress,
+}: {
+  walletAddress: string | undefined;
+}) {
   const [showModal, setShowModal] = useState(false);
 
   if (!walletAddress) return null;
@@ -86,9 +124,9 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
       </button>
 
       {showModal && (
-        <FundWalletModal 
-          walletAddress={walletAddress} 
-          onClose={() => setShowModal(false)} 
+        <FundWalletModal
+          walletAddress={walletAddress}
+          onClose={() => setShowModal(false)}
         />
       )}
     </>
@@ -97,7 +135,9 @@ export function FundWalletButton({ walletAddress }: { walletAddress: string | un
 
 export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   const [copied, setCopied] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"zkp2p" | "card" | "wallet" | "bridge" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<
+    "zkp2p" | "card" | "wallet" | "bridge" | null
+  >(null);
 
   if (!walletAddress) return null;
 
@@ -115,7 +155,11 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   // ZKP2P On-ramp view
   if (selectedMethod === "zkp2p") {
     return (
-      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
+      <ModalPortal
+        isOpen={true}
+        onClose={onClose || (() => undefined)}
+        zIndex={120}
+      >
         <ZKP2POnrampV2
           recipientAddress={walletAddress}
           onClose={() => setSelectedMethod(null)}
@@ -130,16 +174,20 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   // Card payment view
   if (selectedMethod === "card") {
     return (
-      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
+      <ModalPortal
+        isOpen={true}
+        onClose={onClose || (() => undefined)}
+        zIndex={120}
+      >
         <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <button 
+            <button
               onClick={() => setSelectedMethod(null)}
               className="text-white/50 hover:text-white transition-colors"
             >
               ← Back
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="text-white/50 hover:text-white transition-colors"
             >
@@ -153,7 +201,8 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Buy with Card</h3>
             <p className="text-white/50 text-sm mb-6">
-              Add funds using your debit card, credit card, Apple Pay, or Google Pay.
+              Add funds using your debit card, credit card, Apple Pay, or Google
+              Pay.
             </p>
 
             {isTransakConfigured ? (
@@ -181,15 +230,16 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
                     Card payments launching soon!
                   </p>
                   <p className="text-white/40 text-xs">
-                    Buy USDT with debit card, credit card, Apple Pay & Google Pay.
+                    Buy USDT with debit card, credit card, Apple Pay & Google
+                    Pay.
                   </p>
                 </div>
-                
+
                 {/* Alternative: Use ZKP2P */}
                 <p className="text-white/50 text-xs text-center">
                   For now, use Venmo or Zelle:
                 </p>
-                
+
                 <button
                   onClick={() => setSelectedMethod("zkp2p")}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-plenmo-500 to-plenmo-600 text-white font-semibold hover:opacity-90 transition-all"
@@ -208,16 +258,20 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
   // External wallet view
   if (selectedMethod === "wallet") {
     return (
-      <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
+      <ModalPortal
+        isOpen={true}
+        onClose={onClose || (() => undefined)}
+        zIndex={120}
+      >
         <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <button 
+            <button
               onClick={() => setSelectedMethod(null)}
               className="text-white/50 hover:text-white transition-colors"
             >
               ← Back
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="text-white/50 hover:text-white transition-colors"
             >
@@ -229,9 +283,12 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center">
               <Wallet className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Send from External Wallet</h3>
+            <h3 className="text-xl font-bold text-white mb-2">
+              Send from External Wallet
+            </h3>
             <p className="text-white/50 text-sm mb-6">
-              Send funds from MetaMask, Rabby, or any wallet to your Plenmo address:
+              Send funds from MetaMask, Rabby, or any wallet to your Plenmo
+              address:
             </p>
 
             {/* Address display */}
@@ -255,8 +312,8 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-400 text-xs text-left">
-              <strong>Important:</strong> Make sure to send on the correct network. 
-              Sending from the wrong network may result in lost funds.
+              <strong>Important:</strong> Make sure to send on the correct
+              network. Sending from the wrong network may result in lost funds.
             </div>
           </div>
         </div>
@@ -276,11 +333,15 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
 
   // Main selection view
   return (
-    <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={120}>
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose || (() => undefined)}
+      zIndex={120}
+    >
       <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-w-md w-full">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Add Funds</h3>
-          <button 
+          <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors"
           >
@@ -299,7 +360,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         >
           {/* Animated gradient border effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-plenmo-500/0 via-plenmo-500/10 to-plenmo-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-          
+
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0 relative">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
@@ -333,7 +394,9 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
                 MULTI-CHAIN
               </span>
             </div>
-            <p className="text-white/50 text-sm">Convert ETH, USDC from any chain</p>
+            <p className="text-white/50 text-sm">
+              Convert ETH, USDC from any chain
+            </p>
           </div>
           <span className="text-white/30">→</span>
         </button>
@@ -348,7 +411,9 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           </div>
           <div className="flex-1">
             <h4 className="text-white font-semibold">Buy with Card</h4>
-            <p className="text-white/50 text-sm">Use debit card, credit card, Apple Pay</p>
+            <p className="text-white/50 text-sm">
+              Use debit card, credit card, Apple Pay
+            </p>
           </div>
           <span className="text-white/30">→</span>
         </button>
@@ -363,7 +428,9 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           </div>
           <div className="flex-1">
             <h4 className="text-white font-semibold">From External Wallet</h4>
-            <p className="text-white/50 text-sm">MetaMask, Rabby, Rainbow, etc.</p>
+            <p className="text-white/50 text-sm">
+              MetaMask, Rabby, Rainbow, etc.
+            </p>
           </div>
           <span className="text-white/30">→</span>
         </button>

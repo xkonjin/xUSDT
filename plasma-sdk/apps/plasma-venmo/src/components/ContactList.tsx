@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 import { Search, Star, Send, Trash2, X, User, Clock } from "lucide-react";
 
 export interface Contact {
@@ -44,7 +44,7 @@ function formatLastPayment(lastPayment: Date | string | null): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  
+
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;
@@ -52,7 +52,7 @@ function formatLastPayment(lastPayment: Date | string | null): string {
   return date.toLocaleDateString();
 }
 
-export function ContactList({
+export const ContactList = memo(function ContactList({
   contacts,
   loading = false,
   onSelectContact,
@@ -69,7 +69,7 @@ export function ContactList({
   // Filter contacts by search query
   const filteredContacts = useMemo(() => {
     if (!searchQuery.trim()) return contacts;
-    
+
     const q = searchQuery.toLowerCase();
     return contacts.filter(
       (c) =>
@@ -82,7 +82,7 @@ export function ContactList({
   // Sort contacts based on sortBy prop
   const sortedContacts = useMemo(() => {
     const sorted = [...filteredContacts];
-    
+
     switch (sortBy) {
       case "favorites":
         return sorted.sort((a, b) => {
@@ -92,10 +92,14 @@ export function ContactList({
         });
       case "recent":
         return sorted.sort((a, b) => {
-          if (!a.lastPayment && !b.lastPayment) return a.name.localeCompare(b.name);
+          if (!a.lastPayment && !b.lastPayment)
+            return a.name.localeCompare(b.name);
           if (!a.lastPayment) return 1;
           if (!b.lastPayment) return -1;
-          return new Date(b.lastPayment).getTime() - new Date(a.lastPayment).getTime();
+          return (
+            new Date(b.lastPayment).getTime() -
+            new Date(a.lastPayment).getTime()
+          );
         });
       case "name":
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
@@ -107,12 +111,14 @@ export function ContactList({
   // Get recent contacts (those with lastPayment)
   const recentContacts = useMemo(() => {
     if (!showRecent) return [];
-    
+
     return contacts
       .filter((c) => c.lastPayment !== null)
       .sort((a, b) => {
         if (!a.lastPayment || !b.lastPayment) return 0;
-        return new Date(b.lastPayment).getTime() - new Date(a.lastPayment).getTime();
+        return (
+          new Date(b.lastPayment).getTime() - new Date(a.lastPayment).getTime()
+        );
       })
       .slice(0, recentLimit);
   }, [contacts, showRecent, recentLimit]);
@@ -122,10 +128,7 @@ export function ContactList({
     return (
       <div data-testid="contact-list-loading" className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse bg-white/5 rounded-2xl h-16"
-          />
+          <div key={i} className="animate-pulse bg-white/5 rounded-2xl h-16" />
         ))}
       </div>
     );
@@ -144,10 +147,7 @@ export function ContactList({
     );
   }
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    contact: Contact
-  ) => {
+  const handleKeyDown = (e: React.KeyboardEvent, contact: Contact) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onSelectContact(contact);
@@ -208,7 +208,9 @@ export function ContactList({
       {/* No results from search */}
       {filteredContacts.length === 0 && searchQuery && (
         <div className="text-center py-8">
-          <p className="text-white/50">No contacts found for &quot;{searchQuery}&quot;</p>
+          <p className="text-white/50">
+            No contacts found for &quot;{searchQuery}&quot;
+          </p>
         </div>
       )}
 
@@ -232,7 +234,9 @@ export function ContactList({
             {/* Contact info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-white font-medium truncate">{contact.name}</p>
+                <p className="text-white font-medium truncate">
+                  {contact.name}
+                </p>
                 {contact.isFavorite && (
                   <Star
                     data-testid="favorite-icon-filled"
@@ -241,7 +245,14 @@ export function ContactList({
                 )}
               </div>
               <p className="text-white/50 text-sm truncate">
-                {contact.email || contact.phone || (contact.contactAddress ? `${contact.contactAddress.slice(0, 6)}...${contact.contactAddress.slice(-4)}` : "")}
+                {contact.email ||
+                  contact.phone ||
+                  (contact.contactAddress
+                    ? `${contact.contactAddress.slice(
+                        0,
+                        6
+                      )}...${contact.contactAddress.slice(-4)}`
+                    : "")}
               </p>
               {contact.lastPayment && (
                 <p className="text-white/30 text-xs">
@@ -253,25 +264,26 @@ export function ContactList({
             {/* Actions */}
             <div className="flex items-center gap-2">
               {/* Send to Contact button - always visible when enabled */}
-              {showQuickSend && (contact.contactAddress || contact.email || contact.phone) && (
-                <button
-                  data-testid="quick-send-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onSendToContact) {
-                      onSendToContact(contact);
-                    } else {
-                      onSelectContact(contact);
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[rgb(0,212,255)]/10 text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/20 transition-colors text-sm font-medium flex items-center gap-1.5"
-                  title={`Send money to ${contact.name}`}
-                >
-                  <Send className="w-4 h-4" />
-                  <span className="hidden sm:inline">Send</span>
-                </button>
-              )}
-              
+              {showQuickSend &&
+                (contact.contactAddress || contact.email || contact.phone) && (
+                  <button
+                    data-testid="quick-send-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onSendToContact) {
+                        onSendToContact(contact);
+                      } else {
+                        onSelectContact(contact);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[rgb(0,212,255)]/10 text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/20 transition-colors text-sm font-medium flex items-center gap-1.5"
+                    title={`Send money to ${contact.name}`}
+                  >
+                    <Send className="w-4 h-4" />
+                    <span className="hidden sm:inline">Send</span>
+                  </button>
+                )}
+
               {/* Secondary actions - visible on hover */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {/* Favorite button */}
@@ -288,7 +300,9 @@ export function ContactList({
                   }`}
                 >
                   <Star
-                    className={`w-5 h-5 ${contact.isFavorite ? "fill-yellow-400" : ""}`}
+                    className={`w-5 h-5 ${
+                      contact.isFavorite ? "fill-yellow-400" : ""
+                    }`}
                   />
                 </button>
 
@@ -312,6 +326,6 @@ export function ContactList({
       </div>
     </div>
   );
-}
+});
 
 export default ContactList;

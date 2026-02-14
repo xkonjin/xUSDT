@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { Avatar } from "./ui/Avatar";
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Heart, 
-  MessageCircle, 
-  Globe, 
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  Heart,
+  MessageCircle,
+  Globe,
   Lock,
   Eye,
   EyeOff,
   Settings,
   X,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { ModalPortal } from "./ui/ModalPortal";
 
@@ -51,7 +51,10 @@ interface SocialFeedProps {
   className?: string;
 }
 
-export function SocialFeed({ address, className = "" }: SocialFeedProps) {
+export const SocialFeed = memo(function SocialFeed({
+  address,
+  className = "",
+}: SocialFeedProps) {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,53 +68,56 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
   });
 
   // Fetch feed from API
-  const fetchFeed = useCallback(async (offset = 0, append = false) => {
-    try {
-      if (offset === 0) {
-        setLoading(true);
-        setError(null);
-      } else {
-        setLoadingMore(true);
-      }
-
-      const params = new URLSearchParams({
-        limit: '20',
-        offset: offset.toString(),
-      });
-      
-      if (address) {
-        params.set('address', address);
-      }
-
-      const response = await fetch(`/api/feed?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch feed');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        if (append) {
-          setFeed(prev => [...prev, ...data.feed]);
+  const fetchFeed = useCallback(
+    async (offset = 0, append = false) => {
+      try {
+        if (offset === 0) {
+          setLoading(true);
+          setError(null);
         } else {
-          setFeed(data.feed);
+          setLoadingMore(true);
         }
-        setPagination(data.pagination);
-      } else {
-        throw new Error(data.error || 'Failed to fetch feed');
+
+        const params = new URLSearchParams({
+          limit: "20",
+          offset: offset.toString(),
+        });
+
+        if (address) {
+          params.set("address", address);
+        }
+
+        const response = await fetch(`/api/feed?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch feed");
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          if (append) {
+            setFeed((prev) => [...prev, ...data.feed]);
+          } else {
+            setFeed(data.feed);
+          }
+          setPagination(data.pagination);
+        } else {
+          throw new Error(data.error || "Failed to fetch feed");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+        // If API fails, fall back to mock data for demo
+        if (offset === 0) {
+          setFeed(generateMockFeed());
+        }
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      // If API fails, fall back to mock data for demo
-      if (offset === 0) {
-        setFeed(generateMockFeed());
-      }
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [address]);
+    },
+    [address]
+  );
 
   useEffect(() => {
     // Load privacy settings from localStorage
@@ -119,7 +125,7 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
     if (stored) {
       setPrivacySettings(JSON.parse(stored));
     }
-    
+
     // Fetch feed from API
     fetchFeed();
   }, [fetchFeed]);
@@ -136,13 +142,19 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
     localStorage.setItem("plasma-privacy", JSON.stringify(settings));
   };
 
-  const handleLike = (id: string) => {
-    setFeed(prev => prev.map(item => 
-      item.id === id 
-        ? { ...item, isLiked: !item.isLiked, likes: item.isLiked ? item.likes - 1 : item.likes + 1 }
-        : item
-    ));
-  };
+  const handleLike = useCallback((id: string) => {
+    setFeed((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              isLiked: !item.isLiked,
+              likes: item.isLiked ? item.likes - 1 : item.likes + 1,
+            }
+          : item
+      )
+    );
+  }, []);
 
   if (loading) {
     return (
@@ -172,7 +184,7 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
           Activity Feed
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
         </h3>
-        <button 
+        <button
           onClick={() => setShowPrivacyModal(true)}
           className="p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
           aria-label="Privacy settings"
@@ -200,9 +212,7 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
       {error && (
         <div className="clay-card p-4 mb-4 text-center">
           <AlertCircle className="w-8 h-8 text-yellow-400/60 mx-auto mb-2" />
-          <p className="text-white/60 text-sm mb-3">
-            {error}
-          </p>
+          <p className="text-white/60 text-sm mb-3">{error}</p>
           <button
             onClick={() => fetchFeed()}
             className="text-[rgb(0,212,255)] text-sm hover:underline flex items-center gap-2 mx-auto"
@@ -225,10 +235,10 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
 
       <div className="space-y-3">
         {feed.map((item) => (
-          <FeedCard 
-            key={item.id} 
-            item={item} 
-            onLike={() => handleLike(item.id)}
+          <FeedCard
+            key={item.id}
+            item={item}
+            onLike={handleLike}
             showAmount={privacySettings.showAmount}
           />
         ))}
@@ -248,7 +258,7 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
                 Loading...
               </span>
             ) : (
-              'Load more'
+              "Load more"
             )}
           </button>
         </div>
@@ -263,15 +273,15 @@ export function SocialFeed({ address, className = "" }: SocialFeedProps) {
       )}
     </div>
   );
-}
+});
 
-function FeedCard({ 
-  item, 
+const FeedCard = memo(function FeedCard({
+  item,
   onLike,
-  showAmount 
-}: { 
-  item: FeedItem; 
-  onLike: () => void;
+  showAmount,
+}: {
+  item: FeedItem;
+  onLike: (id: string) => void;
   showAmount: boolean;
 }) {
   const getRelativeTime = (timestamp: number): string => {
@@ -285,27 +295,29 @@ function FeedCard({
   // Determine display based on activity type
   const getActivityText = () => {
     switch (item.type) {
-      case 'payment':
-        return 'paid';
-      case 'claim':
-        return 'claimed from';
-      case 'request':
-        return 'requested from';
+      case "payment":
+        return "paid";
+      case "claim":
+        return "claimed from";
+      case "request":
+        return "requested from";
       default:
-        return 'paid';
+        return "paid";
     }
   };
 
-  const isOutgoing = item.type === 'payment' || item.type === 'request';
+  const isOutgoing = item.type === "payment" || item.type === "request";
 
   return (
     <div className="clay p-4 transition-all duration-200 hover:scale-[1.01]">
       <div className="flex items-start gap-3">
         <div className="relative">
           <Avatar name={item.user.name} size="md" />
-          <div className={`absolute -bottom-1 -right-1 p-1 rounded-full ${
-            isOutgoing ? "bg-red-500" : "bg-green-500"
-          }`}>
+          <div
+            className={`absolute -bottom-1 -right-1 p-1 rounded-full ${
+              isOutgoing ? "bg-red-500" : "bg-green-500"
+            }`}
+          >
             {isOutgoing ? (
               <ArrowUpRight className="w-2.5 h-2.5 text-white" />
             ) : (
@@ -317,27 +329,31 @@ function FeedCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-white">{item.user.name}</span>
-            <span className="text-white/40">
-              {getActivityText()}
+            <span className="text-white/40">{getActivityText()}</span>
+            <span className="font-semibold text-white">
+              {item.counterparty.name}
             </span>
-            <span className="font-semibold text-white">{item.counterparty.name}</span>
           </div>
-          
+
           {item.memo && (
             <p className="text-white/60 text-sm mt-1">{item.memo}</p>
           )}
 
           <div className="flex items-center gap-4 mt-3">
-            <button 
-              onClick={onLike}
+            <button
+              onClick={() => onLike(item.id)}
               className={`flex items-center gap-1.5 text-sm transition-colors ${
-                item.isLiked ? "text-red-400" : "text-white/40 hover:text-red-400"
+                item.isLiked
+                  ? "text-red-400"
+                  : "text-white/40 hover:text-red-400"
               }`}
             >
-              <Heart className={`w-4 h-4 ${item.isLiked ? "fill-current" : ""}`} />
+              <Heart
+                className={`w-4 h-4 ${item.isLiked ? "fill-current" : ""}`}
+              />
               {item.likes > 0 && <span>{item.likes}</span>}
             </button>
-            
+
             <button className="flex items-center gap-1.5 text-sm text-white/40 hover:text-white/60 transition-colors">
               <MessageCircle className="w-4 h-4" />
             </button>
@@ -349,16 +365,18 @@ function FeedCard({
         </div>
 
         {showAmount && (
-          <div className={`font-bold text-lg ${
-            isOutgoing ? "text-red-400" : "text-green-400"
-          }`}>
+          <div
+            className={`font-bold text-lg ${
+              isOutgoing ? "text-red-400" : "text-green-400"
+            }`}
+          >
             {isOutgoing ? "-" : "+"}${item.amount}
           </div>
         )}
       </div>
     </div>
   );
-}
+});
 
 interface PrivacySettings {
   shareTransactions: boolean;
@@ -372,7 +390,11 @@ interface PrivacySettingsModalProps {
   onClose: () => void;
 }
 
-function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModalProps) {
+function PrivacySettingsModal({
+  settings,
+  onSave,
+  onClose,
+}: PrivacySettingsModalProps) {
   const [localSettings, setLocalSettings] = useState(settings);
 
   const handleSave = () => {
@@ -406,7 +428,9 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
             label="Share transactions publicly"
             description="Your payments appear in the community feed"
             enabled={localSettings.shareTransactions}
-            onChange={(v) => setLocalSettings(s => ({ ...s, shareTransactions: v }))}
+            onChange={(v) =>
+              setLocalSettings((s) => ({ ...s, shareTransactions: v }))
+            }
           />
 
           <ToggleOption
@@ -414,7 +438,7 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
             label="Show amounts"
             description="Display payment amounts in feed"
             enabled={localSettings.showAmount}
-            onChange={(v) => setLocalSettings(s => ({ ...s, showAmount: v }))}
+            onChange={(v) => setLocalSettings((s) => ({ ...s, showAmount: v }))}
             disabled={!localSettings.shareTransactions}
           />
 
@@ -423,7 +447,7 @@ function PrivacySettingsModal({ settings, onSave, onClose }: PrivacySettingsModa
             label="Show memos"
             description="Display payment notes in feed"
             enabled={localSettings.showMemo}
-            onChange={(v) => setLocalSettings(s => ({ ...s, showMemo: v }))}
+            onChange={(v) => setLocalSettings((s) => ({ ...s, showMemo: v }))}
             disabled={!localSettings.shareTransactions}
           />
         </div>
@@ -463,7 +487,11 @@ function ToggleOption({
   disabled?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-4 p-3 rounded-xl ${disabled ? "opacity-50" : ""}`}>
+    <div
+      className={`flex items-center gap-4 p-3 rounded-xl ${
+        disabled ? "opacity-50" : ""
+      }`}
+    >
       <div className="p-2 rounded-xl bg-white/5">
         <Icon className="w-5 h-5 text-white/60" />
       </div>
@@ -478,9 +506,11 @@ function ToggleOption({
           enabled ? "bg-[rgb(0,212,255)]" : "bg-white/20"
         }`}
       >
-        <div className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-          enabled ? "translate-x-6" : "translate-x-1"
-        }`} />
+        <div
+          className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+            enabled ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
       </button>
     </div>
   );
@@ -488,7 +518,18 @@ function ToggleOption({
 
 // Mock data generator (fallback when API unavailable)
 function generateMockFeed(): FeedItem[] {
-  const names = ["Alex", "Jordan", "Sam", "Riley", "Casey", "Morgan", "Taylor", "Quinn", "Avery", "Blake"];
+  const names = [
+    "Alex",
+    "Jordan",
+    "Sam",
+    "Riley",
+    "Casey",
+    "Morgan",
+    "Taylor",
+    "Quinn",
+    "Avery",
+    "Blake",
+  ];
   const memos = [
     "Dinner last night",
     "Coffee",

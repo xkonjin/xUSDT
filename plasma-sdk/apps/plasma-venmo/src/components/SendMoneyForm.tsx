@@ -13,10 +13,10 @@ import {
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import {
   useAssistantReaction,
-  getUserFriendlyError,
   PaymentProgress,
   type PaymentStatus,
 } from "@plasma-pay/ui";
+import { getUserFriendlyError } from "@/lib/error-messages";
 import { sendMoney, calculateRelayFee } from "@/lib/send";
 import { parseUnits, formatUnits } from "viem";
 import {
@@ -218,87 +218,63 @@ const SuccessOverlay = memo(function SuccessOverlay({
       onClose={onClose}
       closeOnBackdrop={false}
       zIndex={120}
-      backdropClassName="bg-black/80 backdrop-blur-md"
-      wrapperClassName="max-w-none w-full h-full p-0"
+      wrapperClassName="max-w-sm"
     >
-      <div className="relative w-full h-full flex items-center justify-center">
-        {/* Reduced confetti for better performance - 20 instead of 50 */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-3 h-3 rounded-full animate-confetti-fall"
-              style={{
-                left: `${Math.random() * 100}%`,
-                backgroundColor: [
-                  "#1DB954",
-                  "#3dd88a",
-                  "#22c55e",
-                  "#f59e0b",
-                  "#8b5cf6",
-                ][Math.floor(Math.random() * 5)],
-                animationDelay: `${Math.random() * 0.5}s`,
-              }}
-            />
-          ))}
+      <div className="clay-card p-8 text-center max-w-sm">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center animate-success-scale">
+          <CheckCircle className="w-10 h-10 text-white" />
         </div>
 
-        <div className="clay-card p-8 text-center animate-success-bounce max-w-sm mx-4">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-            <CheckCircle className="w-10 h-10 text-white" />
-          </div>
+        <p className="text-4xl font-bold gradient-text mb-2">${amount}</p>
+        <p className="text-lg text-white/60 mb-1">
+          {isClaimFlow ? "pending for" : "sent to"}
+        </p>
+        <p className="text-plenmo-500 font-medium mb-6 break-all">
+          {recipient}
+        </p>
 
-          <p className="text-4xl font-bold gradient-text mb-2">${amount}</p>
-          <p className="text-lg text-white/60 mb-1">
-            {isClaimFlow ? "pending for" : "sent to"}
-          </p>
-          <p className="text-plenmo-500 font-medium mb-6 break-all">
-            {recipient}
-          </p>
-
-          {isClaimFlow ? (
-            <div className="text-center mb-6">
-              <p className="text-white/50 text-sm mb-3">
-                They&apos;ll receive an email to claim the funds
-              </p>
-              <button
-                onClick={handleCopyClaimLink}
-                className="text-plenmo-500 text-sm hover:underline"
-              >
-                Copy claim link
-              </button>
-            </div>
-          ) : (
-            txHash && (
-              <a
-                href={`https://scan.plasma.to/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-plenmo-500 text-sm hover:underline mb-6 block"
-              >
-                View transaction →
-              </a>
-            )
-          )}
-
-          <div className="flex gap-3">
-            {onSendAgain && (
-              <button
-                onClick={onSendAgain}
-                className="flex-1 py-3 rounded-2xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
-              >
-                Send Again
-              </button>
-            )}
+        {isClaimFlow ? (
+          <div className="text-center mb-6">
+            <p className="text-white/50 text-sm mb-3">
+              They&apos;ll receive an email to claim the funds
+            </p>
             <button
-              onClick={onClose}
-              className={`clay-button clay-button-primary py-3 ${
-                onSendAgain ? "flex-1" : "w-full"
-              }`}
+              onClick={handleCopyClaimLink}
+              className="text-plenmo-500 text-sm hover:underline"
             >
-              Done
+              Copy claim link
             </button>
           </div>
+        ) : (
+          txHash && (
+            <a
+              href={`https://scan.plasma.to/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-plenmo-500 text-sm hover:underline mb-6 block"
+            >
+              View transaction →
+            </a>
+          )
+        )}
+
+        <div className="flex gap-3">
+          {onSendAgain && (
+            <button
+              onClick={onSendAgain}
+              className="flex-1 py-3 rounded-2xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+            >
+              Send Again
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className={`clay-button clay-button-primary py-3 ${
+              onSendAgain ? "flex-1" : "w-full"
+            }`}
+          >
+            Done
+          </button>
         </div>
       </div>
     </ModalPortal>
