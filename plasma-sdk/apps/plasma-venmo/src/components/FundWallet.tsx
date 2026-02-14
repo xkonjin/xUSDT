@@ -89,7 +89,7 @@ function getTransakUrl(walletAddress: string, amount?: number): string {
     network: "plasma",
     walletAddress: walletAddress,
     disableWalletAddressForm: "true",
-    themeColor: "00d4ff",
+    themeColor: "1DB954",
     hideMenu: "true",
     isFeeCalculationHidden: "true",
     exchangeScreenTitle: "Add Funds to Plenmo",

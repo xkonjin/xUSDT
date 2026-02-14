@@ -1,24 +1,29 @@
 /**
  * Notification Service API
- * 
+ *
  * Handles sending email notifications for various events.
  * Uses Resend for email delivery when configured.
- * 
+ *
  * Note: Email notifications are optional. Users can share payment links
  * directly via text, DM, or any messaging app.
- * 
+ *
  * Environment variables:
  * - RESEND_API_KEY: Resend API key (optional)
  * - RESEND_FROM_EMAIL: Sender email for Resend
- * 
+ *
  * Endpoints:
  * - POST /api/notify - Send a notification
  * - GET /api/notify - Get pending notifications (for processing)
  */
 
-import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
-import { prisma, notifications as notifyHelpers, type NotificationType, type Notification } from '@plasma-pay/db';
+import { NextResponse } from "next/server";
+import { Resend } from "resend";
+import {
+  prisma,
+  notifications as notifyHelpers,
+  type NotificationType,
+  type Notification,
+} from "@plasma-pay/db";
 
 // Initialize Resend client
 let resendClient: Resend | null = null;
@@ -47,8 +52,8 @@ function wrapEmailTemplate(content: string): string {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
-              <h1 style="margin: 0; font-size: 24px; font-weight: 700;">
-                <span style="color: #00d4ff;">Plenmo</span>
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #1DB954;">
+                Plenmo
               </h1>
             </td>
           </tr>
@@ -65,7 +70,7 @@ function wrapEmailTemplate(content: string): string {
                 Zero gas fees on Plasma Chain
               </p>
               <p style="margin: 8px 0 0; color: rgba(255,255,255,0.3); font-size: 11px;">
-                Powered by <a href="https://plasma.to" style="color: #00d4ff; text-decoration: none;">Plasma</a>
+                Powered by <a href="https://plenmo.com" style="color: #1DB954; text-decoration: none;">Plenmo</a>
               </p>
             </td>
           </tr>
@@ -77,9 +82,9 @@ function wrapEmailTemplate(content: string): string {
 </html>`;
 }
 
-// Button style helper
-const buttonStyle = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #00b4d8 100%); color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;`;
-const buttonStylePrimary = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%); color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;`;
+// Button style helper — Plenmo green brand
+const buttonStyle = `display: inline-block; background: #1DB954; color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;`;
+const buttonStylePrimary = `display: inline-block; background: linear-gradient(135deg, #1DB954 0%, #16A34A 100%); color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;`;
 
 type NotificationTemplateData = {
   amount?: number | string;
@@ -99,99 +104,165 @@ type NotificationTemplateData = {
 };
 
 // Email templates for different notification types
-const EMAIL_TEMPLATES: Record<NotificationType, {
-  subject: (data: NotificationTemplateData) => string;
-  html: (data: NotificationTemplateData) => string;
-}> = {
+const EMAIL_TEMPLATES: Record<
+  NotificationType,
+  {
+    subject: (data: NotificationTemplateData) => string;
+    html: (data: NotificationTemplateData) => string;
+  }
+> = {
   payment_received: {
     subject: (data) => `You received $${data.amount} USDT0`,
-    html: (data) => wrapEmailTemplate(`
-      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">💰 Payment Received!</h2>
+    html: (data) =>
+      wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #1DB954;">💰 Payment Received!</h2>
       <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.5;">
-        You received <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> from 
-        <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${data.senderAddress?.slice(0, 6)}...${data.senderAddress?.slice(-4) || 'someone'}</span>
+        You received <strong style="color: #1DB954;">$${
+          data.amount
+        } USDT0</strong> from 
+        <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${data.senderAddress?.slice(
+          0,
+          6
+        )}...${data.senderAddress?.slice(-4) || "someone"}</span>
       </p>
-      ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
-      ${data.txHash ? `<p style="margin: 24px 0 0;"><a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff; text-decoration: none;">View transaction on Plasma Scan →</a></p>` : ''}
+      ${
+        data.memo
+          ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #1DB954; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>`
+          : ""
+      }
+      ${
+        data.txHash
+          ? `<p style="margin: 24px 0 0;"><a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #1DB954; text-decoration: none;">View transaction on Plasma Scan →</a></p>`
+          : ""
+      }
     `),
   },
   payment_request: {
-    subject: (data) => `${data.fromEmail || 'Someone'} is requesting $${data.amount} USDT0`,
-    html: (data) => wrapEmailTemplate(`
-      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">📨 Payment Request</h2>
+    subject: (data) =>
+      `${data.fromEmail || "Someone"} is requesting $${data.amount} USDT0`,
+    html: (data) =>
+      wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #1DB954;">📨 Payment Request</h2>
       <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8); line-height: 1.5;">
-        <strong>${data.fromEmail || data.fromAddress?.slice(0, 6) + '...' + data.fromAddress?.slice(-4) || 'Someone'}</strong> is requesting 
-        <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> from you.
+        <strong>${
+          data.fromEmail ||
+          data.fromAddress?.slice(0, 6) + "..." + data.fromAddress?.slice(-4) ||
+          "Someone"
+        }</strong> is requesting 
+        <strong style="color: #1DB954;">$${data.amount} USDT0</strong> from you.
       </p>
-      ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #00d4ff; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
+      ${
+        data.memo
+          ? `<div style="background: rgba(255,255,255,0.05); border-left: 3px solid #1DB954; padding: 12px 16px; margin: 0 0 24px; border-radius: 0 8px 8px 0;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>`
+          : ""
+      }
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}" style="${buttonStyle}">Open Plenmo</a>
+        <a href="${
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002"
+        }" style="${buttonStyle}">Open Plenmo</a>
       </div>
     `),
   },
   claim_available: {
     subject: (data) => `🎁 You received $${data.amount} USDT0 - Claim now!`,
-    html: (data) => wrapEmailTemplate(`
+    html: (data) =>
+      wrapEmailTemplate(`
       <div style="text-align: center;">
         <div style="font-size: 64px; margin-bottom: 16px;">🎁</div>
         <h2 style="margin: 0 0 16px; font-size: 32px; color: #ffffff;">You Received Money!</h2>
-        <p style="margin: 0 0 8px; font-size: 48px; font-weight: 700; color: #00d4ff;">$${data.amount}</p>
+        <p style="margin: 0 0 8px; font-size: 48px; font-weight: 700; color: #1DB954;">$${
+          data.amount
+        }</p>
         <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.5);">USDT0</p>
         <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.7);">
-          From <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${data.senderEmail || data.senderAddress?.slice(0, 6) + '...' + data.senderAddress?.slice(-4) || 'Someone'}</span>
+          From <span style="font-family: monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${
+            data.senderEmail ||
+            data.senderAddress?.slice(0, 6) +
+              "..." +
+              data.senderAddress?.slice(-4) ||
+            "Someone"
+          }</span>
         </p>
-        ${data.memo ? `<div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin: 0 0 32px;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>` : ''}
-        <a href="${data.claimUrl}" style="${buttonStylePrimary}">Claim Your $${data.amount} USDT0</a>
+        ${
+          data.memo
+            ? `<div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin: 0 0 32px;"><p style="margin: 0; color: rgba(255,255,255,0.7); font-style: italic;">"${data.memo}"</p></div>`
+            : ""
+        }
+        <a href="${data.claimUrl}" style="${buttonStylePrimary}">Claim Your $${
+        data.amount
+      } USDT0</a>
         <p style="margin: 24px 0 0; color: rgba(255,255,255,0.4); font-size: 14px;">This claim expires in 30 days</p>
       </div>
     `),
   },
   payment_completed: {
     subject: (data) => `✅ Payment of $${data.amount} USDT0 completed`,
-    html: (data) => wrapEmailTemplate(`
+    html: (data) =>
+      wrapEmailTemplate(`
       <div style="text-align: center;">
         <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
         <h2 style="margin: 0 0 16px; font-size: 28px; color: #22c55e;">Payment Completed!</h2>
         <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
-          Your payment of <strong style="color: #00d4ff;">$${data.amount} USDT0</strong> has been completed.
+          Your payment of <strong style="color: #1DB954;">$${
+            data.amount
+          } USDT0</strong> has been completed.
         </p>
-        ${data.txHash ? `<a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #00d4ff; text-decoration: none;">View transaction on Plasma Scan →</a>` : ''}
+        ${
+          data.txHash
+            ? `<a href="https://scan.plasma.to/tx/${data.txHash}" style="color: #1DB954; text-decoration: none;">View transaction on Plasma Scan →</a>`
+            : ""
+        }
       </div>
     `),
   },
   request_declined: {
-    subject: (data) => `Payment request declined${data.amount ? `: $${data.amount} USDT0` : ""}`,
-    html: (data) => wrapEmailTemplate(`
+    subject: (data) =>
+      `Payment request declined${data.amount ? `: $${data.amount} USDT0` : ""}`,
+    html: (data) =>
+      wrapEmailTemplate(`
       <h2 style="margin: 0 0 16px; font-size: 28px; color: #f87171;">Request Declined</h2>
       <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
-        Your payment request for <strong>$${data.amount} USDT0</strong> was declined.
+        Your payment request for <strong>$${
+          data.amount
+        } USDT0</strong> was declined.
       </p>
-      ${data.reason ? `<p style="color: rgba(255,255,255,0.6);">Reason: ${data.reason}</p>` : ''}
+      ${
+        data.reason
+          ? `<p style="color: rgba(255,255,255,0.6);">Reason: ${data.reason}</p>`
+          : ""
+      }
     `),
   },
   bill_created: {
     subject: (data) => `📋 New bill: ${data.title}`,
-    html: (data) => wrapEmailTemplate(`
-      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">📋 New Bill Created</h2>
+    html: (data) =>
+      wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #1DB954;">📋 New Bill Created</h2>
       <p style="margin: 0 0 16px; font-size: 16px; color: rgba(255,255,255,0.8);">
         A new bill "<strong>${data.title}</strong>" has been created.
       </p>
-      <p style="margin: 0 0 24px; font-size: 24px; color: #00d4ff; font-weight: 600;">
+      <p style="margin: 0 0 24px; font-size: 24px; color: #1DB954; font-weight: 600;">
         Total: $${data.total} USDT0
       </p>
       <div style="text-align: center;">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL?.replace('plasma-venmo', 'bill-split') || 'http://localhost:3003'}/bill/${data.billId}" style="${buttonStyle}">View Bill</a>
+        <a href="${
+          process.env.NEXT_PUBLIC_APP_URL?.replace(
+            "plasma-venmo",
+            "bill-split"
+          ) || "http://localhost:3003"
+        }/bill/${data.billId}" style="${buttonStyle}">View Bill</a>
       </div>
     `),
   },
   bill_share_assigned: {
     subject: (data) => `💰 Your share: $${data.share} USDT0`,
-    html: (data) => wrapEmailTemplate(`
-      <h2 style="margin: 0 0 16px; font-size: 28px; color: #00d4ff;">💰 Pay Your Share</h2>
+    html: (data) =>
+      wrapEmailTemplate(`
+      <h2 style="margin: 0 0 16px; font-size: 28px; color: #1DB954;">💰 Pay Your Share</h2>
       <p style="margin: 0 0 16px; font-size: 16px; color: rgba(255,255,255,0.8);">
         Your share of "<strong>${data.title}</strong>" is:
       </p>
-      <p style="margin: 0 0 24px; font-size: 36px; color: #00d4ff; font-weight: 700; text-align: center;">
+      <p style="margin: 0 0 24px; font-size: 36px; color: #1DB954; font-weight: 700; text-align: center;">
         $${data.share} USDT0
       </p>
       <div style="text-align: center;">
@@ -203,10 +274,10 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
 
 /**
  * POST /api/notify
- * 
+ *
  * Sends a notification via email.
  * This can be called directly or will process pending notifications.
- * 
+ *
  * Request body:
  * - notificationId: ID of notification to send (optional)
  * - OR create new notification inline:
@@ -230,7 +301,7 @@ export async function POST(request: Request) {
 
       if (!notification) {
         return NextResponse.json(
-          { error: 'Notification not found' },
+          { error: "Notification not found" },
           { status: 404 }
         );
       }
@@ -240,15 +311,18 @@ export async function POST(request: Request) {
         data: {
           recipientEmail,
           type,
-          title: EMAIL_TEMPLATES[type as NotificationType]?.subject(payloadData || {}) || type,
-          body: '',
+          title:
+            EMAIL_TEMPLATES[type as NotificationType]?.subject(
+              payloadData || {}
+            ) || type,
+          body: "",
           data: payloadData ? JSON.stringify(payloadData) : null,
-          status: 'pending',
+          status: "pending",
         },
       });
     } else {
       return NextResponse.json(
-        { error: 'notificationId or (recipientEmail + type) required' },
+        { error: "notificationId or (recipientEmail + type) required" },
         { status: 400 }
       );
     }
@@ -256,9 +330,12 @@ export async function POST(request: Request) {
     // Get template
     const template = EMAIL_TEMPLATES[notification.type as NotificationType];
     if (!template) {
-      await notifyHelpers.markFailed(notification.id, 'Unknown notification type');
+      await notifyHelpers.markFailed(
+        notification.id,
+        "Unknown notification type"
+      );
       return NextResponse.json(
-        { error: 'Unknown notification type' },
+        { error: "Unknown notification type" },
         { status: 400 }
       );
     }
@@ -274,27 +351,31 @@ export async function POST(request: Request) {
 
     // Get Resend client
     const resend = getResend();
-    
+
     if (!resend) {
       // No email provider configured - log and mark as sent (dev mode)
-      console.log('📧 Notification (no RESEND_API_KEY configured):');
-      console.log('  To:', toEmail);
-      console.log('  Subject:', subject);
-      console.log('  Type:', notification.type);
-      console.log('  Note: Email notifications are optional. Users can share payment links directly.');
-      
+      console.log("📧 Notification (no RESEND_API_KEY configured):");
+      console.log("  To:", toEmail);
+      console.log("  Subject:", subject);
+      console.log("  Type:", notification.type);
+      console.log(
+        "  Note: Email notifications are optional. Users can share payment links directly."
+      );
+
       await notifyHelpers.markSent(notification.id);
-      
+
       return NextResponse.json({
         success: true,
-        message: 'Email not sent (RESEND_API_KEY not configured). Share payment links directly instead.',
+        message:
+          "Email not sent (RESEND_API_KEY not configured). Share payment links directly instead.",
         id: notification.id,
       });
     }
 
     // Send via Resend SDK
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Plenmo <onboarding@resend.dev>';
-    
+    const fromEmail =
+      process.env.RESEND_FROM_EMAIL || "Plenmo <onboarding@resend.dev>";
+
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
@@ -303,20 +384,24 @@ export async function POST(request: Request) {
     });
 
     if (emailError) {
-      console.error('[notify] Resend API error:', {
+      console.error("[notify] Resend API error:", {
         notificationId: notification.id,
         recipientEmail: toEmail,
         errorName: emailError.name,
         errorMessage: emailError.message,
         fullError: JSON.stringify(emailError),
       });
-      await notifyHelpers.markFailed(notification.id, JSON.stringify(emailError));
+      await notifyHelpers.markFailed(
+        notification.id,
+        JSON.stringify(emailError)
+      );
       return NextResponse.json(
-        { 
-          error: 'Failed to send email', 
+        {
+          error: "Failed to send email",
           details: emailError,
           canRetry: true,
-          message: 'We couldn\'t send the notification email. Would you like to try again?'
+          message:
+            "We couldn't send the notification email. Would you like to try again?",
         },
         { status: 500 }
       );
@@ -325,7 +410,7 @@ export async function POST(request: Request) {
     // Mark as sent
     await notifyHelpers.markSent(notification.id);
 
-    console.log('📧 Email sent via Resend:', {
+    console.log("📧 Email sent via Resend:", {
       id: notification.id,
       to: toEmail,
       resendId: emailData?.id,
@@ -334,13 +419,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       id: notification.id,
-      provider: 'resend',
+      provider: "resend",
       emailId: emailData?.id,
     });
   } catch (error) {
-    console.error('Send notification error:', error);
+    console.error("Send notification error:", error);
     return NextResponse.json(
-      { error: 'Failed to send notification' },
+      { error: "Failed to send notification" },
       { status: 500 }
     );
   }
@@ -348,31 +433,32 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/notify
- * 
+ *
  * Gets pending notifications for processing.
  * Also triggers processing of all pending notifications.
- * 
+ *
  * Query params:
  * - process: If 'true', will process all pending notifications
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const shouldProcess = searchParams.get('process') === 'true';
+    const shouldProcess = searchParams.get("process") === "true";
 
     // Get pending notifications
     const pending = await notifyHelpers.getPending();
 
     if (shouldProcess && pending.length > 0) {
       // Process all pending notifications
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002';
-      
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3002";
+
       const results = await Promise.all(
         pending.map(async (notification) => {
           try {
             const response = await fetch(`${baseUrl}/api/notify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ notificationId: notification.id }),
             });
             return { id: notification.id, success: response.ok };
@@ -386,7 +472,7 @@ export async function GET(request: Request) {
         success: true,
         processed: results,
         total: results.length,
-        succeeded: results.filter(r => r.success).length,
+        succeeded: results.filter((r) => r.success).length,
       });
     }
 
@@ -401,11 +487,10 @@ export async function GET(request: Request) {
       count: pending.length,
     });
   } catch (error) {
-    console.error('Get notifications error:', error);
+    console.error("Get notifications error:", error);
     return NextResponse.json(
-      { error: 'Failed to get notifications' },
+      { error: "Failed to get notifications" },
       { status: 500 }
     );
   }
 }
-

@@ -66,5 +66,20 @@ export function getUserFriendlyError(error: unknown): string {
     return "Recipient not found. Check the address or email and try again.";
   }
 
+  if (
+    lower.includes("service not configured") ||
+    lower.includes("authentication service")
+  ) {
+    return "Payment service is temporarily unavailable. Please try again later.";
+  }
+
+  if (lower.includes("failed to resolve recipient")) {
+    return "Could not look up recipient. Try using their wallet address directly.";
+  }
+
+  if (lower.includes("identity service") || lower.includes("could not reach")) {
+    return "Connection issue. Please check your internet and try again.";
+  }
+
   return getBaseError(error);
 }
