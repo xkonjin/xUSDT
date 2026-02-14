@@ -80,14 +80,18 @@ describe("sendMoney", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateTransferParams.mockReturnValue(mockParams as ReturnType<typeof createTransferParams>);
+    mockCreateTransferParams.mockReturnValue(
+      mockParams as ReturnType<typeof createTransferParams>
+    );
     mockBuildTransferAuth.mockReturnValue({
       domain: {},
       types: {},
       primaryType: "TransferWithAuthorization",
       message: {},
     } as ReturnType<typeof buildTransferAuthorizationTypedData>);
-    mockSplitSignature.mockReturnValue(mockSignatureParts as ReturnType<typeof splitSignature>);
+    mockSplitSignature.mockReturnValue(
+      mockSignatureParts as ReturnType<typeof splitSignature>
+    );
     mockWithRetry.mockImplementation(async (fn: () => Promise<unknown>) =>
       fn()
     );
@@ -105,10 +109,13 @@ describe("sendMoney", () => {
       mockJsonResponse({ error: "Recipient not found" }, false)
     );
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "missing@example.com",
-      amount: "10.00",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "missing@example.com",
+        amount: "10.00",
+      }
+    );
 
     expect(result).toEqual({
       success: false,
@@ -124,14 +131,22 @@ describe("sendMoney", () => {
       )
       .mockResolvedValueOnce(mockJsonResponse({ txHash: "0xabc" }));
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "0x2222222222222222222222222222222222222222",
-      amount: "1.00",
-      memo: "Lunch",
-      senderEmail: "sender@example.com",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "0x2222222222222222222222222222222222222222",
+        amount: "1.00",
+        memo: "Lunch",
+        senderEmail: "sender@example.com",
+      }
+    );
 
-    expect(result).toEqual({ success: true, txHash: "0xabc" });
+    expect(result).toEqual({
+      success: true,
+      txHash: "0xabc",
+      fee: expect.any(BigInt),
+      netAmount: expect.any(BigInt),
+    });
     expect(mockWithRetry).toHaveBeenCalledTimes(1);
     expect(mockCreateTransferParams).toHaveBeenCalledWith(
       mockWallet.address,
@@ -140,7 +155,8 @@ describe("sendMoney", () => {
     );
 
     const submitBody = JSON.parse(
-      (mockFetch.mock.calls[1] as [RequestInfo, RequestInit | undefined])[1]?.body as string
+      (mockFetch.mock.calls[1] as [RequestInfo, RequestInit | undefined])[1]
+        ?.body as string
     );
     expect(submitBody).toMatchObject({
       from: mockParams.from,
@@ -165,10 +181,13 @@ describe("sendMoney", () => {
         mockJsonResponse({ message: "Transfer failed" }, false)
       );
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "0x2222222222222222222222222222222222222222",
-      amount: "1.00",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "0x2222222222222222222222222222222222222222",
+        amount: "1.00",
+      }
+    );
 
     expect(result).toEqual({
       success: false,
@@ -181,10 +200,13 @@ describe("sendMoney", () => {
     const mockFetch = global.fetch as jest.Mock;
     mockFetch.mockResolvedValueOnce(mockJsonResponse({ needsClaim: true }));
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "unregistered@example.com",
-      amount: "5.00",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "unregistered@example.com",
+        amount: "5.00",
+      }
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/claim links are currently unavailable/i);
@@ -202,12 +224,15 @@ describe("sendMoney", () => {
       .mockResolvedValueOnce(mockJsonResponse({ txHash: "0xescrow" }))
       .mockResolvedValueOnce(mockJsonResponse({ success: true }));
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "newuser@example.com",
-      amount: "12.34",
-      memo: "Welcome",
-      senderEmail: "sender@example.com",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "newuser@example.com",
+        amount: "12.34",
+        memo: "Welcome",
+        senderEmail: "sender@example.com",
+      }
+    );
 
     expect(result).toEqual({
       success: true,
@@ -216,7 +241,8 @@ describe("sendMoney", () => {
     });
 
     const claimBody = JSON.parse(
-      (mockFetch.mock.calls[1] as [RequestInfo, RequestInit | undefined])[1]?.body as string
+      (mockFetch.mock.calls[1] as [RequestInfo, RequestInit | undefined])[1]
+        ?.body as string
     );
     expect(claimBody).toMatchObject({
       senderAddress: mockParams.from,
@@ -236,10 +262,13 @@ describe("sendMoney", () => {
         mockJsonResponse({ error: "Claim failed" }, false)
       );
 
-    const result = await sendMoney(mockWallet as unknown as PlasmaEmbeddedWallet, {
-      recipientIdentifier: "newuser@example.com",
-      amount: "12.34",
-    });
+    const result = await sendMoney(
+      mockWallet as unknown as PlasmaEmbeddedWallet,
+      {
+        recipientIdentifier: "newuser@example.com",
+        amount: "12.34",
+      }
+    );
 
     expect(result).toEqual({
       success: false,

@@ -1,8 +1,7 @@
 /**
- * Unit tests for validation.ts utility functions
+ * Unit its for validation.ts utility functions
  */
 
-import { describe, expect, test } from "vitest";
 import {
   validateEthereumAddress,
   validateBetAmount,
@@ -12,16 +11,20 @@ import {
 } from "../validation";
 
 describe("validateEthereumAddress", () => {
-  test("validates correct addresses", () => {
-    expect(validateEthereumAddress("0x1234567890123456789012345678901234567890")).toEqual({
+  it("validates correct addresses", () => {
+    expect(
+      validateEthereumAddress("0x1234567890123456789012345678901234567890")
+    ).toEqual({
       valid: true,
     });
-    expect(validateEthereumAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")).toEqual({
+    expect(
+      validateEthereumAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
+    ).toEqual({
       valid: true,
     });
   });
 
-  test("rejects invalid addresses", () => {
+  it("rejects invalid addresses", () => {
     expect(validateEthereumAddress("")).toEqual({
       valid: false,
       error: "Address is required",
@@ -38,34 +41,34 @@ describe("validateEthereumAddress", () => {
 });
 
 describe("validateBetAmount", () => {
-  test("validates correct amounts", () => {
+  it("validates correct amounts", () => {
     expect(validateBetAmount(10, 100)).toEqual({ valid: true });
     expect(validateBetAmount(1, 1000)).toEqual({ valid: true });
     expect(validateBetAmount(1000, 10000)).toEqual({ valid: true });
   });
 
-  test("rejects amounts below minimum", () => {
+  it("rejects amounts below minimum", () => {
     expect(validateBetAmount(0.5, 100)).toEqual({
       valid: false,
       error: "Minimum bet is $1",
     });
   });
 
-  test("rejects amounts above maximum", () => {
+  it("rejects amounts above maximum", () => {
     expect(validateBetAmount(2_000_000, 10_000_000)).toEqual({
       valid: false,
       error: "Maximum bet is $1,000,000",
     });
   });
 
-  test("rejects amounts exceeding balance", () => {
+  it("rejects amounts exceeding balance", () => {
     expect(validateBetAmount(100, 50)).toEqual({
       valid: false,
       error: "Insufficient balance",
     });
   });
 
-  test("rejects invalid amounts", () => {
+  it("rejects invalid amounts", () => {
     expect(validateBetAmount(0, 100)).toEqual({
       valid: false,
       error: "Amount must be greater than 0",
@@ -82,20 +85,20 @@ describe("validateBetAmount", () => {
 });
 
 describe("validateMarketId", () => {
-  test("validates correct market IDs", () => {
+  it("validates correct market IDs", () => {
     expect(validateMarketId("will-trump-win-2024")).toEqual({ valid: true });
     expect(validateMarketId("market_123")).toEqual({ valid: true });
     expect(validateMarketId("ABC123")).toEqual({ valid: true });
   });
 
-  test("rejects empty market ID", () => {
+  it("rejects empty market ID", () => {
     expect(validateMarketId("")).toEqual({
       valid: false,
       error: "Market ID is required",
     });
   });
 
-  test("rejects invalid characters", () => {
+  it("rejects invalid characters", () => {
     expect(validateMarketId("market<script>")).toEqual({
       valid: false,
       error: "Invalid market ID format",
@@ -106,7 +109,7 @@ describe("validateMarketId", () => {
     });
   });
 
-  test("rejects too long IDs", () => {
+  it("rejects too long IDs", () => {
     const longId = "a".repeat(256);
     expect(validateMarketId(longId)).toEqual({
       valid: false,
@@ -116,7 +119,7 @@ describe("validateMarketId", () => {
 });
 
 describe("validateOutcome", () => {
-  test("validates correct outcomes", () => {
+  it("validates correct outcomes", () => {
     expect(validateOutcome("YES")).toEqual({ valid: true });
     expect(validateOutcome("NO")).toEqual({ valid: true });
     expect(validateOutcome("Yes")).toEqual({ valid: true });
@@ -125,7 +128,7 @@ describe("validateOutcome", () => {
     expect(validateOutcome("no")).toEqual({ valid: true });
   });
 
-  test("rejects invalid outcomes", () => {
+  it("rejects invalid outcomes", () => {
     expect(validateOutcome("MAYBE")).toEqual({
       valid: false,
       error: "Outcome must be YES or NO",
@@ -138,17 +141,19 @@ describe("validateOutcome", () => {
 });
 
 describe("sanitizeSearchQuery", () => {
-  test("removes dangerous characters", () => {
-    expect(sanitizeSearchQuery("<script>alert('xss')</script>")).toBe("scriptalert('xss')/script");
+  it("removes dangerous characters", () => {
+    expect(sanitizeSearchQuery("<script>alert('xss')</script>")).toBe(
+      "scriptalert('xss')/script"
+    );
     expect(sanitizeSearchQuery("normal query")).toBe("normal query");
-    expect(sanitizeSearchQuery("test{injection}")).toBe("testinjection");
+    expect(sanitizeSearchQuery("it{injection}")).toBe("itinjection");
   });
 
-  test("trims whitespace", () => {
+  it("trims whitespace", () => {
     expect(sanitizeSearchQuery("  hello world  ")).toBe("hello world");
   });
 
-  test("limits length", () => {
+  it("limits length", () => {
     const longQuery = "a".repeat(300);
     expect(sanitizeSearchQuery(longQuery).length).toBe(200);
   });
