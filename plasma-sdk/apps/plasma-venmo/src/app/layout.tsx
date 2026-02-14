@@ -13,6 +13,19 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { InstallPWABanner } from "@/components/InstallPWABanner";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Script from "next/script";
+import { Inter, DM_Sans } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata = {
   title: "Plenmo - Pay Anyone Instantly",
@@ -61,7 +74,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${dmSans.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
