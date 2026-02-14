@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
-import { ArrowLeft, User, Bell, Shield, Settings, Save, Loader2, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Bell,
+  Shield,
+  Settings,
+  Save,
+  Loader2,
+  Check,
+} from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -16,15 +25,15 @@ export default function SettingsPage() {
 
   // Profile settings
   const [displayName, setDisplayName] = useState("");
-  
+
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [transactionAlerts, setTransactionAlerts] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
-  
+
   // Security settings
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  
+
   // General settings
   const [currency, setCurrency] = useState("USD");
   const [theme, setTheme] = useState("dark");
@@ -34,7 +43,9 @@ export default function SettingsPage() {
     async function loadSettings() {
       if (!wallet?.address) return;
       try {
-        const response = await fetch(`/api/user-settings?address=${wallet.address}`);
+        const response = await fetch(
+          `/api/user-settings?address=${wallet.address}`
+        );
         if (response.ok) {
           const data = await response.json();
           if (data.settings) {
@@ -83,18 +94,21 @@ export default function SettingsPage() {
 
   if (!ready) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-8 h-8 text-plenmo-500 animate-spin" />
+      <main className="min-h-dvh flex items-center justify-center bg-[rgb(var(--bg-primary))]">
+        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
       </main>
     );
   }
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black p-4">
+      <main className="min-h-dvh flex items-center justify-center bg-[rgb(var(--bg-primary))] p-4">
         <div className="text-center">
           <p className="text-white/50 mb-4">Please log in to access settings</p>
-          <Link href="/" className="btn-primary inline-block">
+          <Link
+            href="/"
+            className="clay-button inline-block px-6 py-3 text-sm font-semibold"
+          >
             Go Home
           </Link>
         </div>
@@ -113,18 +127,13 @@ export default function SettingsPage() {
   const userPhone = user?.phone?.number;
 
   return (
-    <main className="min-h-screen bg-black p-4 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.1)_0%,transparent_70%)] blur-3xl" />
-      </div>
-
-      <div className="max-w-2xl mx-auto pt-4 relative z-10">
+    <main className="min-h-dvh bg-[rgb(var(--bg-primary))] p-4">
+      <div className="max-w-2xl mx-auto pt-4">
         {/* Header */}
         <header className="flex items-center gap-4 mb-8">
           <Link
             href="/"
-            className="p-2 rounded-xl liquid-glass-subtle hover:bg-white/10 transition-colors"
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5 text-white" />
@@ -142,7 +151,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                     activeTab === tab.id
-                      ? "bg-[rgb(0,212,255)]/20 text-plenmo-500"
+                      ? "bg-plenmo-500/10 text-plenmo-500"
                       : "text-white/50 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -155,49 +164,66 @@ export default function SettingsPage() {
 
           {/* Content */}
           <div className="flex-1">
-            <div className="liquid-glass rounded-3xl p-6">
+            <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
               {/* Profile Tab */}
               {activeTab === "profile" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">Profile Settings</h2>
-                  
+                  <h2 className="text-xl font-semibold text-white">
+                    Profile Settings
+                  </h2>
+
                   <div className="flex items-center gap-4">
-                    <Avatar name={displayName || userEmail || wallet?.address || ""} size="xl" />
+                    <Avatar
+                      name={displayName || userEmail || wallet?.address || ""}
+                      size="xl"
+                    />
                     <div>
-                      <p className="text-white font-medium">{displayName || "Set your name"}</p>
-                      <p className="text-white/50 text-sm">{userEmail || userPhone || wallet?.address}</p>
+                      <p className="text-white font-medium">
+                        {displayName || "Set your name"}
+                      </p>
+                      <p className="text-white/50 text-sm">
+                        {userEmail || userPhone || wallet?.address}
+                      </p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-white/50 text-sm mb-2">Display Name</label>
+                    <label className="block text-white/50 text-sm mb-2">
+                      Display Name
+                    </label>
                     <input
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Enter your name"
-                      className="input-glass w-full"
+                      className="clay-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-white/50 text-sm mb-2">Email</label>
+                    <label className="block text-white/50 text-sm mb-2">
+                      Email
+                    </label>
                     <input
                       type="email"
                       value={userEmail || ""}
                       disabled
-                      className="input-glass w-full opacity-50 cursor-not-allowed"
+                      className="clay-input w-full opacity-50 cursor-not-allowed"
                     />
-                    <p className="text-white/30 text-xs mt-1">Email is managed through your login provider</p>
+                    <p className="text-white/30 text-xs mt-1">
+                      Email is managed through your login provider
+                    </p>
                   </div>
 
                   <div>
-                    <label className="block text-white/50 text-sm mb-2">Phone</label>
+                    <label className="block text-white/50 text-sm mb-2">
+                      Phone
+                    </label>
                     <input
                       type="tel"
                       value={userPhone || "Not set"}
                       disabled
-                      className="input-glass w-full opacity-50 cursor-not-allowed"
+                      className="clay-input w-full opacity-50 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -206,8 +232,10 @@ export default function SettingsPage() {
               {/* Notifications Tab */}
               {activeTab === "notifications" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">Notification Preferences</h2>
-                  
+                  <h2 className="text-xl font-semibold text-white">
+                    Notification Preferences
+                  </h2>
+
                   <div className="space-y-4">
                     <ToggleSetting
                       label="Email Notifications"
@@ -234,8 +262,10 @@ export default function SettingsPage() {
               {/* Security Tab */}
               {activeTab === "security" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">Security Settings</h2>
-                  
+                  <h2 className="text-xl font-semibold text-white">
+                    Security Settings
+                  </h2>
+
                   <div className="space-y-4">
                     <ToggleSetting
                       label="Two-Factor Authentication"
@@ -247,20 +277,30 @@ export default function SettingsPage() {
                     />
 
                     <div className="p-4 rounded-2xl bg-white/5">
-                      <h3 className="text-white font-medium mb-2">Connected Devices</h3>
-                      <p className="text-white/50 text-sm mb-3">Manage devices that have access to your account</p>
+                      <h3 className="text-white font-medium mb-2">
+                        Connected Devices
+                      </h3>
+                      <p className="text-white/50 text-sm mb-3">
+                        Manage devices that have access to your account
+                      </p>
                       <div className="flex items-center justify-between p-3 rounded-xl bg-white/5">
                         <div>
                           <p className="text-white text-sm">Current Device</p>
-                          <p className="text-white/40 text-xs">Last active: Now</p>
+                          <p className="text-white/40 text-xs">
+                            Last active: Now
+                          </p>
                         </div>
                         <span className="text-green-400 text-xs">Active</span>
                       </div>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-white/5">
-                      <h3 className="text-white font-medium mb-2">Export Private Key</h3>
-                      <p className="text-white/50 text-sm mb-3">Export your embedded wallet private key</p>
+                      <h3 className="text-white font-medium mb-2">
+                        Export Private Key
+                      </h3>
+                      <p className="text-white/50 text-sm mb-3">
+                        Export your embedded wallet private key
+                      </p>
                       <button className="text-amber-400 text-sm hover:text-amber-300 transition-colors">
                         Learn about exporting →
                       </button>
@@ -272,14 +312,18 @@ export default function SettingsPage() {
               {/* General Tab */}
               {activeTab === "general" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">General Settings</h2>
-                  
+                  <h2 className="text-xl font-semibold text-white">
+                    General Settings
+                  </h2>
+
                   <div>
-                    <label className="block text-white/50 text-sm mb-2">Currency</label>
+                    <label className="block text-white/50 text-sm mb-2">
+                      Currency
+                    </label>
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className="input-glass w-full"
+                      className="clay-input w-full"
                     >
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
@@ -288,14 +332,18 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-white/50 text-sm mb-2">Theme</label>
+                    <label className="block text-white/50 text-sm mb-2">
+                      Theme
+                    </label>
                     <select
                       value={theme}
                       onChange={(e) => setTheme(e.target.value)}
-                      className="input-glass w-full"
+                      className="clay-input w-full"
                     >
                       <option value="dark">Dark</option>
-                      <option value="light" disabled>Light (Coming Soon)</option>
+                      <option value="light" disabled>
+                        Light (Coming Soon)
+                      </option>
                     </select>
                   </div>
 
@@ -320,7 +368,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="btn-primary flex items-center justify-center gap-2 w-full"
+                  className="clay-button clay-button-primary flex items-center justify-center gap-2 w-full"
                 >
                   {saving ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -361,7 +409,11 @@ function ToggleSetting({
   comingSoon?: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between p-4 rounded-2xl bg-white/5 ${disabled ? "opacity-60" : ""}`}>
+    <div
+      className={`flex items-center justify-between p-4 rounded-2xl bg-white/5 ${
+        disabled ? "opacity-60" : ""
+      }`}
+    >
       <div>
         <div className="flex items-center gap-2">
           <p className="text-white font-medium">{label}</p>
@@ -377,7 +429,7 @@ function ToggleSetting({
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
         className={`relative w-12 h-6 rounded-full transition-colors ${
-          enabled ? "bg-[rgb(0,212,255)]" : "bg-white/20"
+          enabled ? "bg-plenmo-500" : "bg-white/20"
         } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
       >
         <span

@@ -73,7 +73,9 @@ export default function InvitePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShare = async (channel: "whatsapp" | "telegram" | "sms" | "twitter") => {
+  const handleShare = async (
+    channel: "whatsapp" | "telegram" | "sms" | "twitter"
+  ) => {
     await share({
       channel,
       title: "Join Plenmo",
@@ -85,7 +87,7 @@ export default function InvitePage() {
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[rgb(0,212,255)] animate-spin" />
+        <Loader2 className="w-8 h-8 text-plenmo-500 animate-spin" />
       </main>
     );
   }
@@ -94,7 +96,7 @@ export default function InvitePage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8">
         <p className="text-white/50">Please connect your wallet first</p>
-        <Link href="/" className="text-[rgb(0,212,255)] mt-4 hover:underline">
+        <Link href="/" className="text-plenmo-500 mt-4 hover:underline">
           Go to Home
         </Link>
       </main>
@@ -119,12 +121,12 @@ export default function InvitePage() {
 
       <div className="max-w-lg mx-auto space-y-6 relative z-10">
         {/* Reward Banner */}
-        <div className="liquid-glass-elevated rounded-3xl p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500/20 to-[rgb(0,212,255)]/20 flex items-center justify-center">
-            <Gift className="w-10 h-10 text-[rgb(0,212,255)]" />
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-plenmo-500/15 flex items-center justify-center">
+            <Gift className="w-10 h-10 text-plenmo-500" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">
-            Earn <span className="gradient-text">$0.10</span> per friend
+            Earn <span className="text-white font-bold">$0.10</span> per friend
           </h2>
           <p className="text-white/50">
             Share your link and earn when friends make their first transaction
@@ -135,7 +137,10 @@ export default function InvitePage() {
         {loading ? (
           <div className="grid grid-cols-3 gap-4">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="liquid-glass-subtle rounded-2xl p-4 text-center animate-pulse">
+              <div
+                key={i}
+                className="bg-white/[0.04] rounded-2xl p-4 text-center animate-pulse"
+              >
                 <div className="w-5 h-5 mx-auto mb-2 bg-white/10 rounded" />
                 <div className="h-7 bg-white/10 rounded mx-auto w-12 mb-1" />
                 <div className="h-3 bg-white/10 rounded mx-auto w-10" />
@@ -144,21 +149,25 @@ export default function InvitePage() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-3 gap-4">
-            <div className="liquid-glass-subtle rounded-2xl p-4 text-center">
+            <div className="bg-white/[0.04] rounded-2xl p-4 text-center">
               <Users className="w-5 h-5 mx-auto mb-2 text-purple-400" />
-              <p className="text-2xl font-bold text-white">{stats.totalReferred}</p>
+              <p className="text-2xl font-bold text-white">
+                {stats.totalReferred}
+              </p>
               <p className="text-xs text-white/40">Invited</p>
             </div>
-            <div className="liquid-glass-subtle rounded-2xl p-4 text-center">
+            <div className="bg-white/[0.04] rounded-2xl p-4 text-center">
               <DollarSign className="w-5 h-5 mx-auto mb-2 text-green-400" />
               <p className="text-2xl font-bold text-white">
                 ${stats.totalEarned.toFixed(2)}
               </p>
               <p className="text-xs text-white/40">Earned</p>
             </div>
-            <div className="liquid-glass-subtle rounded-2xl p-4 text-center">
+            <div className="bg-white/[0.04] rounded-2xl p-4 text-center">
               <Gift className="w-5 h-5 mx-auto mb-2 text-yellow-400" />
-              <p className="text-2xl font-bold text-white">{stats.pendingRewards}</p>
+              <p className="text-2xl font-bold text-white">
+                {stats.pendingRewards}
+              </p>
               <p className="text-xs text-white/40">Pending</p>
             </div>
           </div>
@@ -166,12 +175,14 @@ export default function InvitePage() {
 
         {/* Referral Link */}
         {loading ? (
-          <div className="liquid-glass rounded-2xl p-6 animate-pulse">
+          <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6 animate-pulse">
             <div className="h-12 bg-white/10 rounded-xl" />
           </div>
         ) : (
-          <div className="liquid-glass rounded-2xl p-6">
-            <label className="text-sm text-white/50 mb-2 block">Your referral link</label>
+          <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
+            <label className="text-sm text-white/50 mb-2 block">
+              Your referral link
+            </label>
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 text-white font-mono text-sm truncate">
                 {referralLink}
@@ -226,23 +237,23 @@ export default function InvitePage() {
         </div>
 
         {/* How it works */}
-        <div className="liquid-glass-subtle rounded-2xl p-6">
+        <div className="bg-white/[0.04] rounded-2xl p-6">
           <h3 className="font-semibold text-white mb-4">How it works</h3>
           <ol className="space-y-3 text-sm text-white/60">
             <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
                 1
               </span>
               Share your unique referral link with friends
             </li>
             <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
                 2
               </span>
               They sign up and connect their wallet
             </li>
             <li className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
                 3
               </span>
               When they make their first transaction, you both earn $0.10

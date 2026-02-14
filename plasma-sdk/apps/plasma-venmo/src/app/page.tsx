@@ -160,31 +160,12 @@ export default function HomePage() {
 
   if (!ready) {
     return (
-      <main className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-[#0a0a0f] to-[#0f0f1a]">
+      <main className="min-h-dvh flex items-center justify-center bg-[rgb(var(--bg-primary))]">
         <div className="flex flex-col items-center gap-6">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-plenmo-500/30 border-t-plenmo-500 animate-spin" />
-            <div className="absolute inset-0 w-16 h-16 rounded-full bg-plenmo-500/20 blur-xl animate-pulse" />
-          </div>
-          <div className="text-center">
-            <span className="text-white/70 font-body text-lg">
-              Loading Plenmo
-            </span>
-            <div className="flex items-center justify-center gap-1 mt-2">
-              <div
-                className="w-2 h-2 rounded-full bg-plenmo-500 animate-bounce"
-                style={{ animationDelay: "0ms" }}
-              />
-              <div
-                className="w-2 h-2 rounded-full bg-plenmo-500 animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              />
-              <div
-                className="w-2 h-2 rounded-full bg-plenmo-500 animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              />
-            </div>
-          </div>
+          <div className="w-12 h-12 rounded-full border-3 border-plenmo-500/20 border-t-plenmo-500 animate-spin" />
+          <span className="text-white/50 font-body text-sm tracking-wide">
+            Loading
+          </span>
         </div>
       </main>
     );
@@ -192,58 +173,48 @@ export default function HomePage() {
 
   if (!authenticated) {
     return (
-      <main className="min-h-dvh flex flex-col items-center justify-center gap-10 p-8 bg-gradient-to-b from-[#0a0a0f] via-[#0a0a0f] to-[#0f1a0f]">
-        {/* Animated background elements */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-plenmo-500/10 rounded-full blur-3xl animate-pulse" />
-          <div
-            className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-plenmo-400/10 rounded-full blur-3xl animate-pulse"
-            style={{ animationDelay: "1s" }}
-          />
-        </div>
-
-        <div className="text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-plenmo-500/10 border border-plenmo-500/20 text-plenmo-400 text-sm font-medium mb-6">
+      <main className="min-h-dvh flex flex-col items-center justify-center gap-10 p-8 bg-[rgb(var(--bg-primary))]">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-plenmo-500/8 border border-plenmo-500/15 text-plenmo-400 text-sm font-medium mb-8">
             <Sparkles className="w-4 h-4" />
             Zero fees, instant transfers
           </div>
-          <h1 className="text-6xl md:text-7xl font-heading font-bold mb-6 tracking-tight">
-            <span className="gradient-text">Plenmo</span>
+          <h1 className="text-5xl md:text-6xl font-heading font-bold mb-5 tracking-tight text-white">
+            Plenmo
           </h1>
-          <p className="text-white/70 text-xl md:text-2xl max-w-lg mx-auto leading-relaxed mb-3 font-body">
+          <p className="text-white/60 text-lg md:text-xl max-w-md mx-auto leading-relaxed mb-2 font-body">
             Pay anyone instantly with zero fees.
           </p>
-          <p className="text-white/40 text-base max-w-md mx-auto font-body">
+          <p className="text-white/35 text-sm max-w-sm mx-auto font-body">
             Simple payments. No crypto complexity.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-6 text-white/50 text-sm font-body relative z-10">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 backdrop-blur-sm">
-            <Shield className="w-4 h-4 text-plenmo-500" />
+        <div className="flex flex-wrap items-center justify-center gap-4 text-white/50 text-sm font-body">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
+            <Shield className="w-3.5 h-3.5 text-plenmo-500" />
             <span>Bank-grade security</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 backdrop-blur-sm">
-            <Zap className="w-4 h-4 text-plenmo-400" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
+            <Zap className="w-3.5 h-3.5 text-plenmo-400" />
             <span>Instant transfers</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 backdrop-blur-sm">
-            <TrendingUp className="w-4 h-4 text-green-400" />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5">
+            <TrendingUp className="w-3.5 h-3.5 text-plenmo-400" />
             <span>Always free</span>
           </div>
         </div>
 
         <motion.button
           onClick={login}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative group clay-button text-lg px-12 py-5 animate-pulse-glow z-10"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          className="clay-button text-base px-10 py-4 shadow-green-glow"
         >
-          <span className="relative z-10">Get Started Free</span>
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-plenmo-500 to-plenmo-400 opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
+          Get Started Free
         </motion.button>
 
-        <p className="text-white/30 text-sm font-body relative z-10">
+        <p className="text-white/25 text-xs font-body">
           No signup fees. No hidden charges. Ever.
         </p>
       </main>
@@ -260,69 +231,62 @@ export default function HomePage() {
       className="space-y-5"
     >
       {/* Balance Card */}
-      <motion.div
-        variants={fadeUp}
-        className="relative overflow-hidden clay-card p-6 md:p-8"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-plenmo-500/5 via-transparent to-transparent pointer-events-none" />
-        <div className="relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="text-white/50 text-sm font-medium font-body">
-                Your Balance
-              </span>
-              <motion.button
-                onClick={() => setBalanceVisible(!balanceVisible)}
-                whileTap={{ scale: 0.9 }}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/40 hover:text-white/60"
-                aria-label={balanceVisible ? "Hide balance" : "Show balance"}
-              >
-                {balanceVisible ? (
-                  <Eye className="w-4 h-4" />
-                ) : (
-                  <EyeOff className="w-4 h-4" />
-                )}
-              </motion.button>
-            </div>
-            <FundWalletButton walletAddress={wallet?.address} />
+      <motion.div variants={fadeUp} className="clay-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-white/50 text-sm font-medium font-body">
+              Your Balance
+            </span>
+            <motion.button
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              whileTap={{ scale: 0.9 }}
+              className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-white/30 hover:text-white/50"
+              aria-label={balanceVisible ? "Hide balance" : "Show balance"}
+            >
+              {balanceVisible ? (
+                <Eye className="w-4 h-4" />
+              ) : (
+                <EyeOff className="w-4 h-4" />
+              )}
+            </motion.button>
           </div>
-
-          <div className="text-5xl font-heading font-bold mb-5 transition-all duration-300 gradient-text tabular-nums">
-            {balanceLoading ? (
-              <div className="h-14 w-40 bg-white/10 rounded-lg animate-pulse" />
-            ) : balanceVisible ? (
-              `$${formatted || "0.00"}`
-            ) : (
-              "••••••"
-            )}
-          </div>
-
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="text-plenmo-500 text-sm hover:text-plenmo-400 transition-colors flex items-center gap-1.5 font-medium font-body disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </button>
+          <FundWalletButton walletAddress={wallet?.address} />
         </div>
+
+        <div className="text-4xl md:text-5xl font-heading font-bold mb-5 text-white tabular-nums">
+          {balanceLoading ? (
+            <div className="h-12 w-36 bg-white/5 rounded-lg animate-pulse" />
+          ) : balanceVisible ? (
+            `$${formatted || "0.00"}`
+          ) : (
+            "••••••"
+          )}
+        </div>
+
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="text-white/40 text-sm hover:text-white/60 transition-colors flex items-center gap-1.5 font-medium font-body disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          {isRefreshing ? "Refreshing..." : "Refresh"}
+        </button>
       </motion.div>
 
       {/* Quick Actions Row */}
       <motion.div variants={fadeUp} className="grid grid-cols-3 gap-3">
         <motion.button
           onClick={() => setNavTab("send")}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.97 }}
           className="quick-action-btn"
           aria-label="Send money"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center shadow-lg shadow-plenmo-500/25">
-            <Send className="w-6 h-6 text-black" />
+          <div className="w-12 h-12 rounded-full bg-plenmo-500 flex items-center justify-center">
+            <Send className="w-5 h-5 text-black" />
           </div>
-          <span className="text-white/70 text-xs font-semibold font-body mt-2">
+          <span className="text-white/60 text-xs font-medium font-body mt-2">
             Send
           </span>
         </motion.button>
@@ -331,29 +295,27 @@ export default function HomePage() {
             setActiveFormTab("request");
             setNavTab("send");
           }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.97 }}
           className="quick-action-btn"
           aria-label="Request money"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
-            <HandCoins className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+            <HandCoins className="w-5 h-5 text-white/80" />
           </div>
-          <span className="text-white/70 text-xs font-semibold font-body mt-2">
+          <span className="text-white/60 text-xs font-medium font-body mt-2">
             Request
           </span>
         </motion.button>
         <motion.button
           onClick={() => {}}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.97 }}
           className="quick-action-btn"
           aria-label="Add funds"
         >
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
-            <DollarSign className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-white/80" />
           </div>
-          <span className="text-white/70 text-xs font-semibold font-body mt-2">
+          <span className="text-white/60 text-xs font-medium font-body mt-2">
             Add Funds
           </span>
         </motion.button>
@@ -362,12 +324,12 @@ export default function HomePage() {
       {/* Quick Contacts */}
       <motion.div variants={fadeUp} className="clay-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white/70 text-sm font-semibold font-body tracking-wide uppercase">
+          <h3 className="text-white/40 text-xs font-semibold font-body tracking-widest uppercase">
             Quick Send
           </h3>
           <button
             onClick={() => setShowAddContact(true)}
-            className="text-plenmo-500 text-xs hover:text-plenmo-400 transition-colors flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-lg hover:bg-plenmo-500/10"
+            className="text-white/40 text-xs hover:text-white/60 transition-colors flex items-center gap-1.5 font-medium px-2 py-1 rounded-lg hover:bg-white/5"
           >
             <UserPlus className="w-3.5 h-3.5" />
             Add
@@ -389,27 +351,26 @@ export default function HomePage() {
                 className="contact-item animate-pulse"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
-                <div className="w-14 h-14 rounded-full bg-white/10" />
-                <div className="h-3 w-12 bg-white/10 rounded mt-2" />
+                <div className="w-11 h-11 rounded-full bg-white/5" />
+                <div className="h-3 w-12 bg-white/5 rounded mt-2" />
               </div>
             ))}
           </div>
         ) : quickSendContacts.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-              <UserPlus className="w-7 h-7 text-white/30" />
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-white/20" />
             </div>
-            <p className="text-white/60 text-sm mb-1 font-body font-medium">
+            <p className="text-white/50 text-sm mb-1 font-body font-medium">
               No contacts yet
             </p>
-            <p className="text-white/30 text-xs mb-5 font-body">
+            <p className="text-white/25 text-xs mb-5 font-body">
               Add your first contact to start sending
             </p>
             <motion.button
               onClick={() => setShowAddContact(true)}
-              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-plenmo-500/10 border border-plenmo-500/20 text-plenmo-400 text-sm font-medium hover:bg-plenmo-500/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               Add Contact
@@ -428,7 +389,6 @@ export default function HomePage() {
               <motion.button
                 key={contact.id}
                 variants={fadeUp}
-                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="contact-item group"
                 onClick={() => handleSendToContact(contact)}
@@ -436,15 +396,12 @@ export default function HomePage() {
                   contact.name || contact.email || "contact"
                 }`}
               >
-                <div className="relative">
-                  <div className="clay-avatar group-hover:scale-105 transition-transform duration-200">
-                    {contact.name?.charAt(0).toUpperCase() ||
-                      contact.email?.charAt(0).toUpperCase() ||
-                      "?"}
-                  </div>
-                  <div className="absolute inset-0 rounded-full bg-plenmo-500/20 opacity-0 group-hover:opacity-100 blur-lg transition-opacity" />
+                <div className="clay-avatar w-11 h-11 text-sm">
+                  {contact.name?.charAt(0).toUpperCase() ||
+                    contact.email?.charAt(0).toUpperCase() ||
+                    "?"}
                 </div>
-                <span className="text-white/70 text-xs font-medium font-body truncate max-w-full mt-1 group-hover:text-white transition-colors">
+                <span className="text-white/50 text-xs font-medium font-body truncate max-w-full mt-1 group-hover:text-white/70 transition-colors">
                   {contact.name || contact.email?.split("@")[0] || "Unknown"}
                 </span>
               </motion.button>
@@ -601,56 +558,55 @@ export default function HomePage() {
       variants={stagger}
       initial="hidden"
       animate="show"
-      className="space-y-5"
+      className="space-y-4"
     >
       <motion.div variants={fadeUp} className="clay-card p-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="clay-avatar w-16 h-16 text-2xl">
+          <div className="clay-avatar w-14 h-14 text-xl">
             {userEmail?.charAt(0).toUpperCase() || "?"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white font-heading font-bold text-lg truncate">
+            <p className="text-white font-heading font-semibold text-base truncate">
               {userEmail?.split("@")[0] || "User"}
             </p>
-            <p className="text-white/40 text-sm font-body truncate">
+            <p className="text-white/35 text-sm font-body truncate">
               {userEmail}
             </p>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 min-h-[44px]">
-            <span className="text-white/60 text-sm font-body">Wallet</span>
-            <span className="text-white/80 text-sm font-mono truncate ml-4 max-w-[180px]">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.03] min-h-[44px]">
+            <span className="text-white/40 text-sm font-body">Wallet</span>
+            <span className="text-white/60 text-sm font-mono truncate ml-4 max-w-[180px]">
               {wallet?.address
                 ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
                 : "---"}
             </span>
           </div>
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/5 min-h-[44px]">
-            <span className="text-white/60 text-sm font-body">Balance</span>
-            <span className="text-plenmo-400 text-sm font-bold tabular-nums">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.03] min-h-[44px]">
+            <span className="text-white/40 text-sm font-body">Balance</span>
+            <span className="text-white text-sm font-semibold tabular-nums">
               ${formatted || "0.00"}
             </span>
           </div>
         </div>
       </motion.div>
 
-      <motion.div variants={fadeUp} className="clay-card p-5 space-y-2">
+      <motion.div variants={fadeUp} className="clay-card p-4 space-y-1">
         <button
           onClick={handleQRClick}
-          className="flex items-center gap-3 w-full p-4 rounded-2xl hover:bg-white/5 transition-colors min-h-[44px]"
+          className="flex items-center gap-3 w-full p-3.5 rounded-xl hover:bg-white/[0.03] transition-colors min-h-[44px]"
         >
-          <QrCode className="w-5 h-5 text-plenmo-500" />
-          <span className="text-white/80 text-sm font-medium font-body">
+          <QrCode className="w-5 h-5 text-white/40" />
+          <span className="text-white/60 text-sm font-medium font-body">
             My QR Code
           </span>
         </button>
         <motion.button
           onClick={logout}
-          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-3 w-full p-4 rounded-2xl hover:bg-red-500/10 transition-colors text-red-400 min-h-[44px]"
+          className="flex items-center gap-3 w-full p-3.5 rounded-xl hover:bg-red-500/5 transition-colors text-red-400/80 min-h-[44px]"
         >
           <span className="text-sm font-medium font-body">Sign Out</span>
         </motion.button>
@@ -672,12 +628,12 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-dvh pb-28 bg-gradient-to-b from-[#0a0a0f] to-[#0f0f1a]">
+    <main className="min-h-dvh pb-28 bg-[rgb(var(--bg-primary))]">
       {/* Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#0a0a0f]/80 border-b border-white/5">
+      <header className="sticky top-0 z-40 bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06]">
         <div className="flex items-center justify-between p-4 md:p-6 max-w-lg mx-auto">
-          <h1 className="text-2xl font-heading font-bold tracking-tight">
-            <span className="gradient-text">Plenmo</span>
+          <h1 className="text-xl font-heading font-bold tracking-tight text-white">
+            Plenmo
           </h1>
           <div className="flex items-center gap-1.5">
             <QRCodeButton
@@ -711,40 +667,40 @@ export default function HomePage() {
       {/* Bottom Nav - Mobile only */}
       <BottomNav activeTab={navTab} onTabChange={setNavTab} />
 
-      {/* Desktop fallback: old action bar (hidden on mobile since BottomNav takes over) */}
+      {/* Desktop action bar */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 hidden md:block safe-area-inset-bottom"
         aria-label="Quick actions"
       >
-        <div className="clay-action-bar max-w-lg mx-auto">
+        <div className="flex gap-2 p-4 max-w-lg mx-auto">
           <button
-            className="clay-action-button"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
             aria-label="Request money"
             onClick={() => {
               setActiveFormTab("request");
               setNavTab("send");
             }}
           >
-            <ArrowDownLeft className="w-5 h-5" aria-hidden="true" />
+            <ArrowDownLeft className="w-4 h-4" aria-hidden="true" />
             <span>Request</span>
           </button>
           <button
-            className="clay-action-button primary"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-plenmo-500 text-black text-sm font-semibold hover:bg-plenmo-400 transition-colors min-h-[48px]"
             aria-label="Send money"
             onClick={() => {
               setActiveFormTab("send");
               setNavTab("send");
             }}
           >
-            <Send className="w-5 h-5" aria-hidden="true" />
+            <Send className="w-4 h-4" aria-hidden="true" />
             <span>Send</span>
           </button>
           <button
-            className="clay-action-button"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
             aria-label="Scan QR code"
             onClick={handleQRClick}
           >
-            <QrCode className="w-5 h-5" aria-hidden="true" />
+            <QrCode className="w-4 h-4" aria-hidden="true" />
             <span>Scan</span>
           </button>
         </div>

@@ -2,7 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Wallet, Settings, Copy, Check, X, ChevronRight, Bell, Shield, HelpCircle, LogOut } from "lucide-react";
+import {
+  User,
+  Wallet,
+  Settings,
+  Copy,
+  Check,
+  X,
+  ChevronRight,
+  Bell,
+  Shield,
+  HelpCircle,
+  LogOut,
+} from "lucide-react";
 import { Avatar } from "./ui/Avatar";
 import { formatAddress, copyToClipboard } from "@/lib/utils";
 import { ModalPortal } from "./ui/ModalPortal";
@@ -17,9 +29,16 @@ interface UserProfileProps {
   onLogout?: () => void;
 }
 
-export function UserProfileButton({ user, walletAddress, onLogout }: UserProfileProps) {
+export function UserProfileButton({
+  user,
+  walletAddress,
+  onLogout,
+}: UserProfileProps) {
   const [showModal, setShowModal] = useState(false);
-  const displayName = user?.email?.address || user?.phone?.number || formatAddress(walletAddress || "");
+  const displayName =
+    user?.email?.address ||
+    user?.phone?.number ||
+    formatAddress(walletAddress || "");
 
   return (
     <>
@@ -46,10 +65,15 @@ interface UserProfileModalProps extends UserProfileProps {
   onClose: () => void;
 }
 
-function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfileModalProps) {
+function UserProfileModal({
+  user,
+  walletAddress,
+  onClose,
+  onLogout,
+}: UserProfileModalProps) {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
-  
+
   const displayName = user?.email?.address || user?.phone?.number || "User";
   const email = user?.email?.address;
 
@@ -80,18 +104,22 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
       containerClassName="items-start pt-20"
       wrapperClassName="max-w-sm"
     >
-      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden">
+      <div className="relative w-full bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl overflow-hidden">
         {/* Header with profile info */}
-        <div className="relative bg-gradient-to-br from-[rgb(0,212,255)]/20 to-purple-500/20 p-6 pb-16">
+        <div className="relative bg-plenmo-500/10 p-6 pb-16">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full bg-black/20 hover:bg-black/30 transition-colors"
           >
             <X className="w-4 h-4 text-white/70" />
           </button>
-          
+
           <div className="flex flex-col items-center">
-            <Avatar name={displayName} size="xl" className="ring-4 ring-white/20 mb-3" />
+            <Avatar
+              name={displayName}
+              size="xl"
+              className="ring-4 ring-white/20 mb-3"
+            />
             <h2 className="text-xl font-bold text-white">{displayName}</h2>
             {email && displayName !== email && (
               <p className="text-white/60 text-sm">{email}</p>
@@ -104,8 +132,8 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
           <div className="bg-[#1a1a1a] rounded-2xl p-4 border border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[rgb(0,212,255)]/10">
-                  <Wallet className="w-5 h-5 text-[rgb(0,212,255)]" />
+                <div className="p-2 rounded-xl bg-plenmo-500/10">
+                  <Wallet className="w-5 h-5 text-plenmo-500" />
                 </div>
                 <div>
                   <p className="text-white/50 text-xs">Wallet Address</p>
@@ -155,9 +183,9 @@ function UserProfileModal({ user, walletAddress, onClose, onLogout }: UserProfil
             label="Help & Support"
             onClick={() => window.open("https://plasma.to", "_blank")}
           />
-          
+
           <div className="border-t border-white/10 my-3" />
-          
+
           <MenuItem
             icon={LogOut}
             label="Sign Out"
@@ -185,7 +213,13 @@ interface MenuItemProps {
   disabled?: boolean;
 }
 
-function MenuItem({ icon: Icon, label, onClick, destructive, disabled }: MenuItemProps) {
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  destructive,
+  disabled,
+}: MenuItemProps) {
   return (
     <button
       onClick={onClick}
@@ -199,7 +233,11 @@ function MenuItem({ icon: Icon, label, onClick, destructive, disabled }: MenuIte
       }`}
     >
       <div className="flex items-center gap-3">
-        <Icon className={`w-5 h-5 ${destructive ? "text-red-400" : "text-white/50"}`} />
+        <Icon
+          className={`w-5 h-5 ${
+            destructive ? "text-red-400" : "text-white/50"
+          }`}
+        />
         <span className="font-medium">{label}</span>
       </div>
       {!destructive && <ChevronRight className="w-4 h-4 text-white/30" />}

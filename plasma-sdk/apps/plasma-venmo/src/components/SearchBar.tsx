@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, Loader2, User, ArrowUpRight, ArrowDownLeft, Link2, Clock } from "lucide-react";
+import {
+  Search,
+  X,
+  Loader2,
+  User,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Link2,
+  Clock,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 300;
@@ -51,14 +60,19 @@ interface SearchBarProps {
   className?: string;
 }
 
-export function SearchBar({ address, onSelect, placeholder = "Search...", className }: SearchBarProps) {
+export function SearchBar({
+  address,
+  onSelect,
+  placeholder = "Search...",
+  className,
+}: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  
+
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
@@ -77,59 +91,68 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
   }, []);
 
   // Save recent search
-  const saveRecentSearch = useCallback((term: string) => {
-    const updated = [term, ...recentSearches.filter(s => s !== term)].slice(0, MAX_RECENT_SEARCHES);
-    setRecentSearches(updated);
-    try {
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore localStorage errors
-    }
-  }, [recentSearches]);
+  const saveRecentSearch = useCallback(
+    (term: string) => {
+      const updated = [term, ...recentSearches.filter((s) => s !== term)].slice(
+        0,
+        MAX_RECENT_SEARCHES
+      );
+      setRecentSearches(updated);
+      try {
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+      } catch {
+        // Ignore localStorage errors
+      }
+    },
+    [recentSearches]
+  );
 
   // Search function with race condition protection
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (searchQuery.length < MIN_QUERY_LENGTH) {
-      setResults(null);
-      setLoading(false);
-      return;
-    }
-
-    // Track this request to handle race conditions
-    const thisRequestId = ++requestIdRef.current;
-    
-    setLoading(true);
-    try {
-      const url = new URL("/api/search", window.location.origin);
-      url.searchParams.set("q", searchQuery);
-      url.searchParams.set("type", "all");
-      if (address) {
-        url.searchParams.set("address", address);
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (searchQuery.length < MIN_QUERY_LENGTH) {
+        setResults(null);
+        setLoading(false);
+        return;
       }
 
-      const response = await fetch(url.toString());
-      
-      // Ignore stale responses from earlier requests
-      if (thisRequestId !== requestIdRef.current) return;
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setResults(data.results);
+      // Track this request to handle race conditions
+      const thisRequestId = ++requestIdRef.current;
+
+      setLoading(true);
+      try {
+        const url = new URL("/api/search", window.location.origin);
+        url.searchParams.set("q", searchQuery);
+        url.searchParams.set("type", "all");
+        if (address) {
+          url.searchParams.set("address", address);
+        }
+
+        const response = await fetch(url.toString());
+
+        // Ignore stale responses from earlier requests
+        if (thisRequestId !== requestIdRef.current) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setResults(data.results);
+          }
+        }
+      } catch (error) {
+        // Only log if this is still the current request
+        if (thisRequestId === requestIdRef.current) {
+          console.error("Search error:", error);
+        }
+      } finally {
+        // Only update loading if this is still the current request
+        if (thisRequestId === requestIdRef.current) {
+          setLoading(false);
         }
       }
-    } catch (error) {
-      // Only log if this is still the current request
-      if (thisRequestId === requestIdRef.current) {
-        console.error("Search error:", error);
-      }
-    } finally {
-      // Only update loading if this is still the current request
-      if (thisRequestId === requestIdRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [address]);
+    },
+    [address]
+  );
 
   // Debounced search
   useEffect(() => {
@@ -155,40 +178,40 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
   // Build flat list of all results for keyboard navigation
   const getAllItems = useCallback((): SearchResult[] => {
     const items: SearchResult[] = [];
-    
+
     if (!query && recentSearches.length > 0) {
-      recentSearches.forEach(term => {
+      recentSearches.forEach((term) => {
         items.push({ type: "recent", data: term });
       });
     }
-    
+
     if (results) {
-      results.contacts.forEach(contact => {
+      results.contacts.forEach((contact) => {
         items.push({ type: "contact", data: contact });
       });
-      results.transactions.forEach(tx => {
+      results.transactions.forEach((tx) => {
         items.push({ type: "transaction", data: tx });
       });
-      results.links.forEach(link => {
+      results.links.forEach((link) => {
         items.push({ type: "link", data: link });
       });
     }
-    
+
     return items;
   }, [query, results, recentSearches]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const items = getAllItems();
-    
+
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, items.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
         break;
       case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, -1));
+        setSelectedIndex((prev) => Math.max(prev - 1, -1));
         break;
       case "Enter":
         e.preventDefault();
@@ -242,13 +265,15 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
     inputRef.current?.focus();
   };
 
-  const showDropdown = isOpen && (
-    (query.length >= MIN_QUERY_LENGTH && (loading || results)) ||
-    (!query && recentSearches.length > 0)
-  );
+  const showDropdown =
+    isOpen &&
+    ((query.length >= MIN_QUERY_LENGTH && (loading || results)) ||
+      (!query && recentSearches.length > 0));
 
-  const total = results 
-    ? results.contacts.length + results.transactions.length + results.links.length
+  const total = results
+    ? results.contacts.length +
+      results.transactions.length +
+      results.links.length
     : 0;
 
   return (
@@ -265,7 +290,7 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-[rgb(0,212,255)]/50 focus:ring-1 focus:ring-[rgb(0,212,255)]/25 transition-all"
+          className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-plenmo-500/50 focus:ring-1 focus:ring-plenmo-500/25 transition-all"
         />
         {query && (
           <button
@@ -282,11 +307,14 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute top-full mt-2 left-0 right-0 bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 max-h-[400px] overflow-y-auto"
+          className="absolute top-full mt-2 left-0 right-0 bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl shadow-xl overflow-hidden z-50 max-h-[400px] overflow-y-auto"
         >
           {loading && (
-            <div className="flex items-center justify-center py-8" data-testid="search-loading">
-              <Loader2 className="w-5 h-5 text-[rgb(0,212,255)] animate-spin" />
+            <div
+              className="flex items-center justify-center py-8"
+              data-testid="search-loading"
+            >
+              <Loader2 className="w-5 h-5 text-plenmo-500 animate-spin" />
             </div>
           )}
 
@@ -332,20 +360,26 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
                     return (
                       <button
                         key={contact.address}
-                        onClick={() => handleSelect({ type: "contact", data: contact })}
+                        onClick={() =>
+                          handleSelect({ type: "contact", data: contact })
+                        }
                         data-selected={selectedIndex === itemIndex}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left",
                           selectedIndex === itemIndex && "bg-white/10"
                         )}
                       >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-plenmo-500/15 flex items-center justify-center">
                           <User className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-white font-medium truncate">{contact.name}</div>
+                          <div className="text-white font-medium truncate">
+                            {contact.name}
+                          </div>
                           {contact.email && (
-                            <div className="text-white/40 text-sm truncate">{contact.email}</div>
+                            <div className="text-white/40 text-sm truncate">
+                              {contact.email}
+                            </div>
                           )}
                         </div>
                       </button>
@@ -365,17 +399,23 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
                     return (
                       <button
                         key={tx.id}
-                        onClick={() => handleSelect({ type: "transaction", data: tx })}
+                        onClick={() =>
+                          handleSelect({ type: "transaction", data: tx })
+                        }
                         data-selected={selectedIndex === itemIndex}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left",
                           selectedIndex === itemIndex && "bg-white/10"
                         )}
                       >
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center",
-                          tx.type === "sent" ? "bg-red-500/20" : "bg-green-500/20"
-                        )}>
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center",
+                            tx.type === "sent"
+                              ? "bg-red-500/20"
+                              : "bg-green-500/20"
+                          )}
+                        >
                           {tx.type === "sent" ? (
                             <ArrowUpRight className="w-4 h-4 text-red-400" />
                           ) : (
@@ -384,9 +424,14 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-white font-medium truncate">
-                            {tx.memo || `${tx.type === "sent" ? "Sent to" : "From"} ${tx.counterparty}`}
+                            {tx.memo ||
+                              `${tx.type === "sent" ? "Sent to" : "From"} ${
+                                tx.counterparty
+                              }`}
                           </div>
-                          <div className="text-white/40 text-sm">${tx.amount}</div>
+                          <div className="text-white/40 text-sm">
+                            ${tx.amount}
+                          </div>
                         </div>
                       </button>
                     );
@@ -401,26 +446,34 @@ export function SearchBar({ address, onSelect, placeholder = "Search...", classN
                     Payment Links
                   </div>
                   {results.links.map((link, index) => {
-                    const itemIndex = results.contacts.length + results.transactions.length + index;
+                    const itemIndex =
+                      results.contacts.length +
+                      results.transactions.length +
+                      index;
                     return (
                       <button
                         key={link.id}
-                        onClick={() => handleSelect({ type: "link", data: link })}
+                        onClick={() =>
+                          handleSelect({ type: "link", data: link })
+                        }
                         data-selected={selectedIndex === itemIndex}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left",
                           selectedIndex === itemIndex && "bg-white/10"
                         )}
                       >
-                        <div className="w-8 h-8 rounded-full bg-[rgb(0,212,255)]/20 flex items-center justify-center">
-                          <Link2 className="w-4 h-4 text-[rgb(0,212,255)]" />
+                        <div className="w-8 h-8 rounded-full bg-plenmo-500/20 flex items-center justify-center">
+                          <Link2 className="w-4 h-4 text-plenmo-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-white font-medium truncate">
                             {link.memo || "Payment Link"}
                           </div>
                           <div className="text-white/40 text-sm">
-                            {link.amount ? `$${link.amount.toFixed(2)}` : "Any amount"} • {link.status}
+                            {link.amount
+                              ? `$${link.amount.toFixed(2)}`
+                              : "Any amount"}{" "}
+                            • {link.status}
                           </div>
                         </div>
                       </button>

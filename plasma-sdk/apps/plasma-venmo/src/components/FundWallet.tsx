@@ -35,7 +35,7 @@ const BridgeDepositModal = dynamic(
     })),
   {
     loading: () => (
-      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-white/10 rounded-lg w-1/2" />
           <div className="h-32 bg-white/10 rounded-lg" />
@@ -49,7 +49,7 @@ const BridgeDepositModal = dynamic(
 
 const ZKP2POnrampV2 = dynamic(() => import("./onramp/ZKP2POnrampV2"), {
   loading: () => (
-    <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+    <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
       <div className="animate-pulse space-y-4">
         <div className="h-8 bg-white/10 rounded-lg w-1/2" />
         <div className="h-32 bg-white/10 rounded-lg" />
@@ -179,7 +179,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         onClose={onClose || (() => undefined)}
         zIndex={120}
       >
-        <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={() => setSelectedMethod(null)}
@@ -263,7 +263,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
         onClose={onClose || (() => undefined)}
         zIndex={120}
       >
-        <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={() => setSelectedMethod(null)}
@@ -338,7 +338,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
       onClose={onClose || (() => undefined)}
       zIndex={120}
     >
-      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-w-md w-full">
+      <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6 max-w-md w-full">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Add Funds</h3>
           <button
@@ -384,7 +384,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           onClick={() => setSelectedMethod("bridge")}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all mb-3 text-left border border-white/10 hover:border-white/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
             <ArrowRightLeft className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">

@@ -143,9 +143,7 @@ export const LiveActivityFeed = memo(function LiveActivityFeed({
             <Avatar name={activity.fromName} size="sm" />
             <div
               className={`absolute -bottom-1 -right-1 p-0.5 rounded-full ${
-                activity.type === "sent"
-                  ? "bg-[rgb(0,212,255)]"
-                  : "bg-green-500"
+                activity.type === "sent" ? "bg-plenmo-500" : "bg-green-500"
               }`}
             >
               {activity.type === "sent" ? (
@@ -167,7 +165,7 @@ export const LiveActivityFeed = memo(function LiveActivityFeed({
             </p>
           </div>
 
-          <div className="text-[rgb(0,212,255)] font-semibold text-sm">
+          <div className="text-plenmo-500 font-semibold text-sm">
             ${activity.amount}
           </div>
         </div>
@@ -204,7 +202,7 @@ export function LiveCounter({ className = "" }: LiveCounterProps) {
       </div>
       <div className="w-px h-10 bg-white/10" />
       <div className="text-center">
-        <div className="text-2xl font-bold gradient-text tabular-nums">
+        <div className="text-2xl font-bold text-white tabular-nums">
           ${todayVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </div>
         <div className="text-white/40 text-sm">Volume today</div>

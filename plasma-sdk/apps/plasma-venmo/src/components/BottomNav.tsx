@@ -22,10 +22,14 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
       aria-label="Main navigation"
     >
-      <div className="bottom-nav-bar">
+      <div
+        className="flex items-center justify-around py-2 px-3 bg-[rgb(var(--bg-elevated))] border-t border-white/[0.06]"
+        style={{
+          paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
         {tabs.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id;
-          const isSend = id === "send";
 
           return (
             <button
@@ -38,19 +42,15 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               }}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
-              className={`bottom-nav-item ${isActive ? "active" : ""} ${
-                isSend ? "send-btn" : ""
-              } active:scale-95 transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black`}
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 min-h-[44px] transition-colors duration-200 ${
+                isActive ? "text-plenmo-500" : "text-white/30"
+              }`}
             >
               <Icon
-                className={`w-5 h-5 ${
-                  isSend ? "w-6 h-6" : ""
-                } transition-all duration-300`}
+                className="w-5 h-5 transition-all duration-200"
                 fill={isActive ? "currentColor" : "none"}
               />
-              <span className="text-[10px] font-semibold mt-0.5 transition-all duration-300">
-                {label}
-              </span>
+              <span className="text-[10px] font-medium mt-0.5">{label}</span>
             </button>
           );
         })}

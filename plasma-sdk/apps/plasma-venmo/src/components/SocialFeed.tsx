@@ -201,7 +201,7 @@ export const SocialFeed = memo(function SocialFeed({
           </p>
           <button
             onClick={() => setShowPrivacyModal(true)}
-            className="text-[rgb(0,212,255)] text-sm hover:underline"
+            className="text-plenmo-500 text-sm hover:underline"
           >
             Share with the community?
           </button>
@@ -215,7 +215,7 @@ export const SocialFeed = memo(function SocialFeed({
           <p className="text-white/60 text-sm mb-3">{error}</p>
           <button
             onClick={() => fetchFeed()}
-            className="text-[rgb(0,212,255)] text-sm hover:underline flex items-center gap-2 mx-auto"
+            className="text-plenmo-500 text-sm hover:underline flex items-center gap-2 mx-auto"
           >
             <RefreshCw className="w-4 h-4" />
             Try again
@@ -503,7 +503,7 @@ function ToggleOption({
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
         className={`w-12 h-7 rounded-full transition-colors ${
-          enabled ? "bg-[rgb(0,212,255)]" : "bg-white/20"
+          enabled ? "bg-plenmo-500" : "bg-white/20"
         }`}
       >
         <div
