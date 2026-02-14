@@ -406,7 +406,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           onClick={() => setSelectedMethod("card")}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors mb-3 text-left border border-white/10 hover:border-white/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0">
             <CreditCard className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">

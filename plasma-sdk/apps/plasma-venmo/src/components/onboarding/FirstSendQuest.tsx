@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FirstSendQuestProps {
   isNewUser: boolean;
@@ -10,7 +10,7 @@ interface FirstSendQuestProps {
   onSkip: () => void;
 }
 
-type QuestStep = 'welcome' | 'explain' | 'guide' | 'complete';
+type QuestStep = "welcome" | "explain" | "guide" | "complete";
 
 export function FirstSendQuest({
   isNewUser,
@@ -18,7 +18,7 @@ export function FirstSendQuest({
   onComplete,
   onSkip,
 }: FirstSendQuestProps) {
-  const [step, setStep] = useState<QuestStep>('welcome');
+  const [step, setStep] = useState<QuestStep>("welcome");
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function FirstSendQuest({
   if (!isVisible) return null;
 
   const handleNext = () => {
-    const steps: QuestStep[] = ['welcome', 'explain', 'guide', 'complete'];
+    const steps: QuestStep[] = ["welcome", "explain", "guide", "complete"];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -60,17 +60,17 @@ export function FirstSendQuest({
             exit={{ scale: 0.9, opacity: 0 }}
             className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
           >
-            {step === 'welcome' && (
+            {step === "welcome" && (
               <div className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-plenmo-500">
                   <span className="text-3xl">👋</span>
                 </div>
                 <h2 className="mb-2 text-2xl font-bold text-gray-900">
                   Welcome to Plenmo!
                 </h2>
                 <p className="mb-6 text-gray-600">
-                  Let&apos;s send your first payment in under 60 seconds.
-                  No gas fees, no complicated addresses.
+                  Let&apos;s send your first payment in under 60 seconds. No gas
+                  fees, no complicated addresses.
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -81,7 +81,7 @@ export function FirstSendQuest({
                   </button>
                   <button
                     onClick={handleNext}
-                    className="flex-1 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white transition hover:opacity-90"
+                    className="flex-1 rounded-lg bg-plenmo-500 hover:bg-plenmo-400 px-4 py-3 font-semibold text-white transition hover:opacity-90"
                   >
                     Let&apos;s go!
                   </button>
@@ -89,7 +89,7 @@ export function FirstSendQuest({
               </div>
             )}
 
-            {step === 'explain' && (
+            {step === "explain" && (
               <div className="text-center">
                 <div className="mb-6 grid grid-cols-3 gap-4">
                   <div className="rounded-xl bg-blue-50 p-4">
@@ -99,12 +99,16 @@ export function FirstSendQuest({
                   </div>
                   <div className="rounded-xl bg-green-50 p-4">
                     <div className="mb-2 text-2xl">⛽</div>
-                    <p className="text-sm font-medium text-green-900">$0 Fees</p>
+                    <p className="text-sm font-medium text-green-900">
+                      $0 Fees
+                    </p>
                     <p className="text-xs text-green-700">No gas ever</p>
                   </div>
                   <div className="rounded-xl bg-purple-50 p-4">
                     <div className="mb-2 text-2xl">⚡</div>
-                    <p className="text-sm font-medium text-purple-900">Instant</p>
+                    <p className="text-sm font-medium text-purple-900">
+                      Instant
+                    </p>
                     <p className="text-xs text-purple-700">Seconds, not days</p>
                   </div>
                 </div>
@@ -117,14 +121,14 @@ export function FirstSendQuest({
                 </p>
                 <button
                   onClick={handleNext}
-                  className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white transition hover:opacity-90"
+                  className="w-full rounded-lg bg-plenmo-500 hover:bg-plenmo-400 px-4 py-3 font-semibold text-white transition hover:opacity-90"
                 >
                   Got it! Show me how
                 </button>
               </div>
             )}
 
-            {step === 'guide' && (
+            {step === "guide" && (
               <div className="text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600">
                   <span className="text-3xl">💸</span>
@@ -133,21 +137,33 @@ export function FirstSendQuest({
                   Ready to Send?
                 </h2>
                 <p className="mb-4 text-gray-600">
-                  Try sending $1 to a friend or family member.
-                  Watch how fast and free it is!
+                  Try sending $1 to a friend or family member. Watch how fast
+                  and free it is!
                 </p>
                 <div className="mb-6 rounded-lg bg-gray-50 p-4 text-left">
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">1</span>
-                    <span className="text-gray-700">Tap the &quot;Send&quot; button</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">
+                      1
+                    </span>
+                    <span className="text-gray-700">
+                      Tap the &quot;Send&quot; button
+                    </span>
                   </div>
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">2</span>
-                    <span className="text-gray-700">Enter recipient&apos;s username or email</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">
+                      2
+                    </span>
+                    <span className="text-gray-700">
+                      Enter recipient&apos;s username or email
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">3</span>
-                    <span className="text-gray-700">Enter amount and confirm</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-sm text-white">
+                      3
+                    </span>
+                    <span className="text-gray-700">
+                      Enter amount and confirm
+                    </span>
                   </div>
                 </div>
                 <button
@@ -159,12 +175,12 @@ export function FirstSendQuest({
               </div>
             )}
 
-            {step === 'complete' && (
+            {step === "complete" && (
               <div className="text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', duration: 0.5 }}
+                  transition={{ type: "spring", duration: 0.5 }}
                   className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-600"
                 >
                   <span className="text-4xl">🎉</span>
@@ -181,7 +197,7 @@ export function FirstSendQuest({
                     onComplete();
                     setIsVisible(false);
                   }}
-                  className="w-full rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 font-semibold text-white transition hover:opacity-90"
+                  className="w-full rounded-lg bg-plenmo-500 hover:bg-plenmo-400 px-4 py-3 font-semibold text-white transition hover:opacity-90"
                 >
                   Get Started
                 </button>

@@ -25,13 +25,15 @@ function getInitials(name: string): string {
 function getAvatarColor(name: string): string {
   const colors = [
     "from-plenmo-500/40 to-purple-500/40",
-    "from-blue-500/40 to-cyan-500/40",
+    "from-teal-500/40 to-emerald-500/40",
     "from-green-500/40 to-emerald-500/40",
     "from-orange-500/40 to-amber-500/40",
     "from-pink-500/40 to-rose-500/40",
     "from-violet-500/40 to-indigo-500/40",
   ];
-  const index = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+  const index =
+    name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    colors.length;
   return colors[index];
 }
 
@@ -47,7 +49,10 @@ const ContactButton = memo(function ContactButton({
     onSelect(contact);
   }, [contact, onSelect]);
 
-  const avatarColor = useMemo(() => getAvatarColor(contact.name), [contact.name]);
+  const avatarColor = useMemo(
+    () => getAvatarColor(contact.name),
+    [contact.name]
+  );
   const initials = useMemo(() => getInitials(contact.name), [contact.name]);
   const firstName = useMemo(() => contact.name.split(" ")[0], [contact.name]);
 
@@ -58,11 +63,16 @@ const ContactButton = memo(function ContactButton({
       aria-label={`Send to ${contact.name}`}
     >
       <div className="relative">
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white text-sm font-medium group-hover:scale-105 transition-transform`}>
+        <div
+          className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColor} flex items-center justify-center text-white text-sm font-medium group-hover:scale-105 transition-transform`}
+        >
           {initials}
         </div>
         {contact.isFavorite && (
-          <Star className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400 fill-yellow-400" aria-label="Favorite" />
+          <Star
+            className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400 fill-yellow-400"
+            aria-label="Favorite"
+          />
         )}
       </div>
       <span className="text-white/80 text-xs truncate w-full text-center group-hover:text-white transition-colors">
@@ -73,7 +83,11 @@ const ContactButton = memo(function ContactButton({
 });
 
 // Loading skeleton component
-const LoadingSkeleton = memo(function LoadingSkeleton({ count }: { count: number }) {
+const LoadingSkeleton = memo(function LoadingSkeleton({
+  count,
+}: {
+  count: number;
+}) {
   return (
     <div className="flex gap-3 overflow-x-auto py-2">
       {Array.from({ length: count }).map((_, i) => (
@@ -105,7 +119,9 @@ export const RecentContacts = memo(function RecentContacts({
         if (!a.lastPayment && !b.lastPayment) return 0;
         if (!a.lastPayment) return 1;
         if (!b.lastPayment) return -1;
-        return new Date(b.lastPayment).getTime() - new Date(a.lastPayment).getTime();
+        return (
+          new Date(b.lastPayment).getTime() - new Date(a.lastPayment).getTime()
+        );
       })
       .slice(0, limit);
   }, [contacts, limit]);
@@ -121,7 +137,7 @@ export const RecentContacts = memo(function RecentContacts({
   return (
     <div className="space-y-2">
       <p className="text-white/50 text-xs font-medium">Recent</p>
-      <div 
+      <div
         className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide"
         role="list"
         aria-label="Recent contacts"
