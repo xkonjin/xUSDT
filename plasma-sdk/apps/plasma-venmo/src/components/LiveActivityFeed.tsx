@@ -125,47 +125,67 @@ export const LiveActivityFeed = memo(function LiveActivityFeed({
     );
   }
 
+  if (activities.length === 0) {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        <div className="flex items-center gap-2 text-white/30 text-xs font-body uppercase tracking-widest mb-3">
+          <Users className="w-4 h-4" />
+          <span>Recent Activity</span>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 px-4 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06]">
+          <div className="w-12 h-12 rounded-full bg-white/[0.06] flex items-center justify-center mb-3">
+            <Users className="w-5 h-5 text-white/35" />
+          </div>
+          <p className="text-white/60 text-sm font-body">No activity yet</p>
+          <p className="text-white/35 text-xs font-body mt-1">
+            Your transactions will appear here
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-2 ${className}`}>
-      <div className="flex items-center gap-2 text-white/50 text-sm mb-3">
+      <div className="flex items-center gap-2 text-white/30 text-xs font-body uppercase tracking-widest mb-3">
         <Users className="w-4 h-4" />
-        <span>Live Activity</span>
+        <span>Recent Activity</span>
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
       </div>
 
       {activities.map((activity, index) => (
         <div
           key={activity.id}
-          className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] transition-all duration-300 animate-slide-up"
+          className="flex items-center gap-3 p-3 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:bg-white/[0.06] transition-all duration-300 animate-slide-up"
           style={{ animationDelay: `${index * 50}ms` }}
         >
           <div className="relative">
             <Avatar name={activity.fromName} size="sm" />
             <div
               className={`absolute -bottom-1 -right-1 p-0.5 rounded-full ${
-                activity.type === "sent" ? "bg-plenmo-500" : "bg-green-500"
+                activity.type === "received" ? "bg-green-500" : "bg-red-500"
               }`}
             >
-              {activity.type === "sent" ? (
-                <ArrowUpRight className="w-2.5 h-2.5 text-black" />
-              ) : (
+              {activity.type === "received" ? (
                 <ArrowDownLeft className="w-2.5 h-2.5 text-white" />
+              ) : (
+                <ArrowUpRight className="w-2.5 h-2.5 text-white" />
               )}
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-sm truncate">
+            <p className="text-white text-sm truncate">
               <span className="font-medium">{activity.fromName}</span>
-              <span className="text-white/40"> paid </span>
+              <span className="text-white/60"> paid </span>
               <span className="font-medium">{activity.toName}</span>
             </p>
-            <p className="text-white/40 text-xs">
+            <p className="text-white/35 text-xs">
               {getRelativeTime(activity.timestamp)}
             </p>
           </div>
 
-          <div className="text-plenmo-500 font-semibold text-sm">
+          <div className="text-plenmo-500 font-heading font-semibold text-sm tabular-nums">
             ${activity.amount}
           </div>
         </div>
@@ -195,17 +215,19 @@ export function LiveCounter({ className = "" }: LiveCounterProps) {
   return (
     <div className={`flex items-center justify-center gap-8 ${className}`}>
       <div className="text-center">
-        <div className="text-2xl font-bold text-white tabular-nums">
+        <div className="text-2xl font-heading font-bold text-white tabular-nums">
           {count.toLocaleString()}
         </div>
-        <div className="text-white/40 text-sm">Transactions today</div>
+        <div className="text-white/60 text-sm font-body">
+          Transactions today
+        </div>
       </div>
       <div className="w-px h-10 bg-white/10" />
       <div className="text-center">
-        <div className="text-2xl font-bold text-white tabular-nums">
+        <div className="text-2xl font-heading font-bold text-white tabular-nums">
           ${todayVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </div>
-        <div className="text-white/40 text-sm">Volume today</div>
+        <div className="text-white/60 text-sm font-body">Volume today</div>
       </div>
     </div>
   );
