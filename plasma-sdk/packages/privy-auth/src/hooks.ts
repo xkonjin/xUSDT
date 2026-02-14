@@ -12,8 +12,8 @@
 "use client";
 
 import { useCallback, useMemo, useState, useEffect, useContext } from "react";
-import { 
-  usePrivy, 
+import {
+  usePrivy,
   useWallets,
   useFundWallet as usePrivyFundWallet,
   useConnectWallet as usePrivyConnectWallet,
@@ -39,6 +39,67 @@ import type {
   GaslessTransferResult,
   FundWalletOptions,
 } from "./types";
+
+// =============================================================================
+// Safe Privy Hook Wrappers
+// =============================================================================
+// When MockPrivyProvider is active (no real PrivyProvider), Privy hooks throw
+// "useWallets was called outside the Privy context". These wrappers catch
+// that throw and return safe defaults, allowing the mock check to proceed.
+// Hook call order remains consistent since the underlying hooks are always
+// invoked at the same position — they just throw deterministically in mock mode.
+
+const EMPTY_PRIVY = {
+  user: null,
+  authenticated: false,
+  ready: false,
+  login: () => {},
+  logout: async () => {},
+  linkEmail: () => {},
+  linkPhone: () => {},
+} as unknown as ReturnType<typeof usePrivy>;
+
+const EMPTY_WALLETS = { wallets: [] } as unknown as ReturnType<
+  typeof useWallets
+>;
+
+function useSafePrivy(): ReturnType<typeof usePrivy> {
+  try {
+    return usePrivy();
+  } catch {
+    return EMPTY_PRIVY;
+  }
+}
+
+function useSafeWallets(): ReturnType<typeof useWallets> {
+  try {
+    return useWallets();
+  } catch {
+    return EMPTY_WALLETS;
+  }
+}
+
+function useSafeFundWallet(): ReturnType<typeof usePrivyFundWallet> {
+  try {
+    return usePrivyFundWallet();
+  } catch {
+    return { fundWallet: async () => {} } as ReturnType<
+      typeof usePrivyFundWallet
+    >;
+  }
+}
+
+function useSafeConnectWallet(
+  opts: Parameters<typeof usePrivyConnectWallet>[0]
+): ReturnType<typeof usePrivyConnectWallet> {
+  try {
+    return usePrivyConnectWallet(opts);
+  } catch {
+    return { connectWallet: () => {} } as ReturnType<
+      typeof usePrivyConnectWallet
+    >;
+  }
+}
 
 // =============================================================================
 // Constants
@@ -78,11 +139,11 @@ const ERC20_BALANCE_ABI = [
  * @returns PlasmaWalletState with authentication and wallet info
  */
 export function usePlasmaWallet(): PlasmaWalletState {
-  // IMPORTANT: Call ALL hooks first before any conditional returns
-  // React hooks must be called in the same order on every render
+  // Call ALL hooks first before any conditional returns
+  // Safe wrappers prevent crashes when MockPrivyProvider is active (no PrivyProvider)
   const mockContext = useContext(MockWalletContext);
-  const privyData = usePrivy();
-  const walletsData = useWallets();
+  const privyData = useSafePrivy();
+  const walletsData = useSafeWallets();
 
   // Extract embedded wallet from Privy wallets array
   const embeddedWallet = useMemo(() => {
@@ -356,11 +417,10 @@ export function useUSDT0Balance() {
  * ```
  */
 export function useFundWallet() {
-  // IMPORTANT: Call ALL hooks first before any conditional returns
-  // React hooks must be called in the same order on every render
+  // Safe wrappers prevent crashes when MockPrivyProvider is active
   const mockContext = useContext(MockWalletContext);
   const { wallet } = usePlasmaWallet();
-  const { fundWallet: privyFundWallet } = usePrivyFundWallet();
+  const { fundWallet: privyFundWallet } = useSafeFundWallet();
   const [loading, setLoading] = useState(false);
 
   // Now we can safely check mock context after all hooks are called
@@ -385,14 +445,15 @@ export function useFundWallet() {
         // Privy's fundWallet takes (address, config) not {address, options}
         await privyFundWallet(wallet.address, {
           chain: plasmaMainnet,
-          asset: options?.asset === 'USDT0' 
-            ? { erc20: USDT0_ADDRESS }
-            : options?.asset === 'ETH' 
-              ? 'native-currency' 
+          asset:
+            options?.asset === "USDT0"
+              ? { erc20: USDT0_ADDRESS }
+              : options?.asset === "ETH"
+              ? "native-currency"
               : { erc20: USDT0_ADDRESS }, // Default to USDT0
           amount: options?.amount,
           defaultFundingMethod: options?.method,
-          card: options?.preferredProvider 
+          card: options?.preferredProvider
             ? { preferredProvider: options.preferredProvider }
             : undefined,
         });
@@ -425,12 +486,11 @@ export function useFundWallet() {
  * ```
  */
 export function useConnectExternalWallet() {
-  // IMPORTANT: Call ALL hooks first before any conditional returns
-  // React hooks must be called in the same order on every render
+  // Safe wrappers prevent crashes when MockPrivyProvider is active
   const mockContext = useContext(MockWalletContext);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { connectWallet: privyConnectWallet } = usePrivyConnectWallet({
+  const { connectWallet: privyConnectWallet } = useSafeConnectWallet({
     onSuccess: () => {
       setLoading(false);
       setError(null);
@@ -452,16 +512,13 @@ export function useConnectExternalWallet() {
     };
   }
 
-  const connectWallet = useCallback(
-    () => {
-      setLoading(true);
-      setError(null);
-      // Open Privy's wallet connection modal
-      // walletList is configured in PrivyProvider appearance config
-      privyConnectWallet();
-    },
-    [privyConnectWallet]
-  );
+  const connectWallet = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    // Open Privy's wallet connection modal
+    // walletList is configured in PrivyProvider appearance config
+    privyConnectWallet();
+  }, [privyConnectWallet]);
 
   return {
     connectWallet,
@@ -482,17 +539,16 @@ export function useConnectExternalWallet() {
  * ```
  */
 export function useAllWallets() {
-  // IMPORTANT: Call ALL hooks first before any conditional returns
-  // React hooks must be called in the same order on every render
+  // Safe wrappers prevent crashes when MockPrivyProvider is active
   const mockContext = useContext(MockWalletContext);
-  const { wallets } = useWallets();
-  
+  const { wallets } = useSafeWallets();
+
   const embeddedWallet = useMemo(() => {
-    return wallets.find(w => w.walletClientType === 'privy') ?? null;
+    return wallets.find((w) => w.walletClientType === "privy") ?? null;
   }, [wallets]);
 
   const externalWallets = useMemo(() => {
-    return wallets.filter(w => w.walletClientType !== 'privy');
+    return wallets.filter((w) => w.walletClientType !== "privy");
   }, [wallets]);
 
   // Now we can safely check mock context after all hooks are called
