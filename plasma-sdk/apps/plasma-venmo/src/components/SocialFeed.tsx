@@ -309,7 +309,7 @@ const FeedCard = memo(function FeedCard({
   const isOutgoing = item.type === "payment" || item.type === "request";
 
   return (
-    <div className="clay p-4 transition-all duration-200 hover:scale-[1.01]">
+    <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-4 transition-all duration-200 hover:scale-[1.01]">
       <div className="flex items-start gap-3">
         <div className="relative">
           <Avatar name={item.user.name} size="md" />
@@ -358,7 +358,7 @@ const FeedCard = memo(function FeedCard({
               <MessageCircle className="w-4 h-4" />
             </button>
 
-            <span className="text-white/30 text-xs ml-auto">
+            <span className="text-white/30 text-xs ml-auto tabular-nums">
               {getRelativeTime(item.timestamp)}
             </span>
           </div>
@@ -502,13 +502,13 @@ function ToggleOption({
       <button
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
-        className={`w-12 h-7 rounded-full transition-colors ${
+        className={`relative w-12 h-6 rounded-full transition-colors ${
           enabled ? "bg-plenmo-500" : "bg-white/20"
-        }`}
+        } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
       >
-        <div
-          className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-            enabled ? "translate-x-6" : "translate-x-1"
+        <span
+          className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+            enabled ? "translate-x-6" : ""
           }`}
         />
       </button>

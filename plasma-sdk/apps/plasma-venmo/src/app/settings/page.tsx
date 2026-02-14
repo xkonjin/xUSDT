@@ -168,7 +168,7 @@ export default function SettingsPage() {
               {/* Profile Tab */}
               {activeTab === "profile" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="font-heading font-semibold text-white text-sm uppercase tracking-wider mb-4">
                     Profile Settings
                   </h2>
 
@@ -232,11 +232,11 @@ export default function SettingsPage() {
               {/* Notifications Tab */}
               {activeTab === "notifications" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="font-heading font-semibold text-white text-sm uppercase tracking-wider mb-4">
                     Notification Preferences
                   </h2>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 divide-y divide-white/[0.06]">
                     <ToggleSetting
                       label="Email Notifications"
                       description="Receive important updates via email"
@@ -262,11 +262,11 @@ export default function SettingsPage() {
               {/* Security Tab */}
               {activeTab === "security" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="font-heading font-semibold text-white text-sm uppercase tracking-wider mb-4">
                     Security Settings
                   </h2>
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 divide-y divide-white/[0.06]">
                     <ToggleSetting
                       label="Two-Factor Authentication"
                       description="Add an extra layer of security to your account"
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                       comingSoon
                     />
 
-                    <div className="p-4 rounded-2xl bg-white/5">
+                    <div className="p-4 rounded-2xl bg-white/5 pt-8">
                       <h3 className="text-white font-medium mb-2">
                         Connected Devices
                       </h3>
@@ -294,7 +294,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-white/5">
+                    <div className="p-4 rounded-2xl bg-white/5 pt-8">
                       <h3 className="text-white font-medium mb-2">
                         Export Private Key
                       </h3>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
               {/* General Tab */}
               {activeTab === "general" && (
                 <div className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="font-heading font-semibold text-white text-sm uppercase tracking-wider mb-4">
                     General Settings
                   </h2>
 
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                     </select>
                   </div>
 
-                  <div className="pt-4 border-t border-white/10">
+                  <div className="pt-4 border-t border-white/[0.06]">
                     <h3 className="text-white font-medium mb-2">Danger Zone</h3>
                     <button
                       onClick={() => {
@@ -364,7 +364,7 @@ export default function SettingsPage() {
               )}
 
               {/* Save Button */}
-              <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="mt-8 pt-6 border-t border-white/[0.06]">
                 <button
                   onClick={handleSave}
                   disabled={saving}
@@ -410,7 +410,7 @@ function ToggleSetting({
 }) {
   return (
     <div
-      className={`flex items-center justify-between p-4 rounded-2xl bg-white/5 ${
+      className={`flex items-center justify-between py-4 first:pt-0 ${
         disabled ? "opacity-60" : ""
       }`}
     >
