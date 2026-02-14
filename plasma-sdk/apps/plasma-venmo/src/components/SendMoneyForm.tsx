@@ -603,49 +603,48 @@ export function SendMoneyForm({
         <div>
           <label
             htmlFor="amount-input"
-            className="block text-white/60 text-sm mb-2 font-medium"
+            className="block text-white/60 text-sm mb-3 font-medium text-center"
           >
             How much?
           </label>
-          <div className="relative">
-            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40" />
-            <input
-              id="amount-input"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              aria-label="Payment amount in USD"
-              aria-invalid={
-                amountTooSmall || amountTooLarge || insufficientBalance
-              }
-              aria-describedby={
-                amountTooSmall || amountTooLarge || insufficientBalance
-                  ? "amount-error"
-                  : undefined
-              }
-              className={`clay-input w-full pl-14 pr-16 text-3xl font-bold ${
-                amountTooSmall || amountTooLarge || insufficientBalance
-                  ? "border-amber-500/50"
-                  : ""
-              }`}
-              disabled={loading}
-            />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 font-medium text-sm">
-              USD
-            </span>
+          <div className="relative text-center mb-6">
+            <div className="flex items-center justify-center">
+              <span className="text-4xl md:text-5xl font-heading text-white/40">
+                $
+              </span>
+              <input
+                id="amount-input"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                step="0.01"
+                min="0"
+                aria-label="Payment amount in USD"
+                aria-invalid={
+                  amountTooSmall || amountTooLarge || insufficientBalance
+                }
+                aria-describedby={
+                  amountTooSmall || amountTooLarge || insufficientBalance
+                    ? "amount-error"
+                    : undefined
+                }
+                className={`bg-transparent border-none text-4xl md:text-5xl font-heading font-bold text-white text-center w-auto min-w-[120px] max-w-full focus:outline-none focus:ring-0 p-0 ${
+                  amountTooSmall || amountTooLarge || insufficientBalance
+                    ? "text-amber-400"
+                    : ""
+                }`}
+                style={{
+                  width: `${Math.max(120, (amount.length || 1) * 36)}px`,
+                }}
+                disabled={loading}
+              />
+            </div>
+            <p className="text-white/30 text-sm mt-2">USD</p>
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-3">
-            {[
-              { amt: 5, emoji: "☕" },
-              { amt: 10, emoji: "🍕" },
-              { amt: 25, emoji: "🎬" },
-              { amt: 50, emoji: "🎁" },
-              { amt: 100, emoji: "🎉" },
-            ].map(({ amt, emoji }) => (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {[5, 10, 25, 50, 100].map((amt) => (
               <button
                 key={amt}
                 type="button"
@@ -653,16 +652,26 @@ export function SendMoneyForm({
                   setAmount(amt.toString());
                   playSound("tap");
                 }}
-                className={`py-2.5 px-3 rounded-xl text-sm font-semibold transition-all flex-1 min-w-[72px] flex flex-col items-center justify-center ${
+                className={`py-3 px-4 rounded-xl text-sm font-semibold transition-all flex-1 min-w-[64px] ${
                   amount === amt.toString()
                     ? "bg-plenmo-500 text-black"
-                    : "bg-white/10 text-white hover:bg-white/20"
+                    : "bg-white/5 border border-white/[0.06] text-white/80 hover:bg-white/10"
                 }`}
+                style={{ minHeight: "48px" }}
               >
-                <span className="block text-base mb-0.5">{emoji}</span>${amt}
+                ${amt}
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <input
+            type="text"
+            placeholder="What's this for? (optional)"
+            className="clay-input w-full"
+            disabled={loading}
+          />
         </div>
 
         {(insufficientBalance || amountTooSmall || amountTooLarge) &&
@@ -711,25 +720,30 @@ export function SendMoneyForm({
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="w-full clay-button clay-button-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <Send className="w-5 h-5" />
-          {amount && parseFloat(amount) > 0
-            ? `Review $${parseFloat(amount).toFixed(2)} Payment`
-            : "Review Payment"}
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex-1 clay-button clay-button-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ minHeight: "48px" }}
+          >
+            <Send className="w-5 h-5" />
+            Send
+          </button>
+          <button
+            type="button"
+            disabled={!canSubmit}
+            className="flex-1 bg-white/5 border border-white/[0.06] text-white/80 rounded-xl font-semibold py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+            style={{ minHeight: "48px" }}
+          >
+            <DollarSign className="w-5 h-5" />
+            Request
+          </button>
+        </div>
 
-        <div className="flex items-center justify-center gap-4 pt-1">
-          <p className="text-white/40 text-xs flex items-center gap-1.5 font-body">
-            <span className="w-1.5 h-1.5 rounded-full bg-plenmo-500" />
-            0.5% network fee
-          </p>
-          <p className="text-white/40 text-xs flex items-center gap-1.5 font-body">
-            <Zap className="w-3 h-3 text-plenmo-400" />
-            Instant delivery
+        <div className="text-center">
+          <p className="text-white/40 text-xs font-body">
+            Zero fees · Instant delivery
           </p>
         </div>
       </form>
