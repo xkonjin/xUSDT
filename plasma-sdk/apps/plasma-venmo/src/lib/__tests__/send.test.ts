@@ -119,7 +119,7 @@ describe("sendMoney", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Recipient not found",
+      error: "Recipient not found. Check the address or email and try again.",
     });
   });
 
@@ -191,7 +191,7 @@ describe("sendMoney", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Transfer failed",
+      error: "Something went wrong. Please try again.",
     });
   });
 
@@ -272,7 +272,7 @@ describe("sendMoney", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Claim failed",
+      error: "Something went wrong. Please try again.",
     });
   });
 });

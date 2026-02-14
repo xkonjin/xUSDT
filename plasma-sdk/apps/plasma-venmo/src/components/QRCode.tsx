@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import dynamic from "next/dynamic";
 import { QrCode, Copy, Check, X, Download, Share2 } from "lucide-react";
 import { copyToClipboard } from "@/lib/utils";
 import { ModalPortal } from "./ui/ModalPortal";
+
+const QRCodeSVG = dynamic(
+  () => import("qrcode.react").then((mod) => ({ default: mod.QRCodeSVG })),
+  {
+    loading: () => (
+      <div className="w-[200px] h-[200px] bg-white/10 rounded-lg animate-pulse" />
+    ),
+    ssr: false,
+  }
+);
 
 interface QRCodeButtonProps {
   walletAddress?: string;
@@ -47,7 +57,9 @@ interface QRCodeModalProps {
 function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
   const [copied, setCopied] = useState(false);
 
-  const paymentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay?to=${walletAddress}`;
+  const paymentUrl = `${
+    typeof window !== "undefined" ? window.location.origin : ""
+  }/pay?to=${walletAddress}`;
 
   const handleCopy = async () => {
     const success = await copyToClipboard(walletAddress);
@@ -99,7 +111,12 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
   };
 
   return (
-    <ModalPortal isOpen={true} onClose={onClose} zIndex={110} wrapperClassName="max-w-sm">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose}
+      zIndex={110}
+      wrapperClassName="max-w-sm"
+    >
       <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
         <button
           onClick={onClose}
@@ -182,8 +199,13 @@ interface QRCodeDisplayProps {
   size?: number;
 }
 
-export function QRCodeDisplay({ walletAddress, amount, memo, size = 150 }: QRCodeDisplayProps) {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+export function QRCodeDisplay({
+  walletAddress,
+  amount,
+  memo,
+  size = 150,
+}: QRCodeDisplayProps) {
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   let paymentUrl = `${baseUrl}/pay?to=${walletAddress}`;
   if (amount) paymentUrl += `&amount=${amount}`;
   if (memo) paymentUrl += `&memo=${encodeURIComponent(memo)}`;

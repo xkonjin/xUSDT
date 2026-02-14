@@ -665,6 +665,20 @@ h6 {
   }
 }
 
+@keyframes success-scale {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -734,6 +748,10 @@ h6 {
 
 .animate-success-bounce {
   animation: success-bounce 0.5s ease-out forwards;
+}
+
+.animate-success-scale {
+  animation: success-scale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-spin {

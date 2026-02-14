@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Avatar } from "./ui/Avatar";
 import { ArrowUpRight, ArrowDownLeft, Users } from "lucide-react";
 
@@ -16,9 +16,33 @@ interface ActivityItem {
 
 // Simulated live feed data (in production, this would come from WebSocket/SSE)
 const mockActivity: ActivityItem[] = [
-  { id: "1", type: "sent", fromName: "Alex", toName: "Jordan", amount: "25.00", timestamp: Date.now() - 30000, isPublic: true },
-  { id: "2", type: "sent", fromName: "Sam", toName: "Riley", amount: "10.00", timestamp: Date.now() - 120000, isPublic: true },
-  { id: "3", type: "sent", fromName: "Casey", toName: "Morgan", amount: "50.00", timestamp: Date.now() - 300000, isPublic: true },
+  {
+    id: "1",
+    type: "sent",
+    fromName: "Alex",
+    toName: "Jordan",
+    amount: "25.00",
+    timestamp: Date.now() - 30000,
+    isPublic: true,
+  },
+  {
+    id: "2",
+    type: "sent",
+    fromName: "Sam",
+    toName: "Riley",
+    amount: "10.00",
+    timestamp: Date.now() - 120000,
+    isPublic: true,
+  },
+  {
+    id: "3",
+    type: "sent",
+    fromName: "Casey",
+    toName: "Morgan",
+    amount: "50.00",
+    timestamp: Date.now() - 300000,
+    isPublic: true,
+  },
 ];
 
 interface LiveActivityFeedProps {
@@ -26,7 +50,10 @@ interface LiveActivityFeedProps {
   maxItems?: number;
 }
 
-export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityFeedProps) {
+export const LiveActivityFeed = memo(function LiveActivityFeed({
+  className = "",
+  maxItems = 3,
+}: LiveActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,9 +70,18 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
   // Simulate new activity coming in
   useEffect(() => {
     const interval = setInterval(() => {
-      const names = ["Alex", "Jordan", "Sam", "Riley", "Casey", "Morgan", "Taylor", "Quinn"];
+      const names = [
+        "Alex",
+        "Jordan",
+        "Sam",
+        "Riley",
+        "Casey",
+        "Morgan",
+        "Taylor",
+        "Quinn",
+      ];
       const amounts = ["5.00", "10.00", "15.00", "20.00", "25.00", "50.00"];
-      
+
       const newActivity: ActivityItem = {
         id: Date.now().toString(),
         type: "sent",
@@ -56,7 +92,7 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
         isPublic: true,
       };
 
-      setActivities(prev => [newActivity, ...prev.slice(0, maxItems - 1)]);
+      setActivities((prev) => [newActivity, ...prev.slice(0, maxItems - 1)]);
     }, 8000 + Math.random() * 7000); // Random interval 8-15s
 
     return () => clearInterval(interval);
@@ -74,7 +110,10 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
     return (
       <div className={`space-y-3 ${className}`}>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 animate-pulse">
+          <div
+            key={i}
+            className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 animate-pulse"
+          >
             <div className="w-10 h-10 rounded-full bg-white/10" />
             <div className="flex-1">
               <div className="h-4 w-32 bg-white/10 rounded mb-2" />
@@ -93,7 +132,7 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
         <span>Live Activity</span>
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
       </div>
-      
+
       {activities.map((activity, index) => (
         <div
           key={activity.id}
@@ -102,9 +141,13 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
         >
           <div className="relative">
             <Avatar name={activity.fromName} size="sm" />
-            <div className={`absolute -bottom-1 -right-1 p-0.5 rounded-full ${
-              activity.type === "sent" ? "bg-[rgb(0,212,255)]" : "bg-green-500"
-            }`}>
+            <div
+              className={`absolute -bottom-1 -right-1 p-0.5 rounded-full ${
+                activity.type === "sent"
+                  ? "bg-[rgb(0,212,255)]"
+                  : "bg-green-500"
+              }`}
+            >
               {activity.type === "sent" ? (
                 <ArrowUpRight className="w-2.5 h-2.5 text-black" />
               ) : (
@@ -112,7 +155,7 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
               )}
             </div>
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <p className="text-white/80 text-sm truncate">
               <span className="font-medium">{activity.fromName}</span>
@@ -123,7 +166,7 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
               {getRelativeTime(activity.timestamp)}
             </p>
           </div>
-          
+
           <div className="text-[rgb(0,212,255)] font-semibold text-sm">
             ${activity.amount}
           </div>
@@ -131,7 +174,7 @@ export function LiveActivityFeed({ className = "", maxItems = 3 }: LiveActivityF
       ))}
     </div>
   );
-}
+});
 
 interface LiveCounterProps {
   className?: string;
@@ -139,13 +182,13 @@ interface LiveCounterProps {
 
 export function LiveCounter({ className = "" }: LiveCounterProps) {
   const [count, setCount] = useState(12847);
-  const [todayVolume, setTodayVolume] = useState(48392.50);
+  const [todayVolume, setTodayVolume] = useState(48392.5);
 
   useEffect(() => {
     // Simulate live updates
     const interval = setInterval(() => {
-      setCount(prev => prev + Math.floor(Math.random() * 3));
-      setTodayVolume(prev => prev + Math.random() * 50);
+      setCount((prev) => prev + Math.floor(Math.random() * 3));
+      setTodayVolume((prev) => prev + Math.random() * 50);
     }, 5000 + Math.random() * 5000);
 
     return () => clearInterval(interval);
