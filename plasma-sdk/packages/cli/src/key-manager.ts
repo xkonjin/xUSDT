@@ -14,12 +14,18 @@ import {
   createDecipheriv,
   randomBytes,
   scrypt,
+  type ScryptOptions,
 } from "crypto";
 import { promisify } from "util";
 import type { Hex, Address } from "viem";
 import type { WalletConfig } from "./types";
 
-const scryptAsync = promisify(scrypt);
+const scryptAsync = promisify(scrypt) as (
+  password: string | Buffer,
+  salt: string | Buffer,
+  keylen: number,
+  options: ScryptOptions
+) => Promise<Buffer>;
 
 const SERVICE_NAME = "plasma-pay";
 const ENCRYPTION_ALGORITHM = "aes-256-gcm";
@@ -143,7 +149,8 @@ export class KeyManager {
       const account = privateKeyToAccount(key as Hex);
       return { valid: true, address: account.address };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Invalid private key";
+      const message =
+        error instanceof Error ? error.message : "Invalid private key";
       return { valid: false, error: message };
     }
   }

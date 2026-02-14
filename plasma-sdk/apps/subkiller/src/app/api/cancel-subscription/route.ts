@@ -1,28 +1,33 @@
 /**
  * Subscription Cancellation API Endpoint
- * 
+ *
  * SUB-004: Implement subscription cancellation via email
  * POST /api/cancel-subscription - Generate cancellation email and track attempt
  * GET /api/cancel-subscription - Get cancellation status for subscriptions
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import type { Session } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { 
-  generateCancellationEmailTemplate, 
-  trackCancellationAttempt, 
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+interface SessionWithToken {
+  accessToken?: string;
+  user?: { name?: string | null; email?: string | null; image?: string | null };
+  expires: string;
+}
+import {
+  generateCancellationEmailTemplate,
+  trackCancellationAttempt,
   getCancellationStatus,
   getCancellationAttempts,
   type CancellationStatus,
-} from '@/lib/cancellation-email';
-import type { Subscription } from '@/types';
+} from "@/lib/cancellation-email";
+import type { Subscription } from "@/types";
 
 // Type for request body
 interface CancelSubscriptionRequest {
   subscription: Subscription;
-  action: 'preview' | 'send' | 'copy' | 'status';
+  action: "preview" | "send" | "copy" | "status";
   walletAddress?: string;
 }
 
@@ -32,11 +37,13 @@ interface CancelSubscriptionRequest {
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions)) as Session | null;
-    
+    const session = (await getServerSession(
+      authOptions
+    )) as SessionWithToken | null;
+
     if (!session?.accessToken) {
       return NextResponse.json(
-        { error: 'Unauthorized - please sign in with Google' },
+        { error: "Unauthorized - please sign in with Google" },
         { status: 401 }
       );
     }
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (!subscription) {
       return NextResponse.json(
-        { error: 'Subscription data is required' },
+        { error: "Subscription data is required" },
         { status: 400 }
       );
     }
@@ -55,18 +62,18 @@ export async function POST(req: NextRequest) {
     const emailTemplate = await generateCancellationEmailTemplate(subscription);
 
     // If just previewing, return the template without tracking
-    if (action === 'preview') {
+    if (action === "preview") {
       return NextResponse.json({
         success: true,
         template: emailTemplate,
-        action: 'preview',
+        action: "preview",
       });
     }
 
     // For other actions, we need a wallet address for tracking
     if (!walletAddress) {
       return NextResponse.json(
-        { error: 'Wallet address is required for tracking cancellation' },
+        { error: "Wallet address is required for tracking cancellation" },
         { status: 400 }
       );
     }
@@ -74,26 +81,33 @@ export async function POST(req: NextRequest) {
     // Map action to cancellation status
     let status: CancellationStatus;
     switch (action) {
-      case 'send':
-        status = 'email_sent';
+      case "send":
+        status = "email_sent";
         break;
-      case 'copy':
-        status = 'copied';
+      case "copy":
+        status = "copied";
         break;
-      case 'status': {
+      case "status": {
         // Just get current status
-        const currentStatus = await getCancellationStatus(walletAddress, subscription.id);
+        const currentStatus = await getCancellationStatus(
+          walletAddress,
+          subscription.id
+        );
         return NextResponse.json({
           success: true,
           status: currentStatus,
         });
       }
       default:
-        status = 'pending';
+        status = "pending";
     }
 
     // Track the cancellation attempt
-    const attempt = await trackCancellationAttempt(walletAddress, subscription, status);
+    const attempt = await trackCancellationAttempt(
+      walletAddress,
+      subscription,
+      status
+    );
 
     return NextResponse.json({
       success: true,
@@ -102,9 +116,14 @@ export async function POST(req: NextRequest) {
       action,
     });
   } catch (error) {
-    console.error('Cancel subscription error:', error);
+    console.error("Cancel subscription error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process cancellation request' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to process cancellation request",
+      },
       { status: 500 }
     );
   }
@@ -116,22 +135,24 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions)) as Session | null;
-    
+    const session = (await getServerSession(
+      authOptions
+    )) as SessionWithToken | null;
+
     if (!session?.accessToken) {
       return NextResponse.json(
-        { error: 'Unauthorized - please sign in with Google' },
+        { error: "Unauthorized - please sign in with Google" },
         { status: 401 }
       );
     }
 
     const { searchParams } = new URL(req.url);
-    const walletAddress = searchParams.get('address');
-    const subscriptionId = searchParams.get('subscriptionId');
+    const walletAddress = searchParams.get("address");
+    const subscriptionId = searchParams.get("subscriptionId");
 
     if (!walletAddress) {
       return NextResponse.json(
-        { error: 'Wallet address is required' },
+        { error: "Wallet address is required" },
         { status: 400 }
       );
     }
@@ -152,9 +173,14 @@ export async function GET(req: NextRequest) {
       attempts,
     });
   } catch (error) {
-    console.error('Get cancellation status error:', error);
+    console.error("Get cancellation status error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get cancellation status' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get cancellation status",
+      },
       { status: 500 }
     );
   }

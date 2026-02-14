@@ -358,6 +358,8 @@ export class PlasmaGasManager {
       if (allowance < refillAmount) {
         this.log("Approving USDT0 for swap router");
         const approveHash = await this.walletClient.writeContract({
+          account: this.account!,
+          chain: plasma,
           address: USDT0_ADDRESS,
           abi: ERC20_ABI,
           functionName: "approve",
@@ -376,6 +378,8 @@ export class PlasmaGasManager {
       // Execute swap with deadline
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes
       const txHash = await this.walletClient.writeContract({
+        account: this.account!,
+        chain: plasma,
         address: GAS_SWAP_ROUTER,
         abi: SWAP_ROUTER_ABI,
         functionName: "swapExactTokensForETH",

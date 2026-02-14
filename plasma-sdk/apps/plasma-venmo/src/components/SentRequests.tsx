@@ -2,7 +2,7 @@
 
 /**
  * SentRequests Component
- * 
+ *
  * Displays payment requests the user has sent to others.
  * Includes a "Copy Link" button to re-share the payment link.
  */
@@ -30,6 +30,7 @@ interface SentRequest {
 
 interface SentRequestsProps {
   walletAddress: Address | undefined;
+  onRefresh?: () => void;
 }
 
 export function SentRequests({ walletAddress }: SentRequestsProps) {
@@ -49,7 +50,9 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/requests?address=${walletAddress}&type=sent`);
+      const response = await fetch(
+        `/api/requests?address=${walletAddress}&type=sent`
+      );
       if (!response.ok) {
         throw new Error("Failed to load requests");
       }
@@ -72,8 +75,10 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
   async function copyPaymentLink(request: SentRequest) {
     // Generate a pay link for this request
     const baseUrl = window.location.origin;
-    const payLink = `${baseUrl}/pay?to=${walletAddress}&amount=${request.amount}&memo=${encodeURIComponent(request.memo || '')}`;
-    
+    const payLink = `${baseUrl}/pay?to=${walletAddress}&amount=${
+      request.amount
+    }&memo=${encodeURIComponent(request.memo || "")}`;
+
     await navigator.clipboard.writeText(payLink);
     setCopiedId(request.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -124,8 +129,8 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
   }
 
   // Filter to only pending requests for this view
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  
+  const pendingRequests = requests.filter((r) => r.status === "pending");
+
   if (pendingRequests.length === 0) {
     return null;
   }
@@ -143,7 +148,7 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
       <div className="space-y-3">
         {pendingRequests.map((request) => {
           const recipientName = request.toIdentifier;
-          
+
           return (
             <div
               key={request.id}
@@ -151,7 +156,7 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
             >
               <div className="flex items-center gap-4">
                 <Avatar name={recipientName} size="lg" />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-xl text-white font-heading">
@@ -159,11 +164,11 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
                     </span>
                     <span className="text-white/40 text-sm font-body">USD</span>
                   </div>
-                  
+
                   <p className="text-white/60 text-sm truncate font-body">
                     To: {request.toIdentifier}
                   </p>
-                  
+
                   {request.memo && (
                     <p className="text-white/40 text-xs mt-1 truncate italic font-body">
                       &ldquo;{request.memo}&rdquo;
@@ -176,8 +181,8 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
                   onClick={() => copyPaymentLink(request)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all font-body ${
                     copiedId === request.id
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-white/10 hover:bg-plenmo-500/20 text-white/70 hover:text-plenmo-400'
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-white/10 hover:bg-plenmo-500/20 text-white/70 hover:text-plenmo-400"
                   }`}
                   aria-label={`Copy payment link for $${request.amount} request`}
                 >
@@ -194,7 +199,7 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
                   )}
                 </button>
               </div>
-              
+
               <div className="flex items-center gap-1 mt-3 text-white/30 text-xs font-body">
                 <Clock className="w-3 h-3" />
                 <span>Expires {formatRelativeTime(request.expiresAt)}</span>
@@ -203,7 +208,7 @@ export function SentRequests({ walletAddress }: SentRequestsProps) {
           );
         })}
       </div>
-      
+
       <p className="text-white/30 text-xs text-center mt-4 font-body">
         Copy the link and share it via text, DM, or any messaging app
       </p>

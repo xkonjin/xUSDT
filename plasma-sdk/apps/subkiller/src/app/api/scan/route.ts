@@ -1,18 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import type { Session } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { fetchSubscriptionEmails } from '@/lib/gmail';
-import { detectSubscriptions, calculateTotals } from '@/lib/subscription-detector';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { fetchSubscriptionEmails } from "@/lib/gmail";
+import {
+  detectSubscriptions,
+  calculateTotals,
+} from "@/lib/subscription-detector";
+
+interface SessionWithToken {
+  accessToken?: string;
+  user?: { name?: string | null; email?: string | null; image?: string | null };
+  expires: string;
+}
 
 export async function POST(req: NextRequest) {
   void req;
   try {
-    const session = (await getServerSession(authOptions)) as Session | null;
-    
+    const session = (await getServerSession(
+      authOptions
+    )) as SessionWithToken | null;
+
     if (!session?.accessToken) {
       return NextResponse.json(
-        { error: 'Unauthorized - no access token' },
+        { error: "Unauthorized - no access token" },
         { status: 401 }
       );
     }
@@ -36,9 +46,9 @@ export async function POST(req: NextRequest) {
       scanDuration,
     });
   } catch (error) {
-    console.error('Scan error:', error);
+    console.error("Scan error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Scan failed' },
+      { error: error instanceof Error ? error.message : "Scan failed" },
       { status: 500 }
     );
   }

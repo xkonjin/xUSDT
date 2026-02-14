@@ -25,7 +25,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get("address");
-    const role = (searchParams.get("role") || "sending") as "sending" | "receiving";
+    const role = (searchParams.get("role") || "sending") as
+      | "sending"
+      | "receiving";
 
     if (!address) {
       return NextResponse.json(
@@ -141,7 +143,7 @@ export async function POST(request: Request) {
       stream: result.stream,
       txHash: result.txHash,
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       {
         error:

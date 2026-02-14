@@ -1,32 +1,32 @@
 /**
  * SubKiller Dashboard Page
- * 
+ *
  * Main dashboard for subscription scanning and management.
  * Features:
  * - Gmail email scanning for subscription detection
  * - AI-powered categorization and cost estimation
  * - One-time payment to unlock cancellation features
  * - Direct links to cancel subscriptions
- * 
+ *
  * Authentication:
  * - NextAuth (Google OAuth) for Gmail access
  * - Privy wallet for USDT0 payments
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Card, CardContent } from '@/components/ui/Card';
-import { SubscriptionCard } from '@/components/SubscriptionCard';
-import { PaymentModal } from '@/components/PaymentModal';
-import { ScanProgress } from '@/components/ScanProgress';
-import { DollarSign, Scan, Filter, LogOut, CheckCircle } from 'lucide-react';
-import { signOut } from 'next-auth/react';
-import type { Subscription } from '@/types';
-import { calculateTotals } from '@/lib/subscription-detector';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Card, CardContent } from "@/components/ui/Card";
+import { SubscriptionCard } from "@/components/SubscriptionCard";
+import { PaymentModal } from "@/components/PaymentModal";
+import { ScanProgress } from "@/components/ScanProgress";
+import { DollarSign, Scan, Filter, LogOut, CheckCircle } from "lucide-react";
+import { signOut } from "next-auth/react";
+import type { Subscription } from "@/types";
+import { calculateTotals } from "@/lib/subscription-detector";
 
 // Conditionally import Privy hook - may not be available if not configured
 type WalletState = {
@@ -37,8 +37,8 @@ type WalletState = {
 
 let usePlasmaWallet: (() => WalletState) | null = null;
 
-if (typeof window !== 'undefined') {
-  import('@plasma-pay/privy-auth')
+if (typeof window !== "undefined") {
+  import("@plasma-pay/privy-auth")
     .then((privyAuth) => {
       usePlasmaWallet = privyAuth.usePlasmaWallet as () => WalletState;
     })
@@ -57,31 +57,33 @@ export default function Dashboard() {
   // NextAuth session for Gmail access
   const { data: session, status } = useSession();
   const router = useRouter();
-  
+
   // Privy wallet for payments (may be null if not configured)
   const walletState = (usePlasmaWallet ?? useFallbackWallet)();
   const wallet = walletState?.wallet || null;
   const isWalletConnected = walletState?.authenticated || false;
   const connectWallet = walletState?.login || (() => {});
-  
+
   // Scanning state
   const [isScanning, setIsScanning] = useState(false);
-  const [scanStage, setScanStage] = useState<'connecting' | 'fetching' | 'analyzing' | 'complete'>('connecting');
+  const [scanStage, setScanStage] = useState<
+    "connecting" | "fetching" | "analyzing" | "complete"
+  >("connecting");
   const [scanProgress, setScanProgress] = useState(0);
   const [emailsScanned, setEmailsScanned] = useState(0);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  
+
   // Payment state
   const [hasPaid, setHasPaid] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
+
   // Filter state
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState<string>("all");
 
   // Redirect to home if not authenticated with Google
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
+    if (status === "unauthenticated") {
+      router.push("/");
     }
   }, [status, router]);
 
@@ -95,13 +97,15 @@ export default function Dashboard() {
       }
 
       try {
-        const response = await fetch(`/api/payment-status?address=${wallet.address}`);
+        const response = await fetch(
+          `/api/payment-status?address=${wallet.address}`
+        );
         if (response.ok) {
           const data = await response.json();
           setHasPaid(data.hasPaid || false);
         }
       } catch (error) {
-        console.error('Failed to check payment status:', error);
+        console.error("Failed to check payment status:", error);
       }
     };
 
@@ -114,7 +118,7 @@ export default function Dashboard() {
    */
   const startScan = async () => {
     setIsScanning(true);
-    setScanStage('connecting');
+    setScanStage("connecting");
     setScanProgress(0);
     setEmailsScanned(0);
     setSubscriptions([]);
@@ -122,19 +126,19 @@ export default function Dashboard() {
     try {
       // Stage 1: Connecting to Gmail
       setScanProgress(10);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
 
       // Stage 2: Fetching subscription emails
-      setScanStage('fetching');
+      setScanStage("fetching");
       setScanProgress(30);
 
-      const scanResponse = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const scanResponse = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!scanResponse.ok) {
-        throw new Error('Scan failed');
+        throw new Error("Scan failed");
       }
 
       const scanData = await scanResponse.json();
@@ -142,11 +146,11 @@ export default function Dashboard() {
       setScanProgress(60);
 
       // Stage 3: AI Analysis and Categorization
-      setScanStage('analyzing');
-      
-      const categorizeResponse = await fetch('/api/categorize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      setScanStage("analyzing");
+
+      const categorizeResponse = await fetch("/api/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscriptions: scanData.subscriptions }),
       });
 
@@ -154,11 +158,11 @@ export default function Dashboard() {
       setScanProgress(90);
 
       // Stage 4: Complete
-      setScanStage('complete');
+      setScanStage("complete");
       setScanProgress(100);
       setSubscriptions(categorized.subscriptions);
 
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 500));
     } catch {
       // Silent fail - scan can be retried
     } finally {
@@ -190,23 +194,23 @@ export default function Dashboard() {
     }
     // Open cancellation URL in new tab
     if (sub.unsubscribeUrl) {
-      window.open(sub.unsubscribeUrl, '_blank');
+      window.open(sub.unsubscribeUrl, "_blank");
     }
   };
 
   // Calculate spending totals
   const totals = calculateTotals(subscriptions);
-  
+
   // Filter subscriptions by category
-  const filteredSubscriptions = subscriptions.filter(sub => 
-    filter === 'all' || sub.category === filter
+  const filteredSubscriptions = subscriptions.filter(
+    (sub) => filter === "all" || sub.category === filter
   );
 
   // Get unique categories for filter buttons
-  const categories = [...new Set(subscriptions.map(s => s.category))];
+  const categories = [...new Set(subscriptions.map((s) => s.category))];
 
   // Loading state while checking authentication
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="animate-spin w-8 h-8 border-2 border-[rgb(0,212,255)] border-t-transparent rounded-full" />
@@ -222,7 +226,9 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-white">SubKiller</h1>
             {session?.user?.email && (
-              <span className="text-sm text-gray-400">{session.user.email}</span>
+              <span className="text-sm text-gray-400">
+                {session.user.email}
+              </span>
             )}
             {hasPaid && (
               <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/20 px-2 py-1 rounded-full">
@@ -248,7 +254,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Monthly Spending</p>
-                <p className="text-2xl font-bold text-white">${totals.monthly.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-white">
+                  ${totals.monthly.toFixed(2)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -260,7 +268,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Yearly Total</p>
-                <p className="text-2xl font-bold text-white">${totals.yearly.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-white">
+                  ${totals.yearly.toFixed(2)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -272,7 +282,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-sm text-gray-400">Subscriptions Found</p>
-                <p className="text-2xl font-bold text-white">{subscriptions.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  {subscriptions.length}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -294,10 +306,13 @@ export default function Dashboard() {
               <div className="w-16 h-16 rounded-full bg-[rgb(0,212,255)]/20 flex items-center justify-center mx-auto">
                 <Scan className="w-8 h-8 text-[rgb(0,212,255)]" />
               </div>
-              <h2 className="text-xl font-semibold text-white">Ready to Scan</h2>
+              <h2 className="text-xl font-semibold text-white">
+                Ready to Scan
+              </h2>
               <p className="text-gray-400 max-w-md mx-auto">
-                Click below to scan your Gmail and discover all your hidden subscriptions.
-                We will analyze your emails and categorize them automatically.
+                Click below to scan your Gmail and discover all your hidden
+                subscriptions. We will analyze your emails and categorize them
+                automatically.
               </p>
               <Button size="lg" onClick={startScan}>
                 <Scan className="w-5 h-5 mr-2" />
@@ -316,19 +331,20 @@ export default function Dashboard() {
               <div className="flex gap-2 flex-wrap">
                 <Button
                   size="sm"
-                  variant={filter === 'all' ? 'primary' : 'outline'}
-                  onClick={() => setFilter('all')}
+                  variant={filter === "all" ? "primary" : "outline"}
+                  onClick={() => setFilter("all")}
                 >
                   All ({subscriptions.length})
                 </Button>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <Button
                     key={cat}
                     size="sm"
-                    variant={filter === cat ? 'primary' : 'outline'}
+                    variant={filter === cat ? "primary" : "outline"}
                     onClick={() => setFilter(cat)}
                   >
-                    {cat} ({subscriptions.filter(s => s.category === cat).length})
+                    {cat} (
+                    {subscriptions.filter((s) => s.category === cat).length})
                   </Button>
                 ))}
               </div>
@@ -342,7 +358,7 @@ export default function Dashboard() {
 
             {/* Subscriptions List */}
             <div className="space-y-4">
-              {filteredSubscriptions.map(sub => (
+              {filteredSubscriptions.map((sub) => (
                 <SubscriptionCard
                   key={sub.id}
                   subscription={sub}
@@ -361,7 +377,7 @@ export default function Dashboard() {
         onPaymentSuccess={handlePaymentSuccess}
         subscriptionCount={subscriptions.length}
         estimatedSavings={totals.monthly * 0.3} // Assume 30% potential savings
-        wallet={wallet}
+        wallet={wallet as React.ComponentProps<typeof PaymentModal>["wallet"]}
         isWalletConnected={isWalletConnected}
         connectWallet={connectWallet}
       />

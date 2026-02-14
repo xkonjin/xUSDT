@@ -54,11 +54,7 @@ const fadeUp = {
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } =
     usePlasmaWallet();
-  const {
-    formatted,
-    refresh,
-    loading: balanceLoading,
-  } = useUSDT0Balance();
+  const { formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
   const [activeFormTab, setActiveFormTab] = useState<"send" | "request">(
     "send"
   );
@@ -66,6 +62,8 @@ export default function HomePage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showAddContact, setShowAddContact] = useState(false);
 
   // Refs for scroll targets
   const formSectionRef = useRef<HTMLDivElement>(null);

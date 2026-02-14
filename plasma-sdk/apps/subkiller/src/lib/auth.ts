@@ -1,17 +1,17 @@
 /**
  * NextAuth Configuration for SubKiller
- * 
+ *
  * Handles Google OAuth authentication for Gmail access.
  * Scopes include gmail.readonly for subscription email scanning.
- * 
+ *
  * Required environment variables:
  * - GOOGLE_CLIENT_ID: Google OAuth client ID
  * - GOOGLE_CLIENT_SECRET: Google OAuth client secret
  * - NEXTAUTH_SECRET: Secret for encrypting session tokens
  */
 
-import { type AuthOptions } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
+import { type AuthOptions, type Session } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
 
 /**
  * Check if Google OAuth is configured
@@ -28,7 +28,7 @@ const getGoogleClientId = (): string => {
     return process.env.GOOGLE_CLIENT_ID;
   }
   // Return a placeholder - the app will show a setup message instead
-  return 'not-configured';
+  return "not-configured";
 };
 
 /**
@@ -39,7 +39,7 @@ const getGoogleClientSecret = (): string => {
     return process.env.GOOGLE_CLIENT_SECRET;
   }
   // Return a placeholder - the app will show a setup message instead
-  return 'not-configured';
+  return "not-configured";
 };
 
 /**
@@ -49,34 +49,35 @@ const getSecret = (): string | undefined => {
   if (process.env.NEXTAUTH_SECRET) {
     return process.env.NEXTAUTH_SECRET;
   }
-  
-  if (process.env.NODE_ENV === 'development') {
+
+  if (process.env.NODE_ENV === "development") {
     console.warn(
-      '[NextAuth] Using development secret. Set NEXTAUTH_SECRET in production!'
+      "[NextAuth] Using development secret. Set NEXTAUTH_SECRET in production!"
     );
-    return 'dev-secret-subkiller-do-not-use-in-production';
+    return "dev-secret-subkiller-do-not-use-in-production";
   }
-  
+
   return undefined;
 };
 
 export const authOptions: AuthOptions = {
   secret: getSecret(),
-  
+
   providers: [
     GoogleProvider({
       clientId: getGoogleClientId(),
       clientSecret: getGoogleClientSecret(),
       authorization: {
         params: {
-          scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
-          access_type: 'offline',
-          prompt: 'consent',
+          scope:
+            "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          access_type: "offline",
+          prompt: "consent",
         },
       },
     }),
   ],
-  
+
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -86,18 +87,18 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
-    
+
     async session({ session, token }) {
       const sessionWithToken = session as Session & { accessToken?: string };
       sessionWithToken.accessToken = token.accessToken as string | undefined;
       return sessionWithToken;
     },
   },
-  
+
   pages: {
-    signIn: '/',
-    error: '/',
+    signIn: "/",
+    error: "/",
   },
-  
-  debug: process.env.NODE_ENV === 'development',
+
+  debug: process.env.NODE_ENV === "development",
 };

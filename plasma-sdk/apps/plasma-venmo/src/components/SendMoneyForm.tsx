@@ -321,6 +321,8 @@ export function SendMoneyForm({
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [lastRecipient, setLastRecipient] = useState<string | null>(null);
 
   const {
     onSuccess: assistantSuccess,
