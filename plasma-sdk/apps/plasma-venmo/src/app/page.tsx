@@ -280,13 +280,11 @@ export default function HomePage() {
         <motion.button
           onClick={() => setNavTab("send")}
           whileTap={{ scale: 0.97 }}
-          className="quick-action-btn"
+          className="flex flex-col items-center justify-center gap-2 min-h-[48px] p-3 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
           aria-label="Send money"
         >
-          <div className="w-12 h-12 rounded-full bg-plenmo-500 flex items-center justify-center">
-            <Send className="w-5 h-5 text-black" />
-          </div>
-          <span className="text-white/60 text-xs font-medium font-body mt-2">
+          <Send className="w-5 h-5 text-plenmo-500" />
+          <span className="text-white/60 text-xs font-medium font-body">
             Send
           </span>
         </motion.button>
@@ -296,26 +294,22 @@ export default function HomePage() {
             setNavTab("send");
           }}
           whileTap={{ scale: 0.97 }}
-          className="quick-action-btn"
+          className="flex flex-col items-center justify-center gap-2 min-h-[48px] p-3 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
           aria-label="Request money"
         >
-          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-            <HandCoins className="w-5 h-5 text-white/80" />
-          </div>
-          <span className="text-white/60 text-xs font-medium font-body mt-2">
+          <HandCoins className="w-5 h-5 text-white/60" />
+          <span className="text-white/60 text-xs font-medium font-body">
             Request
           </span>
         </motion.button>
         <motion.button
           onClick={() => {}}
           whileTap={{ scale: 0.97 }}
-          className="quick-action-btn"
+          className="flex flex-col items-center justify-center gap-2 min-h-[48px] p-3 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
           aria-label="Add funds"
         >
-          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-white/80" />
-          </div>
-          <span className="text-white/60 text-xs font-medium font-body mt-2">
+          <DollarSign className="w-5 h-5 text-white/60" />
+          <span className="text-white/60 text-xs font-medium font-body">
             Add Funds
           </span>
         </motion.button>
@@ -324,7 +318,7 @@ export default function HomePage() {
       {/* Quick Contacts */}
       <motion.div variants={fadeUp} className="clay-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white/40 text-xs font-semibold font-body tracking-widest uppercase">
+          <h3 className="text-white/30 text-xs font-body uppercase tracking-widest">
             Quick Send
           </h3>
           <button
