@@ -11,6 +11,11 @@ import { SendMoneyForm } from "../SendMoneyForm";
 // Mock dependencies
 jest.mock("@/lib/send", () => ({
   sendMoney: jest.fn(),
+  calculateRelayFee: jest.fn((amount: bigint) => {
+    const bpsFee = (amount * BigInt(50)) / 10000n;
+    const minFee = BigInt(10000);
+    return bpsFee > minFee ? bpsFee : minFee;
+  }),
 }));
 
 jest.mock("@/lib/sounds", () => ({
@@ -51,14 +56,14 @@ jest.mock("../RecentContacts", () => ({
 }));
 
 describe("SendMoneyForm", () => {
-  const mockWallet = {
+  const mockWallet: { address: string } = {
     address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-  } as any;
+  };
 
   const defaultProps = {
     wallet: mockWallet,
     balance: "100.00",
-    contacts: [] as any[],
+    contacts: [] as Array<Record<string, unknown>>,
     contactsLoading: false,
   };
 
@@ -264,8 +269,8 @@ describe("SendMoneyForm", () => {
     expect(reviewButton).toBeDisabled();
   });
 
-  it("should show zero fees text", () => {
+  it("should show network fee text", () => {
     render(<SendMoneyForm {...defaultProps} />);
-    expect(screen.getByText(/zero fees/i)).toBeInTheDocument();
+    expect(screen.getByText(/0\.5% network fee/i)).toBeInTheDocument();
   });
 });

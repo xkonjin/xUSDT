@@ -48,9 +48,9 @@ export class ConfigManager {
     const activeAddress = this.config.get("activeWallet");
     if (!activeAddress) return undefined;
 
-    const wallets = this.config.get("wallets", []);
+    const wallets = this.config.get("wallets", []) as WalletConfig[];
     return wallets.find(
-      (w: any) => w.address.toLowerCase() === activeAddress.toLowerCase()
+      (w) => w.address.toLowerCase() === activeAddress.toLowerCase()
     );
   }
 
@@ -65,9 +65,9 @@ export class ConfigManager {
    * Add a wallet
    */
   addWallet(wallet: WalletConfig): void {
-    const wallets = this.config.get("wallets", []);
+    const wallets = this.config.get("wallets", []) as WalletConfig[];
     const existing = wallets.findIndex(
-      (w: any) => w.address.toLowerCase() === wallet.address.toLowerCase()
+      (w) => w.address.toLowerCase() === wallet.address.toLowerCase()
     );
 
     if (existing >= 0) {
@@ -88,9 +88,9 @@ export class ConfigManager {
    * Remove a wallet
    */
   removeWallet(address: string): boolean {
-    const wallets = this.config.get("wallets", []);
+    const wallets = this.config.get("wallets", []) as WalletConfig[];
     const filtered = wallets.filter(
-      (w: any) => w.address.toLowerCase() !== address.toLowerCase()
+      (w) => w.address.toLowerCase() !== address.toLowerCase()
     );
 
     if (filtered.length === wallets.length) return false;
@@ -110,16 +110,16 @@ export class ConfigManager {
    * List all wallets
    */
   listWallets(): WalletConfig[] {
-    return this.config.get("wallets", []);
+    return this.config.get("wallets", []) as WalletConfig[];
   }
 
   /**
    * Update wallet
    */
   updateWallet(address: string, updates: Partial<WalletConfig>): void {
-    const wallets = this.config.get("wallets", []);
+    const wallets = this.config.get("wallets", []) as WalletConfig[];
     const index = wallets.findIndex(
-      (w: any) => w.address.toLowerCase() === address.toLowerCase()
+      (w) => w.address.toLowerCase() === address.toLowerCase()
     );
 
     if (index >= 0) {

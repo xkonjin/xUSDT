@@ -5,6 +5,10 @@
 
 type SoundType = 'success' | 'error' | 'send' | 'receive' | 'tap';
 
+interface WebkitAudioWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 // Sound enabled state (persisted)
 let soundEnabled = true;
 
@@ -14,7 +18,10 @@ let audioContext: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextCtor = window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext;
+    if (AudioContextCtor) {
+      audioContext = new AudioContextCtor();
+    }
   }
   return audioContext;
 }
@@ -94,7 +101,7 @@ const sounds: Record<SoundType, () => void> = {
 export function playSound(type: SoundType): void {
   try {
     sounds[type]?.();
-  } catch (e) {
+  } catch {
     // Silently fail - audio not critical
   }
 }

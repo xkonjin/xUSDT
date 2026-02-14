@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Wallet, ExternalLink, Check, AlertCircle, Loader2 } from "lucide-react";
+import { X, Check, AlertCircle, Loader2 } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
+
+interface EthereumProvider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
+interface EthereumWindow extends Window {
+  ethereum?: EthereumProvider;
+}
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -19,7 +27,7 @@ const WALLETS = [
 ];
 
 export function WalletModal({ isOpen, onClose }: WalletModalProps) {
-  const { login, connectWallet, authenticated, user } = usePrivy();
+  const { connectWallet } = usePrivy();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [networkAdded, setNetworkAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,17 +57,19 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
       setTimeout(() => {
         onClose();
       }, 1500);
-    } catch (err: any) {
-      setError(err?.message || "Failed to connect wallet");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to connect wallet";
+      setError(message);
     } finally {
       setConnecting(null);
     }
   };
 
   const addPlasmaNetwork = async () => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
+    const ethereum = typeof window !== "undefined" ? (window as EthereumWindow).ethereum : undefined;
+    if (ethereum) {
       try {
-        await (window as any).ethereum.request({
+        await ethereum.request({
           method: "wallet_addEthereumChain",
           params: [{
             chainId: `0x${(9745).toString(16)}`,
@@ -73,8 +83,8 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             blockExplorerUrls: ["https://explorer.plasma.to"],
           }],
         });
-      } catch (err) {
-        console.log("Network may already be added");
+      } catch (error) {
+        console.warn("Network may already be added:", error);
       }
     }
   };

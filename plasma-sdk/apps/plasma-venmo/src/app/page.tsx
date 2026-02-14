@@ -28,7 +28,6 @@ import {
   EyeOff,
   AlertCircle,
   DollarSign,
-  Link2,
 } from "lucide-react";
 import { SocialFeed } from "@/components/SocialFeed";
 import { SentRequests } from "@/components/SentRequests";
@@ -55,20 +54,16 @@ const fadeUp = {
 export default function HomePage() {
   const { user, authenticated, ready, wallet, login, logout } =
     usePlasmaWallet();
-  const {
-    balance,
-    formatted,
-    refresh,
-    loading: balanceLoading,
-  } = useUSDT0Balance();
+  const { formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
   const [activeFormTab, setActiveFormTab] = useState<"send" | "request">(
     "send"
   );
   const [navTab, setNavTab] = useState<NavTab>("home");
-  const [showAddContact, setShowAddContact] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [showAddContact, setShowAddContact] = useState(false);
 
   // Refs for scroll targets
   const formSectionRef = useRef<HTMLDivElement>(null);
@@ -136,15 +131,6 @@ export default function HomePage() {
     await refresh();
     setTimeout(() => setIsRefreshing(false), 1000);
   }, [refresh]);
-
-  // Handle form tab change with scroll
-  const handleFormTabChange = useCallback(
-    (tab: "send" | "request") => {
-      setActiveFormTab(tab);
-      scrollToForm();
-    },
-    [scrollToForm]
-  );
 
   // Handle QR button click
   const handleQRClick = useCallback(() => {

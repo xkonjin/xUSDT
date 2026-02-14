@@ -6,6 +6,9 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useAllWallets } from '@plasma-pay/privy-auth';
+
+const mockedUseAllWallets = useAllWallets as jest.Mock;
 
 // Mock Privy hooks
 jest.mock('@plasma-pay/privy-auth', () => ({
@@ -191,8 +194,7 @@ describe('BridgeDepositModal with connected wallet', () => {
     jest.clearAllMocks();
     
     // Mock connected wallet
-    const privyAuth = require('@plasma-pay/privy-auth');
-    privyAuth.useAllWallets.mockReturnValue({
+    mockedUseAllWallets.mockReturnValue({
       wallets: [{
         address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb7',
         walletClientType: 'metamask',

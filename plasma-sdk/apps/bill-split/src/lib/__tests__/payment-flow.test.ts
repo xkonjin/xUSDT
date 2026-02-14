@@ -44,7 +44,6 @@ describe('Payment Flow Logic', () => {
     });
 
     it('should transition from pending to processing for cross-chain', () => {
-      const initialStatus = 'pending';
       const hasCrossChainTx = true;
       const hasDestTx = false;
       
@@ -54,7 +53,6 @@ describe('Payment Flow Logic', () => {
     });
 
     it('should transition from pending to completed for same-chain', () => {
-      const initialStatus = 'pending';
       const hasDestTx = true;
       
       // Expected: when dest tx exists, status = completed

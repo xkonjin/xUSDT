@@ -93,15 +93,15 @@ export function MarketDepth({ liquidity, yesPrice, noPrice, betAmount, outcome }
       <div className="p-3 bg-white/5 rounded-xl">
         <p className="text-xs text-white/40 mb-2">Order Book Depth</p>
         <div className="space-y-1">
-          <OrderBookBar side="YES" price={yesPrice} depth={liquidity * yesPrice} />
-          <OrderBookBar side="NO" price={noPrice} depth={liquidity * noPrice} />
+          <OrderBookBar side="YES" price={yesPrice} />
+          <OrderBookBar side="NO" price={noPrice} />
         </div>
       </div>
     </div>
   );
 }
 
-function OrderBookBar({ side, price, depth }: { side: string; price: number; depth: number }) {
+function OrderBookBar({ side, price }: { side: string; price: number }) {
   const width = Math.min(price * 100, 100);
   return (
     <div className="flex items-center gap-2">

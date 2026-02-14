@@ -1,28 +1,34 @@
 /**
  * Bills API
- * 
+ *
  * Handles creating and listing bills.
- * 
+ *
  * Endpoints:
  * - POST /api/bills - Create a new bill
  * - GET /api/bills - List bills for a user
  */
 
-import { NextResponse } from 'next/server';
-import { prisma } from '@plasma-pay/db';
-import { validateBillCreate, ValidationError } from '@/lib/validation';
+import { NextResponse } from "next/server";
+import { prisma } from "@plasma-pay/db";
+import {
+  validateBillCreate,
+  ValidationError,
+  type BillCreateInput,
+  type BillItem,
+  type BillParticipant,
+} from "@/lib/validation";
 
 /**
  * POST /api/bills
- * 
+ *
  * Creates a new bill with items and participants.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Validate and sanitize input
-    let validatedData;
+    let validatedData: BillCreateInput;
     try {
       validatedData = validateBillCreate(body);
     } catch (error) {
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
       }
       throw error;
     }
-    
+
     const {
       creatorAddress,
       title,
@@ -59,17 +65,17 @@ export async function POST(request: Request) {
         tip: tip || 0,
         tipPercent: tipPercent || 0,
         total: total || 0,
-        currency: 'USDT0',
-        status: 'draft',
+        currency: "USDT0",
+        status: "draft",
         items: {
-          create: items.map((item: any) => ({
+          create: items.map((item: BillItem) => ({
             name: item.name,
             price: item.price,
             quantity: item.quantity || 1,
           })),
         },
         participants: {
-          create: participants.map((p: any) => ({
+          create: participants.map((p: BillParticipant) => ({
             name: p.name,
             email: p.email,
             phone: p.phone,
@@ -86,22 +92,22 @@ export async function POST(request: Request) {
 
     // Create a map for item ID lookup (new IDs from database)
     const itemIdMap: Record<string, string> = {};
-    items.forEach((origItem: any, index: number) => {
-      itemIdMap[origItem.id] = bill.items[index].id;
+    items.forEach((origItem: BillItem, index: number) => {
+      if (origItem.id) itemIdMap[origItem.id] = bill.items[index].id;
     });
 
     // Create a map for participant ID lookup
     const participantIdMap: Record<string, string> = {};
-    participants.forEach((origP: any, index: number) => {
-      participantIdMap[origP.id] = bill.participants[index].id;
+    participants.forEach((origP: BillParticipant, index: number) => {
+      if (origP.id) participantIdMap[origP.id] = bill.participants[index].id;
     });
 
     // Create item assignments
     const assignments: { itemId: string; participantId: string }[] = [];
-    items.forEach((origItem: any) => {
-      if (origItem.assignedToParticipantIds) {
+    items.forEach((origItem: BillItem) => {
+      if (origItem.assignedToParticipantIds && origItem.id) {
         origItem.assignedToParticipantIds.forEach((origPid: string) => {
-          const newItemId = itemIdMap[origItem.id];
+          const newItemId = itemIdMap[origItem.id!];
           const newPid = participantIdMap[origPid];
           if (newItemId && newPid) {
             assignments.push({ itemId: newItemId, participantId: newPid });
@@ -138,14 +144,18 @@ export async function POST(request: Request) {
     }
 
     // Add proportional tax and tip to each participant's share
-    const totalItems = bill.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const totalItems = bill.items.reduce(
+      (sum, i) => sum + i.price * i.quantity,
+      0
+    );
     if (totalItems > 0) {
       const taxRatio = (tax || 0) / totalItems;
       const tipRatio = (tip || 0) / totalItems;
 
       for (const pid of Object.keys(participantShares)) {
         const itemsShare = participantShares[pid];
-        participantShares[pid] = itemsShare + itemsShare * taxRatio + itemsShare * tipRatio;
+        participantShares[pid] =
+          itemsShare + itemsShare * taxRatio + itemsShare * tipRatio;
       }
     }
 
@@ -162,7 +172,7 @@ export async function POST(request: Request) {
     // Activate the bill
     await prisma.bill.update({
       where: { id: bill.id },
-      data: { status: 'active' },
+      data: { status: "active" },
     });
 
     // Fetch updated bill
@@ -179,9 +189,9 @@ export async function POST(request: Request) {
       bill: updatedBill,
     });
   } catch (error) {
-    console.error('Create bill error:', error);
+    console.error("Create bill error:", error);
     return NextResponse.json(
-      { error: 'Failed to create bill' },
+      { error: "Failed to create bill" },
       { status: 500 }
     );
   }
@@ -189,17 +199,17 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/bills
- * 
+ *
  * Lists bills for a creator.
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const address = searchParams.get('address');
+    const address = searchParams.get("address");
 
     if (!address) {
       return NextResponse.json(
-        { error: 'address query parameter is required' },
+        { error: "address query parameter is required" },
         { status: 400 }
       );
     }
@@ -207,7 +217,7 @@ export async function GET(request: Request) {
     const bills = await prisma.bill.findMany({
       where: { creatorAddress: address },
       include: { participants: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json({
@@ -223,11 +233,10 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('List bills error:', error);
+    console.error("List bills error:", error);
     return NextResponse.json(
-      { error: 'Failed to list bills' },
+      { error: "Failed to list bills" },
       { status: 500 }
     );
   }
 }
-

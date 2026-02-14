@@ -6,8 +6,6 @@ import { Search, SlidersHorizontal, Grid, List } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MarketCard, MarketCardSkeleton, MarketCardCompact } from "@/components/MarketCard";
-import { CategoryTabs } from "@/components/CategoryTabs";
-import { SearchBar } from "@/components/SearchBar";
 import { BettingModal } from "@/components/BettingModal";
 import { useMarkets } from "@/hooks/useMarkets";
 import type { MarketCategory, MarketSortBy } from "@/lib/types";

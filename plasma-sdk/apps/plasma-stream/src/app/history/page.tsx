@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ArrowUpRight, ArrowDownLeft, Clock, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
@@ -40,7 +40,7 @@ const mockTransactions: Transaction[] = [
 ];
 
 export default function HistoryPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [transactions] = useState<Transaction[]>(mockTransactions);
   const [filter, setFilter] = useState<"all" | "create" | "withdraw" | "cancel">("all");
 
   const filtered = filter === "all" 

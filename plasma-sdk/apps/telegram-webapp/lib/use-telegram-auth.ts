@@ -112,7 +112,7 @@ export function useTelegramAuth() {
           startParam: null,
         });
       }
-    } catch (error) {
+    } catch {
       setState({
         isLoading: false,
         isAuthenticated: false,

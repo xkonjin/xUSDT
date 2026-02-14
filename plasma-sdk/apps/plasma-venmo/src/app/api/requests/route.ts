@@ -15,13 +15,28 @@ import {
   notifications as notifyHelpers,
   type PaymentRequest,
 } from "@plasma-pay/db";
-import type { Address } from "viem";
 import {
   checkRateLimit,
   rateLimitResponse,
   validateAddress,
 } from "@/lib/api-utils";
 import { RATE_LIMIT_CONFIGS } from "@/lib/rate-limiter";
+
+type RequestSummary = {
+  id: string;
+  fromAddress: string;
+  toIdentifier: string;
+  amount: number;
+  currency: string;
+  memo: string | null;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  paidAt?: string;
+  txHash?: string | null;
+  toAddress?: string | null;
+  fromEmail?: string | null;
+};
 
 /**
  * POST /api/requests
@@ -232,8 +247,8 @@ export async function GET(request: Request) {
     const normalizedAddress = addrValidation.normalized!;
 
     const results: {
-      sent: any[];
-      received: any[];
+      sent: RequestSummary[];
+      received: RequestSummary[];
     } = {
       sent: [],
       received: [],
@@ -264,7 +279,9 @@ export async function GET(request: Request) {
 
     // Get received requests
     if (type === "all" || type === "received") {
-      const whereConditions: any[] = [{ toAddress: normalizedAddress }];
+      const whereConditions: Array<{ toAddress?: string; toIdentifier?: string }> = [
+        { toAddress: normalizedAddress },
+      ];
 
       if (email) {
         whereConditions.push({ toIdentifier: email.toLowerCase() });

@@ -1,6 +1,10 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { OfflineIndicator } from "../OfflineIndicator";
+import { isOnline, setupNetworkListeners } from "@/lib/pwa";
+
+const mockedIsOnline = isOnline as jest.Mock;
+const mockedSetupNetworkListeners = setupNetworkListeners as jest.Mock;
 
 // Mock PWA utilities
 jest.mock("@/lib/pwa", () => ({
@@ -14,8 +18,7 @@ describe("OfflineIndicator", () => {
   });
 
   it("does not render when online by default", () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
 
     render(<OfflineIndicator />);
     expect(screen.queryByText("Back online")).not.toBeInTheDocument();
@@ -25,9 +28,8 @@ describe("OfflineIndicator", () => {
   });
 
   it("shows offline message when initially offline", () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
-    setupNetworkListeners.mockReturnValue(jest.fn());
+    mockedIsOnline.mockReturnValue(false);
+    mockedSetupNetworkListeners.mockReturnValue(jest.fn());
 
     render(<OfflineIndicator />);
     // Component renders because online=false, even though showMessage=false
@@ -37,11 +39,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("shows online message when coming back online", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOnlineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation((onOnline: () => void) => {
+    mockedSetupNetworkListeners.mockImplementation((onOnline: () => void) => {
       onOnlineCallback = onOnline;
       return () => {};
     });
@@ -60,11 +61,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("shows offline message when going offline", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOfflineCallback = onOffline;
         return () => {};
@@ -85,11 +85,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("hides online message after 3 seconds", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOnlineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation((onOnline: () => void) => {
+    mockedSetupNetworkListeners.mockImplementation((onOnline: () => void) => {
       onOnlineCallback = onOnline;
       return () => {};
     });
@@ -115,11 +114,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("applies correct styling for online state", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOnlineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation((onOnline: () => void) => {
+    mockedSetupNetworkListeners.mockImplementation((onOnline: () => void) => {
       onOnlineCallback = onOnline;
       return () => {};
     });
@@ -138,11 +136,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("applies correct styling for offline state", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOfflineCallback = onOffline;
         return () => {};
@@ -165,11 +162,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("shows green indicator for online state", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOnlineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation((onOnline: () => void) => {
+    mockedSetupNetworkListeners.mockImplementation((onOnline: () => void) => {
       onOnlineCallback = onOnline;
       return () => {};
     });
@@ -187,11 +183,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("shows orange indicator for offline state", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOfflineCallback = onOffline;
         return () => {};
@@ -211,8 +206,7 @@ describe("OfflineIndicator", () => {
   });
 
   it("sets up network listeners on mount", () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
 
     render(<OfflineIndicator />);
 
@@ -223,10 +217,9 @@ describe("OfflineIndicator", () => {
   });
 
   it("cleans up network listeners on unmount", () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
     const cleanup = jest.fn();
-    setupNetworkListeners.mockReturnValue(cleanup);
+    mockedSetupNetworkListeners.mockReturnValue(cleanup);
 
     const { unmount } = render(<OfflineIndicator />);
 
@@ -236,12 +229,11 @@ describe("OfflineIndicator", () => {
   });
 
   it("handles rapid online/offline switches", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(true);
+    mockedIsOnline.mockReturnValue(true);
     let onOnlineCallback: (() => void) | null = null;
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOnlineCallback = onOnline;
         onOfflineCallback = onOffline;
@@ -274,11 +266,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("has correct positioning", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOfflineCallback = onOffline;
         return () => {};
@@ -305,11 +296,10 @@ describe("OfflineIndicator", () => {
   });
 
   it("applies transition classes", async () => {
-    const { isOnline, setupNetworkListeners } = require("@/lib/pwa");
-    isOnline.mockReturnValue(false);
+    mockedIsOnline.mockReturnValue(false);
     let onOfflineCallback: (() => void) | null = null;
 
-    setupNetworkListeners.mockImplementation(
+    mockedSetupNetworkListeners.mockImplementation(
       (onOnline: () => void, onOffline: () => void) => {
         onOfflineCallback = onOffline;
         return () => {};

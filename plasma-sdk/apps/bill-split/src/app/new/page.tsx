@@ -15,7 +15,7 @@
  */
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuid } from "uuid";
 import {
@@ -65,7 +65,6 @@ const STEPS = [
 ] as const;
 
 export default function NewBillPage() {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Wizard state
@@ -307,7 +306,13 @@ export default function NewBillPage() {
         id: result.bill.id,
         title,
         total,
-        participants: result.bill.participants.map((p: any) => ({
+        participants: (result.bill?.participants ?? []).map((p: {
+          id: string;
+          name: string;
+          color: string;
+          share: number;
+          paid: boolean;
+        }) => ({
           id: p.id,
           name: p.name,
           color: p.color,
@@ -482,11 +487,14 @@ export default function NewBillPage() {
                 </div>
               ) : receiptPreview ? (
                 <div className="space-y-3">
-                  <div className="relative rounded-xl overflow-hidden">
-                    <img 
-                      src={receiptPreview} 
-                      alt="Receipt" 
-                      className="w-full h-32 object-cover opacity-60"
+                  <div className="relative h-32 w-full rounded-xl overflow-hidden">
+                    <Image
+                      src={receiptPreview}
+                      alt="Receipt"
+                      fill
+                      sizes="100vw"
+                      className="object-cover opacity-60"
+                      unoptimized
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">

@@ -1,5 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
-import React, { type ReactNode } from 'react'
+import { renderHook, act } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { usePriceUpdates, usePriceConnection } from '../usePriceUpdates'
 import { PriceUpdaterProvider, usePriceUpdaterContext } from '@/lib/price-updater-context'
 import type { PriceUpdate, ConnectionStatus } from '@/lib/price-updater'

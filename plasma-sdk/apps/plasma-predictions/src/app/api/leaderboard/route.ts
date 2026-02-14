@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const users = getLeaderboardData();
 
     // Sort based on sortBy parameter
-    let sortedUsers = [...users];
+    const sortedUsers = [...users];
     switch (sortBy) {
       case "volume":
         sortedUsers.sort((a, b) => b.totalVolume - a.totalVolume);

@@ -22,10 +22,7 @@ import "@testing-library/jest-dom";
 import {
   createMockWallet,
   createMockPaymentLink,
-  mockFetchSuccess,
-  mockFetchError,
   TEST_ADDRESSES,
-  TEST_AMOUNTS,
 } from "./test-utils";
 
 // ============================================================================
@@ -60,6 +57,8 @@ jest.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
 }));
+
+type ClipboardWithWriteText = Clipboard & { writeText: jest.Mock };
 
 // Clipboard mock - we'll set this up more carefully to avoid conflicts
 let mockWriteText: jest.Mock;
@@ -304,10 +303,8 @@ function PaymentLinksTestComponent({
 
 function PayViaLinkTestComponent({
   linkId = "test-link",
-  linkData = createMockPaymentLink(),
 }: {
   linkId?: string;
-  linkData?: ReturnType<typeof createMockPaymentLink>;
 }) {
   const [link, setLink] = React.useState<ReturnType<
     typeof createMockPaymentLink
@@ -482,7 +479,7 @@ describe("Payment Links Flow E2E Tests", () => {
       });
     } else {
       // Just mock the writeText function if clipboard exists
-      (navigator.clipboard as any).writeText = mockWriteText;
+      (navigator.clipboard as ClipboardWithWriteText).writeText = mockWriteText;
     }
   });
 

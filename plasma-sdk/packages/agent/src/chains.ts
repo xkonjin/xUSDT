@@ -155,7 +155,7 @@ export const EXPLORER_URLS: Record<number, string> = {
  */
 export function getChainName(chainId: number): string {
   const entry = Object.entries(SUPPORTED_CHAINS).find(
-    ([_, id]) => id === chainId
+    ([, id]) => id === chainId
   );
   return entry ? entry[0] : `Unknown (${chainId})`;
 }

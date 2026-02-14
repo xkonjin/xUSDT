@@ -87,7 +87,7 @@ describe('Auth Module', () => {
       }));
       
       // Re-import with fresh module state
-      const { verifyPrivyToken: freshVerify, AuthError: FreshAuthError } = require('../auth');
+      const { verifyPrivyToken: freshVerify, AuthError: FreshAuthError } = await import('../auth');
       
       delete process.env.PRIVY_APP_ID;
       delete process.env.PRIVY_APP_SECRET;

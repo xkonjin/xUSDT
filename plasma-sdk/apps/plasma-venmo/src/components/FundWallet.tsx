@@ -25,7 +25,6 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { ModalPortal } from "./ui/ModalPortal";
 import { BridgeDepositModal } from "./BridgeDeposit";
 import { ZKP2POnrampV2 } from "./onramp/ZKP2POnrampV2";

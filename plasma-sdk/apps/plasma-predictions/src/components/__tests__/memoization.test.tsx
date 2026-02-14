@@ -2,10 +2,14 @@
  * Tests to verify React.memo memoization is properly applied to components.
  * These tests ensure that components are wrapped with memo to prevent unnecessary re-renders.
  */
-import React from "react";
 import { MarketCard } from "../MarketCard";
 import { BetCard } from "../BetCard";
 import { CategoryTabs } from "../CategoryTabs";
+
+type MemoComponent = { displayName?: string; type?: { name?: string } };
+
+const getDisplayName = (component: MemoComponent) =>
+  component.displayName ?? component.type?.name ?? "";
 
 describe("Component Memoization", () => {
   describe("MarketCard", () => {
@@ -16,10 +20,7 @@ describe("Component Memoization", () => {
     });
 
     it("should have the display name MarketCard", () => {
-      // Memoized components should have a displayName for debugging
-      expect(MarketCard.displayName || (MarketCard as any).type?.name).toMatch(
-        /MarketCard/
-      );
+      // Memoized components should have a displayName for debugging      expect(getDisplayName(MarketCard)).toMatch(/MarketCard/);
     });
   });
 
@@ -28,10 +29,7 @@ describe("Component Memoization", () => {
       expect(BetCard).toHaveProperty("$$typeof", Symbol.for("react.memo"));
     });
 
-    it("should have the display name BetCard", () => {
-      expect(BetCard.displayName || (BetCard as any).type?.name).toMatch(
-        /BetCard/
-      );
+    it("should have the display name BetCard", () => {      expect(getDisplayName(BetCard)).toMatch(/BetCard/);
     });
   });
 
@@ -40,10 +38,7 @@ describe("Component Memoization", () => {
       expect(CategoryTabs).toHaveProperty("$$typeof", Symbol.for("react.memo"));
     });
 
-    it("should have the display name CategoryTabs", () => {
-      expect(CategoryTabs.displayName || (CategoryTabs as any).type?.name).toMatch(
-        /CategoryTabs/
-      );
+    it("should have the display name CategoryTabs", () => {      expect(getDisplayName(CategoryTabs)).toMatch(/CategoryTabs/);
     });
   });
 });

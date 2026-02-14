@@ -25,14 +25,6 @@ const mockMarket: PredictionMarket = {
   createdAt: '2024-01-01T00:00:00Z',
 }
 
-const mockMarket2: PredictionMarket = {
-  ...mockMarket,
-  id: 'test-market-2',
-  question: 'Will ETH flip BTC?',
-  yesPrice: 0.25,
-  noPrice: 0.75,
-}
-
 describe('PriceUpdater', () => {
   let priceUpdater: PriceUpdater
 

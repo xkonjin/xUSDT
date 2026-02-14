@@ -7,7 +7,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { BettingModal } from "@/components/BettingModal";
 import { formatAddress, formatVolume } from "@/lib/constants";
 import { useLeaderboard, type LeaderboardSort } from "@/hooks";
-import type { LeaderboardTimeFilter } from "@/lib/leaderboard-store";
 
 type LeaderboardPeriod = "day" | "week" | "month" | "all";
 
@@ -63,12 +62,6 @@ export default function LeaderboardPage() {
     setSortBy,
     setPeriod,
   } = useLeaderboard({ sortBy: "profit", period: "all" });
-
-  // Transform period for UI display
-  const handlePeriodChange = (newPeriod: LeaderboardPeriod) => {
-    setPeriod(newPeriod as LeaderboardTimeFilter);
-  };
-
   return (
     <div className="min-h-screen pb-24 md:pb-8">
       <Header />

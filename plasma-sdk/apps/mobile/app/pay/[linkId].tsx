@@ -28,7 +28,6 @@ export default function PayScreen() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     posthog.capture('payment_link_viewed', { linkId });
@@ -43,8 +42,7 @@ export default function PayScreen() {
       });
       setLoading(false);
     }, 1000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkId]);
+  }, [linkId, posthog]);
 
   const handlePay = async () => {
     setPaying(true);

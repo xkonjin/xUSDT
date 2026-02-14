@@ -11,7 +11,7 @@
 
 import { createPublicClient, http, formatEther, formatUnits, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { USDT0_ADDRESS, USDT0_DECIMALS, PLASMA_MAINNET_RPC, XPL_DECIMALS } from '@plasma-pay/core';
+import { USDT0_ADDRESS, USDT0_DECIMALS, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { plasmaMainnet } from '@plasma-pay/core';
 import { validatePrivateKey } from './validation';
 

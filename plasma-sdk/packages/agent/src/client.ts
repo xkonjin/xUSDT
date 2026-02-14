@@ -301,8 +301,8 @@ export class PlasmaPayClient {
         signal: controller.signal,
       });
       return response;
-    } catch (error: any) {
-      if (error.name === "AbortError") {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
         throw new PlasmaPayError(
           "TIMEOUT",
           `Request timed out after ${this.config.timeout}ms`
@@ -477,7 +477,7 @@ export class PlasmaPayClient {
         return parseUnits(amount, 6);
       }
       return BigInt(amount);
-    } catch (e) {
+    } catch {
       throw new PlasmaPayError(
         "INVALID_AMOUNT",
         `Invalid amount format: ${amount}`
@@ -556,7 +556,7 @@ export class PlasmaPayClient {
 
     // Get token metadata
     let tokenName = "USDT0";
-    let tokenVersion = "1";
+    const tokenVersion = "1";
 
     try {
       tokenName = (await this.publicClient.readContract({
@@ -564,7 +564,7 @@ export class PlasmaPayClient {
         abi: ERC20_ABI,
         functionName: "name",
       })) as string;
-    } catch (e) {
+    } catch {
       this.log("Using default token name");
     }
 
@@ -626,23 +626,26 @@ export class PlasmaPayClient {
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
         return await this.submitPayment(submission, tokenAddress);
-      } catch (error: any) {
-        lastError = error;
+      } catch (error) {
+        const typedError =
+          error instanceof Error ? error : new Error("Unknown error");
+        lastError = typedError;
 
-        // Don't retry on non-retryable errors
+        const code =
+          error instanceof PlasmaPayError ? error.code : undefined;
+
         if (
-          error.code === "INSUFFICIENT_BALANCE" ||
-          error.code === "INVALID_SIGNATURE" ||
-          error.code === "NONCE_ALREADY_USED"
+          code === "INSUFFICIENT_BALANCE" ||
+          code === "INVALID_SIGNATURE" ||
+          code === "NONCE_ALREADY_USED"
         ) {
           throw error;
         }
 
-        // Exponential backoff
         const delay = this.config.retryDelay * Math.pow(2, attempt);
         this.log(`Payment submission failed, retrying in ${delay}ms`, {
           attempt: attempt + 1,
-          error: error.message,
+          error: typedError.message,
         });
         await this.sleep(delay);
       }
@@ -690,18 +693,22 @@ export class PlasmaPayClient {
       }
 
       const result = await response.json();
+      const receiptAmount =
+        "value" in submission.authorization
+          ? submission.authorization.value
+          : submission.authorization.amount;
 
       return {
         type: "payment-completed",
         invoiceId: submission.invoiceId,
         txHash: result.txHash,
         timestamp: Date.now(),
-        amount: (submission.authorization as any).value,
+        amount: receiptAmount,
         token: tokenAddress,
         network: "eip155:98866",
       };
-    } catch (error: any) {
-      if (error.name === "AbortError") {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
         throw new PlasmaPayError("TIMEOUT", "Payment submission timed out");
       }
       throw error;

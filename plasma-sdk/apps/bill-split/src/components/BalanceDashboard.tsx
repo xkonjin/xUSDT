@@ -75,7 +75,7 @@ export function BalanceDashboard({ address, email, compact = false, className }:
 
         const data = await response.json();
         setBalanceData(data);
-      } catch (err) {
+      } catch {
         setError('Failed to load balances');
       } finally {
         setLoading(false);

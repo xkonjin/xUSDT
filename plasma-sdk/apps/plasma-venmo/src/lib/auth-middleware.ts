@@ -1,13 +1,14 @@
 /**
  * Authentication Middleware
- * 
+ *
  * Provides authentication and authorization for API routes.
  * Fixes the missing authentication on sensitive endpoints like /api/claims.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import type { Address } from 'viem';
-import { verifyMessage, recoverMessageAddress } from 'viem';
+import { NextRequest, NextResponse } from "next/server";
+import type { Address } from "viem";
+import { recoverMessageAddress } from "viem";
+import { webcrypto } from "crypto";
 
 // =============================================================================
 // Types
@@ -35,20 +36,21 @@ export interface AuthResult {
  */
 export async function verifySession(request: NextRequest): Promise<AuthResult> {
   // Check for session cookie or authorization header
-  const sessionToken = request.cookies.get('session')?.value 
-    || request.headers.get('Authorization')?.replace('Bearer ', '');
+  const sessionToken =
+    request.cookies.get("session")?.value ||
+    request.headers.get("Authorization")?.replace("Bearer ", "");
 
   if (!sessionToken) {
-    return { authenticated: false, error: 'No session token provided' };
+    return { authenticated: false, error: "No session token provided" };
   }
 
   try {
     // In production, validate session against your session store
     // This is a placeholder implementation
     const session = await validateSessionToken(sessionToken);
-    
+
     if (!session) {
-      return { authenticated: false, error: 'Invalid or expired session' };
+      return { authenticated: false, error: "Invalid or expired session" };
     }
 
     return {
@@ -60,8 +62,8 @@ export async function verifySession(request: NextRequest): Promise<AuthResult> {
       },
     };
   } catch (error) {
-    console.error('[auth] Session verification failed');
-    return { authenticated: false, error: 'Session verification failed' };
+    console.error("[auth] Session verification failed", error);
+    return { authenticated: false, error: "Session verification failed" };
   }
 }
 
@@ -69,7 +71,9 @@ export async function verifySession(request: NextRequest): Promise<AuthResult> {
  * Validate session token against session store.
  * Replace with your actual session validation logic.
  */
-async function validateSessionToken(token: string): Promise<AuthenticatedUser | null> {
+async function validateSessionToken(
+  token: string
+): Promise<AuthenticatedUser | null> {
   // In production, query your session store (Redis, database, etc.)
   // Example with Redis:
   // const session = await redis.get(`session:${token}`);
@@ -87,6 +91,7 @@ async function validateSessionToken(token: string): Promise<AuthenticatedUser | 
 }
 
 function decodeSessionToken(token: string): AuthenticatedUser | null {
+  void token;
   // Placeholder - implement based on your auth system
   // For Privy, use their SDK to verify the token
   return null;
@@ -107,15 +112,17 @@ export interface SignatureAuthParams {
  * Verify a signed message for authentication.
  * Useful for wallet-based authentication without sessions.
  */
-export async function verifySignatureAuth(params: SignatureAuthParams): Promise<AuthResult> {
+export async function verifySignatureAuth(
+  params: SignatureAuthParams
+): Promise<AuthResult> {
   const { address, message, signature, timestamp } = params;
 
   // Check timestamp is recent (within 5 minutes)
   const now = Math.floor(Date.now() / 1000);
   const maxAge = 5 * 60; // 5 minutes
-  
+
   if (now - timestamp > maxAge) {
-    return { authenticated: false, error: 'Signature expired' };
+    return { authenticated: false, error: "Signature expired" };
   }
 
   try {
@@ -127,7 +134,7 @@ export async function verifySignatureAuth(params: SignatureAuthParams): Promise<
 
     // Verify the recovered address matches the claimed address
     if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-      return { authenticated: false, error: 'Signature verification failed' };
+      return { authenticated: false, error: "Signature verification failed" };
     }
 
     return {
@@ -138,8 +145,8 @@ export async function verifySignatureAuth(params: SignatureAuthParams): Promise<
       },
     };
   } catch (error) {
-    console.error('[auth] Signature verification error');
-    return { authenticated: false, error: 'Invalid signature' };
+    console.error("[auth] Signature verification error", error);
+    return { authenticated: false, error: "Invalid signature" };
   }
 }
 
@@ -160,21 +167,17 @@ export function isAuthorizedForResource(
 /**
  * Create an unauthorized response.
  */
-export function unauthorizedResponse(message: string = 'Unauthorized'): NextResponse {
-  return NextResponse.json(
-    { error: message },
-    { status: 401 }
-  );
+export function unauthorizedResponse(
+  message: string = "Unauthorized"
+): NextResponse {
+  return NextResponse.json({ error: message }, { status: 401 });
 }
 
 /**
  * Create a forbidden response.
  */
-export function forbiddenResponse(message: string = 'Forbidden'): NextResponse {
-  return NextResponse.json(
-    { error: message },
-    { status: 403 }
-  );
+export function forbiddenResponse(message: string = "Forbidden"): NextResponse {
+  return NextResponse.json({ error: message }, { status: 403 });
 }
 
 // =============================================================================
@@ -188,7 +191,7 @@ export type AuthenticatedHandler = (
 
 /**
  * Wrap an API handler with authentication.
- * 
+ *
  * Usage:
  * ```typescript
  * export const GET = withAuth(async (request, user) => {
@@ -211,7 +214,7 @@ export function withAuth(handler: AuthenticatedHandler) {
 
 /**
  * Wrap an API handler with authentication and resource authorization.
- * 
+ *
  * Usage:
  * ```typescript
  * export const GET = withAuthAndOwnership(
@@ -235,16 +238,16 @@ export function withAuthAndOwnership(
     }
 
     const resourceOwner = getResourceOwner(request);
-    
+
     if (!resourceOwner) {
       return NextResponse.json(
-        { error: 'Resource not found' },
+        { error: "Resource not found" },
         { status: 404 }
       );
     }
 
     if (!isAuthorizedForResource(authResult.user, resourceOwner)) {
-      return forbiddenResponse('You do not have access to this resource');
+      return forbiddenResponse("You do not have access to this resource");
     }
 
     return handler(request, authResult.user);
@@ -255,17 +258,19 @@ export function withAuthAndOwnership(
 // CSRF Protection
 // =============================================================================
 
-const CSRF_HEADER = 'X-CSRF-Token';
-const CSRF_COOKIE = 'csrf_token';
+const CSRF_HEADER = "X-CSRF-Token";
+const CSRF_COOKIE = "csrf_token";
 
 /**
  * Generate a CSRF token.
  */
 export function generateCSRFToken(): string {
-  const crypto = globalThis.crypto || require('crypto').webcrypto;
+  const crypto = globalThis.crypto || webcrypto;
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -299,13 +304,15 @@ function constantTimeCompare(a: string, b: string): boolean {
 /**
  * Wrap an API handler with CSRF protection.
  */
-export function withCSRFProtection(handler: (request: NextRequest) => Promise<NextResponse>) {
+export function withCSRFProtection(
+  handler: (request: NextRequest) => Promise<NextResponse>
+) {
   return async (request: NextRequest): Promise<NextResponse> => {
     // Only check CSRF for state-changing methods
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    if (["POST", "PUT", "DELETE", "PATCH"].includes(request.method)) {
       if (!verifyCSRFToken(request)) {
         return NextResponse.json(
-          { error: 'Invalid CSRF token' },
+          { error: "Invalid CSRF token" },
           { status: 403 }
         );
       }

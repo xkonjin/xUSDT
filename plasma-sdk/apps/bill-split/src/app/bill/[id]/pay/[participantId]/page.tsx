@@ -2,10 +2,10 @@
 
 /**
  * Bill Participant Payment Page
- * 
+ *
  * Allows a participant to pay their share of a bill.
  * Includes balance checking and funding options if insufficient funds.
- * 
+ *
  * User Stories:
  * 1. User with sufficient balance can pay immediately
  * 2. User with insufficient balance sees clear funding options
@@ -22,8 +22,12 @@ import {
   useFundWallet,
   useConnectExternalWallet,
 } from "@plasma-pay/privy-auth";
-import { PaymentProgress, type PaymentStatus, getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
-import { parseUnits, formatUnits } from "viem";
+import {
+  PaymentProgress,
+  type PaymentStatus,
+  getErrorDetails,
+} from "@plasma-pay/ui";
+import { parseUnits } from "viem";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -36,13 +40,15 @@ import {
   Copy,
   Check,
   RefreshCw,
-  Plus,
   HelpCircle,
   QrCode,
   ArrowRightLeft,
   Info,
 } from "lucide-react";
-import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
+import {
+  createTransferParams,
+  buildTransferAuthorizationTypedData,
+} from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 
 interface BillPayData {
@@ -59,7 +65,11 @@ interface BillPayData {
 }
 
 // Helper to split signature
-function splitSignature(signature: `0x${string}`): { v: number; r: `0x${string}`; s: `0x${string}` } {
+function splitSignature(signature: `0x${string}`): {
+  v: number;
+  r: `0x${string}`;
+  s: `0x${string}`;
+} {
   const sig = signature.slice(2);
   const r = `0x${sig.slice(0, 64)}` as `0x${string}`;
   const s = `0x${sig.slice(64, 128)}` as `0x${string}`;
@@ -78,8 +88,12 @@ export default function BillPayPage({
   const participantId = params.participantId;
 
   // Wallet state
-  const { authenticated, ready, wallet, login, logout } = usePlasmaWallet();
-  const { balance, formatted: balanceFormatted, loading: balanceLoading, refresh: refreshBalance } = useUSDT0Balance();
+  const { authenticated, ready, wallet, login } = usePlasmaWallet();
+  const {
+    formatted: balanceFormatted,
+    loading: balanceLoading,
+    refresh: refreshBalance,
+  } = useUSDT0Balance();
   const { fundWallet } = useFundWallet();
   const { connectWallet: connectExternalWallet } = useConnectExternalWallet();
 
@@ -93,9 +107,9 @@ export default function BillPayPage({
   const [copied, setCopied] = useState(false);
   const [fundingInProgress, setFundingInProgress] = useState(false);
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
-  
+
   // Payment progress state
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
   const [paymentTxHash, setPaymentTxHash] = useState<string | undefined>();
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -135,7 +149,8 @@ export default function BillPayPage({
     }
   }, [wallet?.address]);
 
-  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const shortenAddress = (addr: string) =>
+    `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   // Fetch bill and participant data
   useEffect(() => {
@@ -145,16 +160,19 @@ export default function BillPayPage({
       try {
         const response = await fetch(`/api/bills/${billId}`);
         if (!response.ok) {
-          setError('Bill not found');
+          setError("Bill not found");
           setLoading(false);
           return;
         }
 
         const data = await response.json();
-        const participant = data.bill.participants.find((p: any) => p.id === participantId);
-        
+        const participants = (data.bill?.participants ?? []) as Array<
+          BillPayData["participant"]
+        >;
+        const participant = participants.find((p) => p.id === participantId);
+
         if (!participant) {
-          setError('Participant not found');
+          setError("Participant not found");
           setLoading(false);
           return;
         }
@@ -171,8 +189,8 @@ export default function BillPayPage({
             txHash: participant.txHash,
           },
         });
-      } catch (err) {
-        setError('Failed to load bill');
+      } catch {
+        setError("Failed to load bill");
       } finally {
         setLoading(false);
       }
@@ -187,7 +205,11 @@ export default function BillPayPage({
 
     // Check balance before attempting payment
     if (hasInsufficientFunds) {
-      setError(`Insufficient balance. You have $${numericBalance.toFixed(2)} but need $${requiredAmount.toFixed(2)}`);
+      setError(
+        `Insufficient balance. You have $${numericBalance.toFixed(
+          2
+        )} but need $${requiredAmount.toFixed(2)}`
+      );
       setShowFundingOptions(true);
       return;
     }
@@ -195,7 +217,7 @@ export default function BillPayPage({
     setPaying(true);
     setError(null);
     setPaymentError(null);
-    setPaymentStatus('signing');
+    setPaymentStatus("signing");
 
     try {
       // Parse amount
@@ -215,52 +237,66 @@ export default function BillPayPage({
       });
 
       // Update to submitting state
-      setPaymentStatus('submitting');
-      
+      setPaymentStatus("submitting");
+
       // Sign
       const signature = await wallet.signTypedData(typedData);
       const { v, r, s } = splitSignature(signature);
 
       // Submit to API
-      const response = await fetch(`/api/bills/${billId}/pay/${participantId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: params.from,
-          to: params.to,
-          value: params.value.toString(),
-          validAfter: params.validAfter,
-          validBefore: params.validBefore,
-          nonce: params.nonce,
-          v,
-          r,
-          s,
-        }),
-      });
+      const response = await fetch(
+        `/api/bills/${billId}/pay/${participantId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: params.from,
+            to: params.to,
+            value: params.value.toString(),
+            validAfter: params.validAfter,
+            validBefore: params.validBefore,
+            nonce: params.nonce,
+            v,
+            r,
+            s,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Payment failed');
+        throw new Error(result.error || "Payment failed");
       }
 
       // Move to confirming state
-      setPaymentStatus('confirming');
+      setPaymentStatus("confirming");
       setPaymentTxHash(result.txHash);
-      
+
       // After a brief confirmation period, mark as complete
       setTimeout(() => {
-        setPaymentStatus('complete');
+        setPaymentStatus("complete");
         setSuccess(result.txHash);
-        setPayData(prev => prev ? {
-          ...prev,
-          participant: { ...prev.participant, paid: true, txHash: result.txHash },
-        } : null);
+        setPayData((prev) =>
+          prev
+            ? {
+                ...prev,
+                participant: {
+                  ...prev.participant,
+                  paid: true,
+                  txHash: result.txHash,
+                },
+              }
+            : null
+        );
       }, 1000);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
-      setPaymentError(getPaymentErrorMessage(errorMsg, requiredAmount, safeBalance));
-      setPaymentStatus('error');
+      const errorMsg =
+        err instanceof Error ? err.message : "Unknown error occurred";
+      setPaymentError(
+        getPaymentErrorMessage(errorMsg, requiredAmount, safeBalance)
+      );
+      setPaymentStatus("error");
       setShowFundingOptions(true);
       refreshBalance();
     } finally {
@@ -269,13 +305,26 @@ export default function BillPayPage({
   }
 
   // Helper to get payment error messages
-  function getPaymentErrorMessage(errorMsg: string, requiredAmount: number, currentBalance: number): string {
-    if (errorMsg.includes('exceeds balance') || errorMsg.includes('insufficient') || errorMsg.includes('ERC20')) {
-      return `Your wallet doesn't have enough USDT0 to complete this payment. You need $${(requiredAmount - currentBalance).toFixed(2)} more.`;
-    } else if (errorMsg.includes('rejected') || errorMsg.includes('denied')) {
-      return 'Transaction was cancelled. Please try again.';
-    } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
-      return 'Network error. Please check your connection and try again.';
+  function getPaymentErrorMessage(
+    errorMsg: string,
+    requiredAmount: number,
+    currentBalance: number
+  ): string {
+    if (
+      errorMsg.includes("exceeds balance") ||
+      errorMsg.includes("insufficient") ||
+      errorMsg.includes("ERC20")
+    ) {
+      return `Your wallet doesn't have enough USDT0 to complete this payment. You need $${(
+        requiredAmount - currentBalance
+      ).toFixed(2)} more.`;
+    } else if (errorMsg.includes("rejected") || errorMsg.includes("denied")) {
+      return "Transaction was cancelled. Please try again.";
+    } else if (
+      errorMsg.includes("network") ||
+      errorMsg.includes("connection")
+    ) {
+      return "Network error. Please check your connection and try again.";
     }
     return `Payment failed: ${errorMsg}`;
   }
@@ -283,24 +332,27 @@ export default function BillPayPage({
   // Retry payment
   function handleRetryPayment() {
     setPaymentError(null);
-    setPaymentStatus('idle');
+    setPaymentStatus("idle");
     handlePay();
   }
 
   // Handle funding wallet with loading state and error handling
-  async function handleFundWallet(method?: string) {
+  async function handleFundWallet(
+    method?: "card" | "exchange" | "wallet" | "manual"
+  ) {
     setFundingInProgress(true);
     setError(null);
-    
+
     try {
       // Calculate amount needed (shortfall + small buffer for any fees)
       const amountNeeded = Math.max(shortfall + 0.01, 1).toFixed(2);
-      
-      await fundWallet({ 
-        amount: amountNeeded,
-        method: method as any,
-      });
-      
+
+      const fundParams: Parameters<typeof fundWallet>[0] = method
+        ? { amount: amountNeeded, method }
+        : { amount: amountNeeded };
+
+      await fundWallet(fundParams);
+
       // Refresh balance after a delay to allow transaction to process
       setTimeout(() => {
         refreshBalance();
@@ -309,10 +361,10 @@ export default function BillPayPage({
     } catch (err) {
       setFundingInProgress(false);
       const { message, category } = getErrorDetails(err, {
-        operation: 'funding',
+        operation: "funding",
       });
       // Only show error if not user cancelled
-      if (category !== 'user_rejected') {
+      if (category !== "user_rejected") {
         setError(message);
       }
       console.error("Funding error:", err);
@@ -359,17 +411,19 @@ export default function BillPayPage({
         <div className="max-w-md w-full text-center">
           <div className="p-8 rounded-3xl bg-white/5">
             <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Payment Complete!</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              Payment Complete!
+            </h1>
             <p className="text-4xl font-bold gradient-text my-4">
               ${payData.participant.share.toFixed(2)}
             </p>
-            <p className="text-white/50 mb-6">
-              for {payData.billTitle}
-            </p>
-            
+            <p className="text-white/50 mb-6">for {payData.billTitle}</p>
+
             {(success || payData.participant.txHash) && (
               <a
-                href={`https://scan.plasma.to/tx/${success || payData.participant.txHash}`}
+                href={`https://scan.plasma.to/tx/${
+                  success || payData.participant.txHash
+                }`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
@@ -378,9 +432,12 @@ export default function BillPayPage({
                 <ExternalLink className="w-4 h-4" />
               </a>
             )}
-            
+
             <div className="mt-6">
-              <Link href={`/bill/${billId}`} className="text-white/50 hover:text-white">
+              <Link
+                href={`/bill/${billId}`}
+                className="text-white/50 hover:text-white"
+              >
                 ← Back to bill
               </Link>
             </div>
@@ -394,7 +451,10 @@ export default function BillPayPage({
   return (
     <main className="min-h-screen p-4 md:p-8">
       <header className="flex items-center gap-4 mb-6">
-        <Link href={`/bill/${billId}`} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+        <Link
+          href={`/bill/${billId}`}
+          className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+        >
           <ArrowLeft className="w-5 h-5 text-white/60" />
         </Link>
         <h1 className="text-xl font-semibold text-white">Pay Your Share</h1>
@@ -405,9 +465,13 @@ export default function BillPayPage({
         <div className="p-8 rounded-3xl bg-white/5 text-center">
           <p className="text-white/50 mb-2">{payData.billTitle}</p>
           <p className="text-white/70 text-lg mb-4">
-            Hi <span className="font-bold text-white">{payData.participant.name}</span>!
+            Hi{" "}
+            <span className="font-bold text-white">
+              {payData.participant.name}
+            </span>
+            !
           </p>
-          
+
           <p className="text-white/50 mb-2">Your share</p>
           <p className="text-5xl font-bold gradient-text mb-6">
             ${payData.participant.share.toFixed(2)}
@@ -425,13 +489,20 @@ export default function BillPayPage({
                 Connect Wallet to Pay
               </button>
               <p className="text-white/40 text-xs">
-                Sign in with email, Google, or connect an existing wallet like MetaMask
+                Sign in with email, Google, or connect an existing wallet like
+                MetaMask
               </p>
             </div>
           ) : (
             <>
               {/* Wallet Info Section */}
-              <div className={`p-4 rounded-xl mb-4 ${hasInsufficientFunds ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5'}`}>
+              <div
+                className={`p-4 rounded-xl mb-4 ${
+                  hasInsufficientFunds
+                    ? "bg-red-500/10 border border-red-500/30"
+                    : "bg-white/5"
+                }`}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
@@ -440,13 +511,13 @@ export default function BillPayPage({
                     <div className="relative">
                       <button
                         onClick={copyAddress}
-                        onMouseEnter={() => setShowTooltip('address')}
+                        onMouseEnter={() => setShowTooltip("address")}
                         onMouseLeave={() => setShowTooltip(null)}
                         className="text-white/70 text-sm font-mono hover:text-cyan-400 transition-colors flex items-center gap-1.5"
                         title="Click to copy full address"
                         aria-label="Copy wallet address"
                       >
-                        {shortenAddress(wallet?.address || '')}
+                        {shortenAddress(wallet?.address || "")}
                         {copied ? (
                           <span className="flex items-center gap-1 text-green-400 text-xs">
                             <Check className="w-3 h-3" />
@@ -456,7 +527,7 @@ export default function BillPayPage({
                           <Copy className="w-3 h-3 text-white/40" />
                         )}
                       </button>
-                      {showTooltip === 'address' && !copied && (
+                      {showTooltip === "address" && !copied && (
                         <div className="absolute left-0 -bottom-8 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
                           Click to copy address
                         </div>
@@ -471,27 +542,37 @@ export default function BillPayPage({
                     aria-label="Refresh wallet balance"
                     aria-live="polite"
                   >
-                    <RefreshCw className={`w-4 h-4 text-white/40 group-hover:text-white/70 ${balanceLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw
+                      className={`w-4 h-4 text-white/40 group-hover:text-white/70 ${
+                        balanceLoading ? "animate-spin" : ""
+                      }`}
+                    />
                   </button>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <span className="text-white/50 text-sm">Available Balance</span>
-                    <div 
+                    <span className="text-white/50 text-sm">
+                      Available Balance
+                    </span>
+                    <div
                       className="relative"
-                      onMouseEnter={() => setShowTooltip('balance')}
+                      onMouseEnter={() => setShowTooltip("balance")}
                       onMouseLeave={() => setShowTooltip(null)}
                     >
                       <HelpCircle className="w-3 h-3 text-white/30 cursor-help" />
-                      {showTooltip === 'balance' && (
+                      {showTooltip === "balance" && (
                         <div className="absolute left-0 -bottom-12 bg-gray-800 text-white text-xs px-2 py-1 rounded w-48 z-10">
                           USDT0 is a stablecoin worth $1 USD on Plasma Chain
                         </div>
                       )}
                     </div>
                   </div>
-                  <span className={`font-bold text-lg ${hasInsufficientFunds ? 'text-red-400' : 'text-white'}`}>
+                  <span
+                    className={`font-bold text-lg ${
+                      hasInsufficientFunds ? "text-red-400" : "text-white"
+                    }`}
+                  >
                     {balanceLoading ? (
                       <span className="flex items-center gap-1">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -501,18 +582,19 @@ export default function BillPayPage({
                     )}
                   </span>
                 </div>
-                
+
                 {hasInsufficientFunds && (
                   <div className="mt-3 p-2 bg-red-500/10 rounded-lg">
                     <p className="text-red-400 text-sm flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
                       <span>
-                        You need <strong>${shortfall.toFixed(2)}</strong> more to pay this bill
+                        You need <strong>${shortfall.toFixed(2)}</strong> more
+                        to pay this bill
                       </span>
                     </p>
                   </div>
                 )}
-                
+
                 {!hasInsufficientFunds && safeBalance > 0 && (
                   <div className="mt-2">
                     <p className="text-green-400/70 text-xs flex items-center gap-1">
@@ -527,7 +609,9 @@ export default function BillPayPage({
               {hasInsufficientFunds || showFundingOptions ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-white/70 text-sm font-medium">Choose how to add funds:</p>
+                    <p className="text-white/70 text-sm font-medium">
+                      Choose how to add funds:
+                    </p>
                     {showFundingOptions && !hasInsufficientFunds && (
                       <button
                         onClick={handleRetryAfterFunding}
@@ -537,10 +621,10 @@ export default function BillPayPage({
                       </button>
                     )}
                   </div>
-                  
+
                   {/* Recommended: Buy with Card */}
                   <button
-                    onClick={() => handleFundWallet('card')}
+                    onClick={() => handleFundWallet("card")}
                     disabled={fundingInProgress}
                     className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 hover:border-cyan-400 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -550,16 +634,22 @@ export default function BillPayPage({
                     <div className="text-left flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-white font-medium">Buy with Card</p>
-                        <span className="text-[10px] bg-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded">Recommended</span>
+                        <span className="text-[10px] bg-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded">
+                          Recommended
+                        </span>
                       </div>
-                      <p className="text-white/50 text-xs">Visa, Mastercard, Apple Pay via MoonPay</p>
+                      <p className="text-white/50 text-xs">
+                        Visa, Mastercard, Apple Pay via MoonPay
+                      </p>
                     </div>
-                    {fundingInProgress && <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />}
+                    {fundingInProgress && (
+                      <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
+                    )}
                   </button>
 
                   {/* Transfer from external wallet */}
                   <button
-                    onClick={() => handleFundWallet('wallet')}
+                    onClick={() => handleFundWallet("wallet")}
                     disabled={fundingInProgress}
                     className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -567,14 +657,18 @@ export default function BillPayPage({
                       <ArrowRightLeft className="w-5 h-5 text-white/70" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="text-white font-medium">Transfer from Another Wallet</p>
-                      <p className="text-white/50 text-xs">Bridge USDT from MetaMask, Rabby, Phantom</p>
+                      <p className="text-white font-medium">
+                        Transfer from Another Wallet
+                      </p>
+                      <p className="text-white/50 text-xs">
+                        Bridge USDT from MetaMask, Rabby, Phantom
+                      </p>
                     </div>
                   </button>
 
                   {/* Show QR / Manual */}
                   <button
-                    onClick={() => handleFundWallet('manual')}
+                    onClick={() => handleFundWallet("manual")}
                     disabled={fundingInProgress}
                     className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -582,8 +676,12 @@ export default function BillPayPage({
                       <QrCode className="w-5 h-5 text-white/70" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="text-white font-medium">Receive via QR Code</p>
-                      <p className="text-white/50 text-xs">Show address to receive USDT0 from anyone</p>
+                      <p className="text-white font-medium">
+                        Receive via QR Code
+                      </p>
+                      <p className="text-white/50 text-xs">
+                        Show address to receive USDT0 from anyone
+                      </p>
                     </div>
                   </button>
 
@@ -596,20 +694,21 @@ export default function BillPayPage({
                       Connect a wallet with existing funds
                     </button>
                   </div>
-                  
+
                   {/* Helpful tip */}
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 mt-2">
                     <p className="text-blue-300/80 text-xs flex items-start gap-2">
                       <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>
-                        After adding funds, click &quot;Back to payment&quot; or wait for your balance to update automatically.
+                        After adding funds, click &quot;Back to payment&quot; or
+                        wait for your balance to update automatically.
                       </span>
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {paymentStatus !== 'idle' ? (
+                  {paymentStatus !== "idle" ? (
                     // Show PaymentProgress when payment is in progress
                     <PaymentProgress
                       status={paymentStatus}
@@ -618,8 +717,11 @@ export default function BillPayPage({
                       retryable={true}
                       onRetry={handleRetryPayment}
                       onClose={() => {
-                        if (paymentStatus === 'complete' || paymentStatus === 'error') {
-                          setPaymentStatus('idle');
+                        if (
+                          paymentStatus === "complete" ||
+                          paymentStatus === "error"
+                        ) {
+                          setPaymentStatus("idle");
                           setPaymentError(null);
                           setPaymentTxHash(undefined);
                         }
@@ -646,9 +748,9 @@ export default function BillPayPage({
                       )}
                     </button>
                   )}
-                  
+
                   {/* Optional: Add more funds button */}
-                  {paymentStatus === 'idle' && (
+                  {paymentStatus === "idle" && (
                     <button
                       onClick={() => setShowFundingOptions(true)}
                       className="w-full text-white/40 hover:text-white/60 text-xs py-1 transition-colors"
@@ -682,4 +784,3 @@ export default function BillPayPage({
     </main>
   );
 }
-

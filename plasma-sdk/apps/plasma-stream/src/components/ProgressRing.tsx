@@ -186,7 +186,7 @@ export function StreamProgressRing({
             className="text-white/60 mt-1"
             style={{ fontSize: size * 0.12 }}
           >
-            ${streamedAmount}
+            ${streamedAmount}{totalAmount ? ` / ${totalAmount}` : ""}
           </span>
         )}
       </div>

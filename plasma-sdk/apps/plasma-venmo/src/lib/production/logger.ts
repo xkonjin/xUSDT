@@ -9,13 +9,15 @@ import { randomUUID } from 'crypto';
 /**
  * Log levels with numeric priority
  */
-export enum LogLevel {
-  DEBUG = 10,
-  INFO = 20,
-  WARN = 30,
-  ERROR = 40,
-  FATAL = 50
-}
+export const LogLevel = {
+  DEBUG: 10,
+  INFO: 20,
+  WARN: 30,
+  ERROR: 40,
+  FATAL: 50,
+} as const;
+
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
 
 /**
  * Log entry structure

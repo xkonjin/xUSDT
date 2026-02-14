@@ -4,7 +4,7 @@ import type { Address } from "viem";
 // Lazy-load Privy client to avoid build-time initialization errors
 let privyClient: import("@privy-io/server-auth").PrivyClient | null = null;
 
-function getPrivyClient() {
+async function getPrivyClient() {
   if (isMockMode()) return null;
   if (!privyClient) {
     const privyAppId = process.env.PRIVY_APP_ID || "";
@@ -13,7 +13,7 @@ function getPrivyClient() {
       return null;
     }
     // Dynamic import to avoid build-time initialization
-    const { PrivyClient } = require("@privy-io/server-auth");
+    const { PrivyClient } = await import("@privy-io/server-auth");
     privyClient = new PrivyClient(privyAppId, privyAppSecret);
   }
   return privyClient;
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const privy = getPrivyClient();
+    const privy = await getPrivyClient();
     if (!privy) {
       if (isMockMode()) {
         return NextResponse.json({

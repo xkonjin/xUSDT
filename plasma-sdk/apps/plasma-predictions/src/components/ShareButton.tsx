@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Twitter, Copy, Check, Link2 } from "lucide-react";
+import { Share2, Twitter, Check, Link2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -23,6 +23,8 @@ export function ShareButton({ title, text, url, outcome, price, className = "" }
   const twitterText = outcome && price 
     ? `I'm betting ${outcome} at ${(price * 100).toFixed(0)}¢ on "${title}" 🎯\n\nMake your prediction:`
     : `Check out this prediction market: "${title}"`;
+
+  const shareText = text || twitterText;
 
   const handleCopyLink = async () => {
     try {
@@ -46,12 +48,12 @@ export function ShareButton({ title, text, url, outcome, price, className = "" }
       try {
         await navigator.share({
           title,
-          text: twitterText,
+          text: shareText,
           url: shareUrl,
         });
         setIsOpen(false);
-      } catch (err) {
-        // User cancelled or error
+      } catch (error) {
+        console.warn("Share canceled or failed:", error);
       }
     } else {
       setIsOpen(true);

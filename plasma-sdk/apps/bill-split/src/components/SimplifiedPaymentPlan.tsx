@@ -85,7 +85,7 @@ export function SimplifiedPaymentPlan({
 
         const result = await response.json();
         setData(result);
-      } catch (err) {
+      } catch {
         setError('Failed to load simplified payments');
       } finally {
         setLoading(false);

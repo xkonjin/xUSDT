@@ -22,10 +22,25 @@ import {
   showConfirm,
 } from '../telegram';
 
+type TelegramUser = {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  is_premium?: boolean;
+};
+
+type InitDataUnsafe = {
+  user?: TelegramUser;
+  start_param?: string;
+  auth_date?: number;
+  hash?: string;
+};
+
 // Mock TelegramWebApp structure
-const createMockWebApp = () => ({
-  initData: 'test_init_data',
-  initDataUnsafe: {
+const createMockWebApp = () => {
+  const initDataUnsafe: InitDataUnsafe = {
     user: {
       id: 123456789,
       first_name: 'John',
@@ -37,60 +52,75 @@ const createMockWebApp = () => ({
     start_param: 'referral_code_123',
     auth_date: Date.now() / 1000,
     hash: 'test_hash',
-  },
-  version: '7.0',
-  platform: 'ios',
-  colorScheme: 'dark' as const,
-  themeParams: {},
-  isExpanded: false,
-  viewportHeight: 600,
-  viewportStableHeight: 600,
-  headerColor: '#000000',
-  backgroundColor: '#000000',
-  BackButton: {
-    isVisible: false,
-    show: jest.fn(),
-    hide: jest.fn(),
-    onClick: jest.fn(),
-    offClick: jest.fn(),
-  },
-  MainButton: {
-    text: '',
-    color: '',
-    textColor: '',
-    isVisible: false,
-    isActive: true,
-    isProgressVisible: false,
-    setText: jest.fn(),
-    onClick: jest.fn(),
-    offClick: jest.fn(),
-    show: jest.fn(),
-    hide: jest.fn(),
-    enable: jest.fn(),
-    disable: jest.fn(),
-    showProgress: jest.fn(),
-    hideProgress: jest.fn(),
-  },
-  HapticFeedback: {
-    impactOccurred: jest.fn(),
-    notificationOccurred: jest.fn(),
-    selectionChanged: jest.fn(),
-  },
-  ready: jest.fn(),
-  expand: jest.fn(),
-  close: jest.fn(),
-  sendData: jest.fn(),
-  switchInlineQuery: jest.fn(),
-  openLink: jest.fn(),
-  openTelegramLink: jest.fn(),
-  showPopup: jest.fn(),
-  showAlert: jest.fn(),
-  showConfirm: jest.fn(),
-  enableClosingConfirmation: jest.fn(),
-  disableClosingConfirmation: jest.fn(),
-  setHeaderColor: jest.fn(),
-  setBackgroundColor: jest.fn(),
-});
+  };
+
+  return {
+    initData: 'test_init_data',
+    initDataUnsafe,
+    version: '7.0',
+    platform: 'ios',
+    colorScheme: 'dark' as const,
+    themeParams: {},
+    isExpanded: false,
+    viewportHeight: 600,
+    viewportStableHeight: 600,
+    headerColor: '#000000',
+    backgroundColor: '#000000',
+    BackButton: {
+      isVisible: false,
+      show: jest.fn(),
+      hide: jest.fn(),
+      onClick: jest.fn(),
+      offClick: jest.fn(),
+    },
+    MainButton: {
+      text: '',
+      color: '',
+      textColor: '',
+      isVisible: false,
+      isActive: true,
+      isProgressVisible: false,
+      setText: jest.fn(),
+      onClick: jest.fn(),
+      offClick: jest.fn(),
+      show: jest.fn(),
+      hide: jest.fn(),
+      enable: jest.fn(),
+      disable: jest.fn(),
+      showProgress: jest.fn(),
+      hideProgress: jest.fn(),
+    },
+    HapticFeedback: {
+      impactOccurred: jest.fn(),
+      notificationOccurred: jest.fn(),
+      selectionChanged: jest.fn(),
+    },
+    ready: jest.fn(),
+    expand: jest.fn(),
+    close: jest.fn(),
+    sendData: jest.fn(),
+    switchInlineQuery: jest.fn(),
+    openLink: jest.fn(),
+    openTelegramLink: jest.fn(),
+    showPopup: jest.fn(),
+    showAlert: jest.fn(),
+    showConfirm: jest.fn(),
+    enableClosingConfirmation: jest.fn(),
+    disableClosingConfirmation: jest.fn(),
+    setHeaderColor: jest.fn(),
+    setBackgroundColor: jest.fn(),
+  };
+};
+type MockWebApp = ReturnType<typeof createMockWebApp>;
+
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: MockWebApp;
+  };
+};
+
+const getTelegramWindow = (): TelegramWindow => window as TelegramWindow;
+
 
 describe('Telegram WebApp Utilities', () => {
   let mockWebApp: ReturnType<typeof createMockWebApp>;
@@ -101,14 +131,15 @@ describe('Telegram WebApp Utilities', () => {
     mockWebApp = createMockWebApp();
     
     // Setup window.Telegram
-    (window as any).Telegram = {
+    const telegramWindow = getTelegramWindow();
+    telegramWindow.Telegram = {
       WebApp: mockWebApp,
     };
   });
 
   afterEach(() => {
     // Clean up
-    delete (window as any).Telegram;
+    delete getTelegramWindow().Telegram;
   });
 
   describe('isTelegramWebApp', () => {
@@ -117,12 +148,13 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should return false when Telegram WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(isTelegramWebApp()).toBe(false);
     });
 
     it('should return false when WebApp is undefined', () => {
-      (window as any).Telegram = {};
+      const telegramWindow = getTelegramWindow();
+      telegramWindow.Telegram = {};
       expect(isTelegramWebApp()).toBe(false);
     });
   });
@@ -134,7 +166,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should return null when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       const webapp = getWebApp();
       expect(webapp).toBeNull();
     });
@@ -154,13 +186,13 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should return null when user is not available', () => {
-      (mockWebApp.initDataUnsafe as any).user = undefined;
+      mockWebApp.initDataUnsafe.user = undefined;
       const user = getTelegramUser();
       expect(user).toBeNull();
     });
 
     it('should return null when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       const user = getTelegramUser();
       expect(user).toBeNull();
     });
@@ -173,13 +205,13 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should return null when start_param is not available', () => {
-      (mockWebApp.initDataUnsafe as any).start_param = undefined;
+      mockWebApp.initDataUnsafe.start_param = undefined;
       const param = getStartParam();
       expect(param).toBeNull();
     });
 
     it('should return null when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       const param = getStartParam();
       expect(param).toBeNull();
     });
@@ -196,7 +228,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => initTelegramWebApp()).not.toThrow();
     });
   });
@@ -233,7 +265,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => hapticFeedback('success')).not.toThrow();
     });
   });
@@ -249,7 +281,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => showMainButton('Pay', jest.fn())).not.toThrow();
     });
   });
@@ -261,7 +293,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => hideMainButton()).not.toThrow();
     });
   });
@@ -276,7 +308,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => showBackButton(jest.fn())).not.toThrow();
     });
   });
@@ -288,7 +320,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => hideBackButton()).not.toThrow();
     });
   });
@@ -305,12 +337,12 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should fall back to window.open when WebApp is not available', () => {
-      delete (window as any).Telegram;
-      const mockOpen = jest.fn();
-      window.open = mockOpen;
-      
+      delete getTelegramWindow().Telegram;
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
       openLink('https://example.com');
-      expect(mockOpen).toHaveBeenCalledWith('https://example.com', '_blank');
+      expect(openSpy).toHaveBeenCalledWith('https://example.com', '_blank');
+      openSpy.mockRestore();
     });
   });
 
@@ -321,7 +353,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => shareToChat('Test')).not.toThrow();
     });
   });
@@ -333,7 +365,7 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should not throw when WebApp is not available', () => {
-      delete (window as any).Telegram;
+      delete getTelegramWindow().Telegram;
       expect(() => closeWebApp()).not.toThrow();
     });
   });
@@ -363,13 +395,13 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should fall back to alert when WebApp is not available', async () => {
-      delete (window as any).Telegram;
-      const mockAlert = jest.fn();
-      window.alert = mockAlert;
+      delete getTelegramWindow().Telegram;
+      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
       const result = await showPopup('Title', 'Test message');
-      expect(mockAlert).toHaveBeenCalledWith('Test message');
+      expect(alertSpy).toHaveBeenCalledWith('Test message');
       expect(result).toBe('ok');
+      alertSpy.mockRestore();
     });
   });
 
@@ -394,13 +426,13 @@ describe('Telegram WebApp Utilities', () => {
     });
 
     it('should fall back to window.confirm when WebApp is not available', async () => {
-      delete (window as any).Telegram;
-      const mockConfirm = jest.fn().mockReturnValue(true);
-      window.confirm = mockConfirm;
+      delete getTelegramWindow().Telegram;
+      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
 
       const result = await showConfirm('Are you sure?');
-      expect(mockConfirm).toHaveBeenCalledWith('Are you sure?');
+      expect(confirmSpy).toHaveBeenCalledWith('Are you sure?');
       expect(result).toBe(true);
+      confirmSpy.mockRestore();
     });
   });
 });

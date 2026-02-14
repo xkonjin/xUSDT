@@ -105,7 +105,7 @@ export default function PaymentPage({
         if (data.intent.status === "completed") {
           setSuccess(data.intent.destTxHash || "paid");
         }
-      } catch (err) {
+      } catch {
         setError("Failed to load payment");
       } finally {
         setLoading(false);

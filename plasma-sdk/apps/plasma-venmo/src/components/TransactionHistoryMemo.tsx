@@ -23,7 +23,6 @@ interface TransactionHistoryProps {
  */
 export const TransactionHistory = memo(function TransactionHistory({
   transactions,
-  address,
 }: TransactionHistoryProps) {
   if (transactions.length === 0) {
     return (

@@ -159,9 +159,10 @@ export class PlasmaSigner {
 
   constructor(config: PlasmaPayConfig) {
     if (config.privateKey) {
-      this.account = privateKeyToAccount(config.privateKey);
+      const account = privateKeyToAccount(config.privateKey);
+      this.account = account;
       this.walletClient = createWalletClient({
-        account: this.account as any,
+        account,
         chain: plasma,
         transport: http(config.plasmaRpcUrl || "https://rpc.plasma.xyz"),
       });

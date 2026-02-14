@@ -11,6 +11,7 @@ import type { NextRequest } from 'next/server'
  * - Permissions-Policy: Restricts browser features
  */
 export function middleware(request: NextRequest) {
+  void request;
   const response = NextResponse.next()
 
   // Security headers

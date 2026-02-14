@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { usePriceHistoryStore, type PriceSnapshot, type TimeRange } from '../price-history'
+import { usePriceHistoryStore } from '../price-history'
 
 describe('usePriceHistoryStore', () => {
   beforeEach(() => {

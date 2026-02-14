@@ -23,9 +23,12 @@ jest.mock('../validation', () => ({
 
 // Mock viem
 jest.mock('viem/accounts', () => ({
-  privateKeyToAccount: jest.fn((key: string) => ({
-    address: '0x1234567890123456789012345678901234567890' as const,
-  })),
+  privateKeyToAccount: jest.fn((key: string) => {
+    void key;
+    return {
+      address: '0x1234567890123456789012345678901234567890' as const,
+    };
+  }),
 }));
 
 describe('relayer-wallet', () => {

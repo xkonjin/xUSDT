@@ -3,50 +3,47 @@
  * Verifies that bundle analyzer and other performance configurations are properly set up
  */
 
-// Import the next.config.mjs file - need to use require for .mjs
-let nextConfig: any
-try {
-  const configModule = require('../../../next.config.mjs')
-  nextConfig = configModule.default || configModule
-} catch (error) {
-  // Will fail initially before we implement
-  console.error('Could not load next.config.mjs:', error)
-}
+import fs from "fs";
+import path from "path";
 
-describe('plasma-predictions next.config.mjs', () => {
-  describe('Bundle Analyzer Configuration', () => {
-    it('has experimental.optimizePackageImports configured', () => {
-      expect(nextConfig?.experimental?.optimizePackageImports).toBeDefined()
-      expect(nextConfig?.experimental?.optimizePackageImports.length).toBeGreaterThan(0)
-    })
+describe("plasma-predictions next.config.mjs", () => {
+  let configContent: string;
 
-    it('has SWC minification enabled (default)', () => {
-      expect(nextConfig?.swcMinify).not.toBe(false)
-    })
+  beforeAll(() => {
+    const configPath = path.join(__dirname, "../../next.config.mjs");
+    configContent = fs.readFileSync(configPath, "utf-8");
+  });
 
-    it('has image optimization configured', () => {
-      expect(nextConfig?.images).toBeDefined()
-    })
-  })
+  describe("Bundle Analyzer Configuration", () => {
+    it("has experimental.optimizePackageImports configured", () => {
+      expect(configContent).toContain("optimizePackageImports");
+      expect(configContent).toContain("lucide-react");
+    });
 
-  describe('Performance Headers', () => {
-    it('has headers function defined', () => {
-      expect(typeof nextConfig?.headers).toBe('function')
-    })
-  })
+    it("has image optimization configured", () => {
+      expect(configContent).toContain("images:");
+      expect(configContent).toContain("remotePatterns");
+    });
+  });
 
-  describe('Transpile Packages', () => {
-    it('transpiles all required monorepo packages', () => {
+  describe("Performance Headers", () => {
+    it("has headers function defined", () => {
+      expect(configContent).toContain("async headers()");
+    });
+  });
+
+  describe("Transpile Packages", () => {
+    it("transpiles all required monorepo packages", () => {
       const requiredPackages = [
-        '@plasma-pay/core',
-        '@plasma-pay/gasless',
-        '@plasma-pay/privy-auth',
-        '@plasma-pay/ui',
-        '@plasma-pay/db',
-      ]
-      requiredPackages.forEach(pkg => {
-        expect(nextConfig?.transpilePackages).toContain(pkg)
-      })
-    })
-  })
-})
+        "@plasma-pay/core",
+        "@plasma-pay/gasless",
+        "@plasma-pay/privy-auth",
+        "@plasma-pay/ui",
+        "@plasma-pay/db",
+      ];
+      requiredPackages.forEach((pkg) => {
+        expect(configContent).toContain(pkg);
+      });
+    });
+  });
+});

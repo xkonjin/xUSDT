@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Wallet, TrendingUp, Clock, ChevronRight, Sparkles, Filter, Gamepad2 } from "lucide-react";
+import { Wallet, TrendingUp, Clock, ChevronRight, Sparkles, Filter } from "lucide-react";
 import Link from "next/link";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
 import { Header } from "@/components/Header";
@@ -10,8 +10,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { BetCard } from "@/components/BetCard";
 import { BettingModal } from "@/components/BettingModal";
 import { useUserBets } from "@/hooks/useBets";
-import { useDemoStore, formatDemoBalance } from "@/lib/demo-store";
-import { formatUSDT, formatVolume } from "@/lib/constants";
+import { useDemoStore } from "@/lib/demo-store";
+import { formatVolume } from "@/lib/constants";
 
 type BetFilter = "all" | "active" | "won" | "lost";
 
@@ -113,7 +113,7 @@ export default function MyBetsPage() {
   const { data: bets, isLoading } = useUserBets(wallet?.address);
   
   // Demo mode
-  const { isDemoMode, demoBets, getDemoStats, getActiveDemoBets, enableDemoMode } = useDemoStore();
+  const { isDemoMode, demoBets, getDemoStats, getActiveDemoBets } = useDemoStore();
   const demoStats = getDemoStats();
   const activeDemoBets = getActiveDemoBets();
 

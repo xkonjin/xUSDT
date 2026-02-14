@@ -146,24 +146,36 @@ export class ValidationError extends Error {
 // Combined Validation and Sanitization
 // =============================================================================
 
+type GenericRecord = Record<string, unknown>;
+
+
 /**
  * Sanitize bill input data.
  * 
  * @param input - Raw bill input
  * @returns Sanitized bill input
  */
-export function sanitizeBillInput(input: Record<string, any>): Record<string, any> {
+export function sanitizeBillInput(input: GenericRecord): GenericRecord {
+  const items = Array.isArray(input.items) ? input.items : [];
+  const participants = Array.isArray(input.participants) ? input.participants : [];
+
   return {
     ...input,
-    title: sanitizeString(input.title, 200),
-    items: (input.items || []).map((item: any) => ({
-      ...item,
-      name: sanitizeString(item.name, 200),
-    })),
-    participants: (input.participants || []).map((p: any) => ({
-      ...p,
-      name: sanitizeString(p.name, 100),
-    })),
+    title: sanitizeString(input.title as string | null | undefined, 200),
+    items: items.map((item) => {
+      const itemRecord = item as GenericRecord;
+      return {
+        ...itemRecord,
+        name: sanitizeString(itemRecord.name as string | null | undefined, 200),
+      };
+    }),
+    participants: participants.map((p) => {
+      const participantRecord = p as GenericRecord;
+      return {
+        ...participantRecord,
+        name: sanitizeString(participantRecord.name as string | null | undefined, 100),
+      };
+    }),
   };
 }
 
@@ -176,7 +188,7 @@ export function sanitizeBillInput(input: Record<string, any>): Record<string, an
  */
 export function validateBillCreate(input: unknown): BillCreateInput {
   // First sanitize the input
-  const sanitized = sanitizeBillInput(input as Record<string, any>);
+  const sanitized = sanitizeBillInput(input as GenericRecord);
   
   // Then validate with Zod
   const result = billCreateSchema.safeParse(sanitized);
@@ -203,7 +215,7 @@ export type BillUpdateInput = z.infer<typeof billUpdateSchema>;
  * Validate and sanitize bill update input.
  */
 export function validateBillUpdate(input: unknown): BillUpdateInput {
-  const sanitized = sanitizeBillInput(input as Record<string, any>);
+  const sanitized = sanitizeBillInput(input as GenericRecord);
   const result = billUpdateSchema.safeParse(sanitized);
   
   if (!result.success) {

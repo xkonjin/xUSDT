@@ -13,8 +13,6 @@ import { ZKP2PClient } from '@plasma-pay/zkp2p';
 import type { Address, Hex } from 'viem';
 import type {
   AgentProfile,
-  AgentService,
-  AgentCapability,
   OnboardingRequest,
   OnboardingResult,
   OnboardingInstruction,
@@ -41,13 +39,11 @@ export class AgentHelperClient {
     // Generate or use existing wallet
     let walletAddress: Address;
     let privateKey: Hex | undefined;
-    let mnemonic: string | undefined;
 
     if (request.generateWallet || !request.existingWallet) {
       const wallet = this.x402Setup.generateAgentWallet();
       walletAddress = wallet.address;
       privateKey = wallet.privateKey;
-      mnemonic = wallet.mnemonic;
     } else {
       walletAddress = request.existingWallet;
     }
@@ -56,7 +52,7 @@ export class AgentHelperClient {
     const profile: AgentProfile = {
       name: request.agentName,
       walletAddress,
-      services: request.services.map((s, i) => ({
+      services: request.services.map((s) => ({
         ...s,
         endpoint: `/api/${s.name.toLowerCase().replace(/\s+/g, '-')}`,
       })),
@@ -227,6 +223,7 @@ export class AgentHelperClient {
     issues: string[];
     recommendations: string[];
   }> {
+    void walletAddress;
     const issues: string[] = [];
     const recommendations: string[] = [];
 

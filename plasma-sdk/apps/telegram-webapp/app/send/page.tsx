@@ -9,7 +9,6 @@ import {
   hideMainButton,
   showBackButton,
   hideBackButton,
-  getTelegramUser,
 } from "@/lib/telegram";
 import Link from "next/link";
 

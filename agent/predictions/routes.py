@@ -28,12 +28,21 @@ from .sync import (
     get_market_count,
 )
 from .ratelimit import limiter
+from ..config import settings
 
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 # In-memory stores (replace with database in production)
 _USER_BETS: dict[str, List[Bet]] = {}
 _LEADERBOARD: List[LeaderboardEntry] = []
+
+
+def _ensure_mock_enabled() -> None:
+    if not settings.PREDICTIONS_ENABLE_MOCK:
+        raise HTTPException(
+            status_code=501,
+            detail="Predictions mock flow disabled. Enable PREDICTIONS_ENABLE_MOCK to use this endpoint."
+        )
 
 
 # =============================================================================
@@ -103,6 +112,8 @@ async def place_bet(request: Request, bet_request: PlaceBetRequest):
     
     Accepts EIP-3009 authorization for gasless deposit+swap.
     """
+    _ensure_mock_enabled()
+
     # Validate market exists
     market = await get_market_by_id(bet_request.market_id)
     if not market:
@@ -122,12 +133,18 @@ async def place_bet(request: Request, bet_request: PlaceBetRequest):
     import uuid
     tx_hash = f"0x{uuid.uuid4().hex}"
     
-    amount = int(bet_request.amount) / 1e6  # Convert from atomic
+    try:
+        amount = int(bet_request.amount) / 1e6  # Convert from atomic
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid amount")
+
     price = market.yes_price if bet_request.outcome.upper() == "YES" else market.no_price
+    if price <= 0:
+        raise HTTPException(status_code=400, detail="Market price unavailable")
     shares = amount / price
     
     # Store bet
-    user_address = bet_request.authorization.get("from", "0x")
+    user_address = (bet_request.authorization.get("from") or bet_request.authorization.get("from_") or "0x").lower()
     bet = Bet(
         id=str(uuid.uuid4()),
         market_id=market.id,
@@ -160,6 +177,7 @@ async def cash_out(request: Request, cashout_request: CashOutRequest):
     """
     Cash out a bet position before resolution.
     """
+    _ensure_mock_enabled()
     # Find the bet
     bet_found = None
     user_address = None
@@ -215,7 +233,10 @@ async def get_user_bets(
     bets = _USER_BETS.get(user.lower(), [])
     
     if status:
-        status_enum = BetStatus(status)
+        try:
+            status_enum = BetStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid status filter")
         bets = [b for b in bets if b.status == status_enum]
     
     # Update current values based on market prices

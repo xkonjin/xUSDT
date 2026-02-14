@@ -1,4 +1,5 @@
 import { middleware, config } from '../middleware'
+import { NextRequest } from 'next/server'
 
 // Mock NextResponse and NextRequest for jsdom environment
 jest.mock('next/server', () => {
@@ -27,7 +28,6 @@ describe('middleware', () => {
 
   describe('security headers', () => {
     it('sets X-Frame-Options to DENY', () => {
-      const { NextRequest } = require('next/server')
       const request = new NextRequest('http://localhost:3000/')
       const response = middleware(request)
       
@@ -35,7 +35,6 @@ describe('middleware', () => {
     })
 
     it('sets X-Content-Type-Options to nosniff', () => {
-      const { NextRequest } = require('next/server')
       const request = new NextRequest('http://localhost:3000/')
       const response = middleware(request)
       
@@ -43,7 +42,6 @@ describe('middleware', () => {
     })
 
     it('sets X-XSS-Protection header', () => {
-      const { NextRequest } = require('next/server')
       const request = new NextRequest('http://localhost:3000/')
       const response = middleware(request)
       
@@ -51,7 +49,6 @@ describe('middleware', () => {
     })
 
     it('sets Referrer-Policy header', () => {
-      const { NextRequest } = require('next/server')
       const request = new NextRequest('http://localhost:3000/')
       const response = middleware(request)
       
@@ -59,7 +56,6 @@ describe('middleware', () => {
     })
 
     it('sets Permissions-Policy header', () => {
-      const { NextRequest } = require('next/server')
       const request = new NextRequest('http://localhost:3000/')
       const response = middleware(request)
       

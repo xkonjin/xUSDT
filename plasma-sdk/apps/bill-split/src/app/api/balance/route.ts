@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@plasma-pay/db';
-import { calculateBalances, BalanceSummary, Bill, BillParticipant } from '@/lib/balance-calculator';
+import { calculateBalances, Bill } from '@/lib/balance-calculator';
 
 /**
  * GET /api/balance

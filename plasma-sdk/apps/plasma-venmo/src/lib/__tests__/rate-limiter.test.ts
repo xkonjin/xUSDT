@@ -8,7 +8,7 @@
  * - Return 429 with Retry-After header when exceeded
  */
 
-import { RateLimiter, RateLimitConfig, RateLimitResult } from '../rate-limiter';
+import { RateLimiter, RateLimitConfig } from '../rate-limiter';
 
 describe('RateLimiter', () => {
   let rateLimiter: RateLimiter;

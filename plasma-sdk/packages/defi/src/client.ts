@@ -17,7 +17,6 @@ import type {
   ChainTVL,
   StablecoinData,
   YieldStrategy,
-  Token,
 } from './types';
 
 const DEFILLAMA_API = 'https://api.llama.fi';
@@ -68,8 +67,8 @@ export class DeFiClient {
       const response = await fetchWithTimeout(`${DEFILLAMA_API}/protocols`);
       if (!response.ok) throw new Error('Failed to fetch protocols');
       return response.json();
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timed out fetching protocols');
       }
       throw error;
@@ -214,7 +213,12 @@ export class DeFiClient {
     
     const prices: Record<string, number> = {};
     for (const [key, value] of Object.entries(data.coins || {})) {
-      prices[key] = (value as any).price;
+      if (value && typeof value === "object" && "price" in value) {
+        const priceValue = (value as { price?: number }).price;
+        if (typeof priceValue === "number") {
+          prices[key] = priceValue;
+        }
+      }
     }
     return prices;
   }
@@ -307,10 +311,13 @@ export class DeFiClient {
    */
   async executeSwap(
     params: SwapParams,
-    signer: any // Would be a viem WalletClient
+    signer: unknown // Would be a viem WalletClient
   ): Promise<{ txHash: string }> {
+    if (!signer) {
+      throw new Error('Wallet signer is required for swap execution');
+    }
     // In production, this would execute the actual swap
-    throw new Error('Swap execution requires wallet integration');
+    throw new Error(`Swap execution requires wallet integration for ${params.fromToken} -> ${params.toToken}`);
   }
 
   // ============================================================================
@@ -327,6 +334,7 @@ export class DeFiClient {
     timeHorizon: 'short' | 'medium' | 'long';
   }): Promise<YieldStrategy[]> {
     const { amount, token, riskTolerance, timeHorizon } = options;
+    const horizonLabel = timeHorizon;
     const strategies: YieldStrategy[] = [];
 
     // Get available yields
@@ -345,7 +353,7 @@ export class DeFiClient {
       if (bestStable) {
         strategies.push({
           name: 'Single-Sided Staking',
-          description: `Deposit ${token} into ${bestStable.project} for stable yields`,
+          description: `Deposit ${token} into ${bestStable.project} for stable yields (${horizonLabel} horizon)`,
           expectedApy: bestStable.apy,
           risk: 'low',
           steps: [{
@@ -367,7 +375,7 @@ export class DeFiClient {
         const [token1, token2] = bestLP.symbol.split('-');
         strategies.push({
           name: 'Liquidity Provision',
-          description: `Provide liquidity to ${bestLP.symbol} pool on ${bestLP.project}`,
+          description: `Provide liquidity to ${bestLP.symbol} pool on ${bestLP.project} (${horizonLabel} horizon)`,
           expectedApy: bestLP.apy,
           risk: 'medium',
           steps: [
@@ -406,6 +414,7 @@ export class DeFiClient {
     totalTVL: number;
     plasmaProtocols: Protocol[];
   }> {
+    void walletAddress;
     const [topYields, stablecoinYields, totalTVL, plasmaProtocols] = await Promise.all([
       this.findBestYields({ limit: 5 }),
       this.getStablecoinYields(),

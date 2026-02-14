@@ -183,7 +183,7 @@ export default function HomePage() {
 
                         {/* Participant avatars */}
                         <div className="flex items-center mt-3 -space-x-2">
-                          {bill.participants.slice(0, 4).map((p, i) => (
+                          {bill.participants.slice(0, 4).map((p) => (
                             <ParticipantAvatar
                               key={p.id}
                               name={p.name}

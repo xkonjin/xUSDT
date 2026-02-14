@@ -8,8 +8,6 @@
 import {
   simplifyDebts,
   Debt,
-  SimplifiedPayment,
-  SimplificationResult,
 } from '../simplify-debts';
 
 // =============================================================================

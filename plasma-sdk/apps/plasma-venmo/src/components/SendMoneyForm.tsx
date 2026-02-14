@@ -321,8 +321,9 @@ export function SendMoneyForm({
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [lastRecipient, setLastRecipient] = useState<string | null>(null);
 
-  const toast = useToast();
   const {
     onSuccess: assistantSuccess,
     onError: assistantError,
@@ -343,7 +344,6 @@ export function SendMoneyForm({
   const [showSuccess, setShowSuccess] = useState(false);
   const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
   const [successClaimUrl, setSuccessClaimUrl] = useState<string | undefined>();
-  const [lastRecipient, setLastRecipient] = useState<string>("");
 
   // Cleanup timeouts on unmount
   useEffect(() => {

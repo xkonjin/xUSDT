@@ -7,11 +7,11 @@
  * Used by QR codes and direct payment links.
  */
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { parseUnits } from "viem";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle, ExternalLink, User } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";

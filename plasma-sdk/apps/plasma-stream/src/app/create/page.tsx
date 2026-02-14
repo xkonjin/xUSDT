@@ -38,7 +38,7 @@ export default function CreateStreamPage() {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [durationDays, setDurationDays] = useState(30);
-  const [cliffDays, setCliffDays] = useState(0);
+  const [cliffDays] = useState(0);
   
   // UI state
   const [loading, setLoading] = useState(false);

@@ -39,7 +39,7 @@ let privyClient: PrivyClientType | null = null;
  * Get or create Privy client instance.
  * Lazy-loads to avoid build-time errors.
  */
-function getPrivyClient(): PrivyClientType | null {
+async function getPrivyClient(): Promise<PrivyClientType | null> {
   if (privyClient) {
     return privyClient;
   }
@@ -52,7 +52,7 @@ function getPrivyClient(): PrivyClientType | null {
   }
   
   // Dynamic import to avoid build-time initialization
-  const { PrivyClient } = require('@privy-io/server-auth');
+  const { PrivyClient } = await import('@privy-io/server-auth');
   privyClient = new PrivyClient(appId, appSecret);
   
   return privyClient;
@@ -98,7 +98,7 @@ export function extractBearerToken(authHeader: string | null): string | null {
  * @throws AuthError if invalid or Privy not configured
  */
 export async function verifyPrivyToken(token: string): Promise<AuthUser> {
-  const client = getPrivyClient();
+  const client = await getPrivyClient();
   
   if (!client) {
     throw new AuthError('Authentication service not configured', 503);
@@ -110,7 +110,7 @@ export async function verifyPrivyToken(token: string): Promise<AuthUser> {
       userId: result.userId,
       appId: result.appId,
     };
-  } catch (error) {
+  } catch {
     throw new AuthError('Invalid or expired token', 401);
   }
 }

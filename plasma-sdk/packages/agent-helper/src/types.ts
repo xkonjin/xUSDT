@@ -2,7 +2,7 @@
  * Agent Helper Types - Agent-to-agent onboarding and assistance
  */
 
-import type { Address, Hex } from 'viem';
+import type { Address } from 'viem';
 
 export interface AgentProfile {
   /** Agent's name/identifier */

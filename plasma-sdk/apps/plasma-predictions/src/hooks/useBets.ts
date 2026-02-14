@@ -52,6 +52,7 @@ async function submitBet(params: PlaceBetParams & { signature: Hex; authorizatio
 }
 
 async function submitCashOut(params: CashOutParams & { signature: EIP712Signature }): Promise<BetResult> {
+  void params;
   // In production: submit to relay
   await new Promise((r) => setTimeout(r, 2000));
   
@@ -171,7 +172,6 @@ export function useCashOut() {
   const queryClient = useQueryClient();
   const { wallet } = usePlasmaWallet();
   const address = wallet?.address;
-  const { signTransfer } = useGaslessTransfer();
   const { setRecentTx, closeCashOutModal } = usePredictionStore();
 
   return useMutation({

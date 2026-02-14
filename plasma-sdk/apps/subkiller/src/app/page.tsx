@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { 
   Mail, 
   DollarSign, 
@@ -12,7 +12,6 @@ import {
   AlertTriangle, 
   Settings,
   Target,
-  ChevronDown,
   Search,
   Eye,
   EyeOff
@@ -116,7 +115,6 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
 ];
 
 export default function Home() {
-  const { status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [oauthConfigured, setOauthConfigured] = useState<boolean | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(true);
