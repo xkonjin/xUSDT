@@ -262,13 +262,16 @@ export function PaymentRequests({
           const requesterName = request.fromEmail || request.fromAddress;
 
           return (
-            <div key={request.id} className="clay-list-item">
+            <div
+              key={request.id}
+              className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-4"
+            >
               <div className="flex items-center gap-4">
                 <Avatar name={requesterName} size="lg" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-bold text-xl text-white">
+                    <span className="font-heading font-bold tabular-nums text-xl text-white">
                       ${request.amount}
                     </span>
                     <span className="text-white/40 text-sm">USDT0</span>
@@ -295,7 +298,7 @@ export function PaymentRequests({
                     disabled={
                       decliningId === request.id || payingId === request.id
                     }
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors disabled:opacity-50"
+                    className="p-2.5 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
                     aria-label={`Decline payment request for $${request.amount}`}
                   >
                     {decliningId === request.id ? (
@@ -313,7 +316,7 @@ export function PaymentRequests({
                     disabled={
                       payingId === request.id || decliningId === request.id
                     }
-                    className="px-4 py-2.5 rounded-xl bg-plenmo-500 hover:bg-plenmo-600 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-xl bg-plenmo-500 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                     aria-label={`Pay $${request.amount} to ${
                       request.fromEmail || request.fromAddress
                     }`}

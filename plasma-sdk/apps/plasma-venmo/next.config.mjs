@@ -5,71 +5,69 @@
  * PWA configuration using next-pwa
  */
 
-import withBundleAnalyzer from '@next/bundle-analyzer';
-import withPWA from 'next-pwa';
-
-const withAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-});
+import withPWA from "next-pwa";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
-    '@plasma-pay/core',
-    '@plasma-pay/gasless',
-    '@plasma-pay/privy-auth',
-    '@plasma-pay/aggregator',
-    '@plasma-pay/db',
-    '@plasma-pay/ui',
+    "@plasma-pay/core",
+    "@plasma-pay/gasless",
+    "@plasma-pay/privy-auth",
+    "@plasma-pay/aggregator",
+    "@plasma-pay/db",
+    "@plasma-pay/ui",
   ],
-  
+
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'logo.clearbit.com',
+        protocol: "https",
+        hostname: "logo.clearbit.com",
       },
       {
-        protocol: 'https',
-        hostname: '*.googleusercontent.com',
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
       },
     ],
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
   },
 
   // Performance optimizations
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? {
+            exclude: ["error", "warn"],
+          }
+        : false,
   },
 
   // Experimental features for better performance
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    optimizePackageImports: ["lucide-react", "framer-motion"],
   },
 
   // Headers for security and caching
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: [
           {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
           },
           {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
           },
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
           {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
+            key: "Referrer-Policy",
+            value: "origin-when-cross-origin",
           },
         ],
       },
@@ -79,16 +77,16 @@ const nextConfig = {
 
 // PWA Configuration
 const withPWAConfig = withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
+      handler: "NetworkFirst",
       options: {
-        cacheName: 'offlineCache',
+        cacheName: "offlineCache",
         expiration: {
           maxEntries: 200,
         },
@@ -96,9 +94,9 @@ const withPWAConfig = withPWA({
     },
     {
       urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/,
-      handler: 'CacheFirst',
+      handler: "CacheFirst",
       options: {
-        cacheName: 'imageCache',
+        cacheName: "imageCache",
         expiration: {
           maxEntries: 50,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
@@ -107,9 +105,9 @@ const withPWAConfig = withPWA({
     },
     {
       urlPattern: /\.(?:js|css)$/,
-      handler: 'StaleWhileRevalidate',
+      handler: "StaleWhileRevalidate",
       options: {
-        cacheName: 'staticCache',
+        cacheName: "staticCache",
         expiration: {
           maxEntries: 50,
           maxAgeSeconds: 24 * 60 * 60, // 24 hours
@@ -119,4 +117,4 @@ const withPWAConfig = withPWA({
   ],
 });
 
-export default withAnalyzer(withPWAConfig(nextConfig));
+export default withPWAConfig(nextConfig);
