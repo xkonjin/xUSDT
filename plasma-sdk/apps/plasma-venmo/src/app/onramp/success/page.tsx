@@ -29,17 +29,17 @@ export default function OnrampSuccessPage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--bg-primary))] px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl text-center"
+        className="w-full max-w-md rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] p-8 text-center"
       >
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", duration: 0.6, delay: 0.2 }}
-          className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-emerald-500"
+          className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-plenmo-500"
         >
           <svg
             className="h-12 w-12 text-white"
@@ -60,7 +60,7 @@ export default function OnrampSuccessPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mb-2 text-2xl font-bold text-gray-900"
+          className="mb-2 text-2xl font-bold text-white"
         >
           Funds Added Successfully!
         </motion.h1>
@@ -69,7 +69,7 @@ export default function OnrampSuccessPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mb-6 text-gray-600"
+          className="mb-6 text-white/60"
         >
           {amount ? (
             <>
@@ -89,10 +89,10 @@ export default function OnrampSuccessPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mb-6 rounded-lg bg-gray-50 p-4"
+            className="mb-6 rounded-lg bg-white/[0.04] p-4"
           >
-            <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
-            <p className="font-mono text-sm text-gray-700 break-all">
+            <p className="text-xs text-white/40 mb-1">Transaction Hash</p>
+            <p className="font-mono text-sm text-white/70 break-all">
               {txHash}
             </p>
           </motion.div>
@@ -110,7 +110,7 @@ export default function OnrampSuccessPage() {
             Go to Dashboard
           </button>
 
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-white/40">
             Redirecting in {countdown} seconds...
           </p>
         </motion.div>

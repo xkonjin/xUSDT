@@ -36,6 +36,11 @@ const ZKP2POnrampV2 = dynamic(
   { ssr: false }
 );
 
+// Lazy-load Stripe onramp (only when card selected)
+const StripeOnramp = dynamic(() => import("@/components/onramp/StripeOnramp"), {
+  ssr: false,
+});
+
 // Type for payment link data
 interface PaymentLinkData {
   id: string;
@@ -81,7 +86,7 @@ const FIAT_METHODS = [
     name: "Card",
     icon: "💳",
     description: "Credit or debit card",
-    available: false, // Coming soon — Stripe integration
+    available: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },
 ] as const;
 
@@ -115,6 +120,7 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [showFiatOnramp, setShowFiatOnramp] = useState(false);
+  const [showStripeOnramp, setShowStripeOnramp] = useState(false);
 
   // Fetch payment link details
   useEffect(() => {
@@ -448,14 +454,17 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
             </button>
           )}
 
-          {/* Fiat methods via ZKP2P */}
+          {/* Fiat methods via ZKP2P / Stripe */}
           {FIAT_METHODS.map((method) => (
             <button
               key={method.id}
               onClick={() => {
-                if (method.id === "card") return; // Coming soon
                 if (!hasValidAmount) {
                   setError("Enter an amount first");
+                  return;
+                }
+                if (method.id === "card") {
+                  setShowStripeOnramp(true);
                   return;
                 }
                 handleFiatPayment();
@@ -578,6 +587,28 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
               defaultAmount={amount || paymentLink.amount?.toString()}
               onSuccess={handleFiatSuccess}
               onClose={() => setShowFiatOnramp(false)}
+            />
+          </ModalPortal>
+        )}
+
+        {/* Stripe Card Onramp Modal */}
+        {showStripeOnramp && paymentLink && (
+          <ModalPortal
+            isOpen={true}
+            onClose={() => setShowStripeOnramp(false)}
+            zIndex={110}
+          >
+            <StripeOnramp
+              walletAddress={paymentLink.creatorAddress}
+              amount={amount || paymentLink.amount?.toString()}
+              onSuccess={() => {
+                setShowStripeOnramp(false);
+                setSuccess("stripe-card");
+                setPaymentLink((prev) =>
+                  prev ? { ...prev, status: "paid" } : null
+                );
+              }}
+              onClose={() => setShowStripeOnramp(false)}
             />
           </ModalPortal>
         )}
