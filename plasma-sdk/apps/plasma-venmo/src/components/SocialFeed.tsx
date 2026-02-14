@@ -142,7 +142,7 @@ export const SocialFeed = memo(function SocialFeed({
     localStorage.setItem("plasma-privacy", JSON.stringify(settings));
   };
 
-  const handleLike = (id: string) => {
+  const handleLike = useCallback((id: string) => {
     setFeed((prev) =>
       prev.map((item) =>
         item.id === id
@@ -154,7 +154,7 @@ export const SocialFeed = memo(function SocialFeed({
           : item
       )
     );
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -238,7 +238,7 @@ export const SocialFeed = memo(function SocialFeed({
           <FeedCard
             key={item.id}
             item={item}
-            onLike={() => handleLike(item.id)}
+            onLike={handleLike}
             showAmount={privacySettings.showAmount}
           />
         ))}
@@ -281,7 +281,7 @@ const FeedCard = memo(function FeedCard({
   showAmount,
 }: {
   item: FeedItem;
-  onLike: () => void;
+  onLike: (id: string) => void;
   showAmount: boolean;
 }) {
   const getRelativeTime = (timestamp: number): string => {
@@ -341,7 +341,7 @@ const FeedCard = memo(function FeedCard({
 
           <div className="flex items-center gap-4 mt-3">
             <button
-              onClick={onLike}
+              onClick={() => onLike(item.id)}
               className={`flex items-center gap-1.5 text-sm transition-colors ${
                 item.isLiked
                   ? "text-red-400"
