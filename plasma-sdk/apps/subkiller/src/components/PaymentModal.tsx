@@ -20,8 +20,7 @@ import { Card, CardContent, CardHeader } from './ui/Card';
 import { ConfirmModal } from '@plasma-pay/ui';
 import { X, Wallet, Zap, Shield, AlertCircle } from 'lucide-react';
 import { 
-  SUBKILLER_PRICE_DISPLAY, 
-  SUBKILLER_PRICE,
+  SUBKILLER_PRICE_DISPLAY,
   createPaymentTypedData,
 } from '@/lib/payment';
 import type { PlasmaEmbeddedWallet } from '@plasma-pay/privy-auth';

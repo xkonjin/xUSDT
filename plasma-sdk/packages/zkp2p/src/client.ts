@@ -275,9 +275,14 @@ export class ZKP2PClient {
     fee: string;
     rate: string;
   }> {
-    // ZKP2P typically has ~1% fee
+    // ZKP2P typically has ~1% fee (platform-dependent placeholder)
     const inputNum = parseFloat(amount);
-    const feePercent = 0.01;
+    const platformFees: Partial<Record<PaymentPlatform, number>> = {
+      venmo: 0.01,
+      zelle: 0.01,
+      revolut: 0.01,
+    };
+    const feePercent = platformFees[platform] ?? 0.01;
     const fee = inputNum * feePercent;
     const outputAmount = inputNum - fee;
 

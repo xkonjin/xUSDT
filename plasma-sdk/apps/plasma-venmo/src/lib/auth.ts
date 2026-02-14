@@ -33,7 +33,7 @@ export class AuthError extends Error {
 
 let privyClient: PrivyClientType | null = null;
 
-function getPrivyClient(): PrivyClientType | null {
+async function getPrivyClient(): Promise<PrivyClientType | null> {
   if (privyClient) {
     return privyClient;
   }
@@ -47,7 +47,7 @@ function getPrivyClient(): PrivyClientType | null {
   
   try {
     // Dynamic require for server-side only
-    const mod = require('@privy-io/server-auth');
+    const mod = await import('@privy-io/server-auth');
     privyClient = new mod.PrivyClient(appId, appSecret);
     return privyClient;
   } catch {
@@ -70,7 +70,7 @@ export function extractBearerToken(authHeader: string | null): string | null {
 }
 
 export async function verifyPrivyToken(token: string): Promise<AuthUser> {
-  const client = getPrivyClient();
+  const client = await getPrivyClient();
   
   if (!client) {
     throw new AuthError('Authentication service not configured', 503);

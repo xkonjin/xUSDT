@@ -5,7 +5,6 @@
  */
 
 import {
-  RateLimiter,
   createRateLimiter,
   getRateLimitHeaders,
   isRateLimited,

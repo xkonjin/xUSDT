@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
-import { plasmaMainnet, PLASMA_MAINNET_RPC, USDT0_ADDRESS } from '@plasma-pay/core';
+import { plasmaMainnet, PLASMA_MAINNET_RPC } from '@plasma-pay/core';
 import { logHealthCheck } from '@/lib/monitoring';
 
 /**

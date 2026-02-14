@@ -16,9 +16,6 @@ import {
   parseUserFriendlyError,
 } from "@/lib/validation";
 import {
-  withRateLimit,
-  getClientIP,
-  getRouteType,
 } from "@/lib/rate-limiter-redis";
 import {
   generateCorrelationId,
@@ -68,9 +65,6 @@ export async function POST(request: Request) {
 
   try {
     // Rate limiting check (Redis-based for production)
-    const ip = getClientIP(request);
-    const routeType = getRouteType("/api/submit-transfer");
-
     // Try Redis rate limiter first, fallback to permissive if unavailable
     try {
       // Dynamic import to avoid build issues if @vercel/kv not installed

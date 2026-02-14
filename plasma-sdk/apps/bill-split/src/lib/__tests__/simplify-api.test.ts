@@ -6,7 +6,7 @@
  * TDD: Tests written first, before implementation.
  */
 
-import { simplifyDebts, Debt, SimplificationResult } from '../simplify-debts';
+import { simplifyDebts, Debt } from '../simplify-debts';
 
 // =============================================================================
 // Test Helpers

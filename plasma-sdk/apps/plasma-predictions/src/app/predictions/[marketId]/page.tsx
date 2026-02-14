@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Clock,
   TrendingUp,
-  Users,
   ExternalLink,
   Share2,
 } from "lucide-react";
@@ -24,7 +23,6 @@ import {
   formatUSDT,
   formatPrice,
   formatTimeLeft,
-  formatPercent,
 } from "@/lib/constants";
 
 export default function MarketDetailPage() {

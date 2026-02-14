@@ -14,6 +14,7 @@ import {
   type Address,
   type Hex,
   type Account,
+  type Chain,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type {
@@ -29,7 +30,6 @@ import {
   DEFAULT_MIN_BALANCE,
   DEFAULT_TARGET_BALANCE,
   DEFAULT_REFILL_AMOUNT,
-  ESTIMATED_TX_GAS as _ESTIMATED_TX_GAS,
   ESTIMATED_ERC20_GAS,
   ESTIMATED_GAS_PRICE,
   USDT0_ADDRESS,
@@ -42,7 +42,7 @@ const plasma = {
   name: "Plasma",
   nativeCurrency: { decimals: 18, name: "XPL", symbol: "XPL" },
   rpcUrls: { default: { http: [PLASMA_RPC_URL] } },
-};
+} as const satisfies Chain;
 
 // ERC20 ABI for USDT0 balance and approval
 const ERC20_ABI = [
@@ -76,6 +76,8 @@ const ERC20_ABI = [
 ] as const;
 
 // Simple swap router ABI
+type PublicClient = ReturnType<typeof createPublicClient>;
+
 const SWAP_ROUTER_ABI = [
   {
     inputs: [
@@ -157,7 +159,7 @@ export class PlasmaGasManager {
     maxDailyRefills: number;
     maxDailyAmount: bigint;
   };
-  private publicClient: any;
+  private publicClient: PublicClient;
   private walletClient: WalletClient | null = null;
   private account: Account | null = null;
   private eventHandlers: GasManagerEventHandler[] = [];
@@ -191,7 +193,7 @@ export class PlasmaGasManager {
 
     // Initialize public client
     this.publicClient = createPublicClient({
-      chain: plasma as any,
+      chain: plasma,
       transport: http(this.config.plasmaRpcUrl),
     });
 
@@ -203,8 +205,8 @@ export class PlasmaGasManager {
       }
       this.account = privateKeyToAccount(config.privateKey);
       this.walletClient = createWalletClient({
-        account: this.account as any,
-        chain: plasma as any,
+        account: this.account,
+        chain: plasma,
         transport: http(this.config.plasmaRpcUrl),
       });
     }
@@ -360,7 +362,7 @@ export class PlasmaGasManager {
           abi: ERC20_ABI,
           functionName: "approve",
           args: [GAS_SWAP_ROUTER, refillAmount * BigInt(10)], // Approve 10x for future
-        } as any);
+        });
         await this.publicClient.waitForTransactionReceipt({
           hash: approveHash,
         });
@@ -384,7 +386,7 @@ export class PlasmaGasManager {
           this.address!,
           deadline,
         ],
-      } as any);
+      });
 
       // Wait for confirmation
       await this.publicClient.waitForTransactionReceipt({ hash: txHash });
@@ -415,8 +417,8 @@ export class PlasmaGasManager {
       });
 
       return result;
-    } catch (error: any) {
-      const errorMsg = error.message || "Unknown error";
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
       this.emit({ type: "refill_failed", error: errorMsg });
       this.log("Gas refill failed", { error: errorMsg });
       return { success: false, error: errorMsg };
@@ -521,8 +523,9 @@ export class PlasmaGasManager {
         this.log("Balance low, triggering auto-refill");
         await this.refill();
       }
-    } catch (error: any) {
-      this.log("Balance check failed", { error: error.message });
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      this.log("Balance check failed", { error: errorMsg });
     }
   }
 
@@ -552,7 +555,7 @@ export async function hasEnoughGas(
   rpcUrl: string = PLASMA_RPC_URL
 ): Promise<boolean> {
   const client = createPublicClient({
-    chain: plasma as any,
+    chain: plasma,
     transport: http(rpcUrl),
   });
 

@@ -2,6 +2,14 @@
  * PWA utilities for service worker registration and install prompts
  */
 
+interface PWAInstallWindow extends Window {
+  triggerPWAInstall?: () => Promise<boolean>;
+}
+
+interface StandaloneNavigator extends Navigator {
+  standalone?: boolean;
+}
+
 export function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return;
@@ -43,7 +51,7 @@ export async function promptInstall() {
   }
 
   // Use the global function exposed in layout
-  const globalWindow = window as any;
+  const globalWindow = window as PWAInstallWindow;
   if (typeof globalWindow.triggerPWAInstall === 'function') {
     return globalWindow.triggerPWAInstall();
   }
@@ -59,7 +67,7 @@ export function isInstalled() {
   // Check if running as PWA
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as StandaloneNavigator).standalone === true
   );
 }
 

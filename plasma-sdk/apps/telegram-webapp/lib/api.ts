@@ -142,12 +142,13 @@ class TelegramAPI {
   }
 
   // Transaction History
-  async getTransactions(address: string): Promise<{ transactions: any[] }> {
+  async getTransactions(address: string): Promise<{ transactions: unknown[] }> {
     return this.request(`/api/history?address=${address}`);
   }
 
   // Balance
   async getBalance(address: string): Promise<{ balance: string; formatted: string }> {
+    void address;
     // For now, query directly from chain
     // In production, could cache this in backend
     return { balance: '0', formatted: '0.00' };
@@ -158,7 +159,7 @@ class TelegramAPI {
     creatorAddress: string;
     type: string;
     targetUrl?: string;
-    targetData?: any;
+    targetData?: unknown;
     channel?: string;
   }): Promise<{ shareUrl: string }> {
     return this.request('/api/share-links', {

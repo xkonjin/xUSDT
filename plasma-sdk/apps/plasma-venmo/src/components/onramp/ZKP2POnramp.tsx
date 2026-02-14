@@ -82,7 +82,6 @@ export function ZKP2POnramp({
   const [step, setStep] = useState<'amount' | 'payment' | 'processing' | 'success'>('amount');
   const [amount, setAmount] = useState(defaultAmount);
   const [currency, setCurrency] = useState(defaultCurrency);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentPlatform | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
   // Subscribe to proof completion

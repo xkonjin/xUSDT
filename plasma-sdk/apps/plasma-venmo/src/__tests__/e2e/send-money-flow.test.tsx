@@ -10,16 +10,13 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
 import {
   createMockWallet,
-  createMockUser,
   createMockContact,
-  mockFetchSuccess,
-  mockFetchError,
   TEST_ADDRESSES,
   TEST_AMOUNTS,
   TEST_EMAILS,
@@ -72,7 +69,7 @@ jest.mock('@plasma-pay/ui', () => ({
     onLoading: jest.fn(),
   }),
   getUserFriendlyError: (e: string) => e,
-  PaymentProgress: ({ status, onClose }: any) => (
+  PaymentProgress: ({ status, onClose }: { status: string; onClose: () => void }) => (
     <div data-testid="payment-progress" data-status={status}>
       {status}
       <button onClick={onClose}>Close</button>
@@ -172,7 +169,7 @@ function SendMoneyTestComponent({
       const resolveData = await resolveRes.json();
 
       // Step 2: Sign EIP-3009 transfer
-      const signature = await mockWallet.signTypedData({
+      await mockWallet.signTypedData({
         domain: {
           name: 'USD₮0',
           version: '1',

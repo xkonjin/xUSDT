@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { useDemoStore, formatDemoBalance } from '../demo-store'
+import { useDemoStore, formatDemoBalance, type DemoBet } from '../demo-store'
 import type { PredictionMarket } from '../types'
 
 // Mock market for testing
@@ -16,13 +16,6 @@ const mockMarket: PredictionMarket = {
   totalVolume: 1000000,
   liquidity: 500000,
   createdAt: '2024-01-01T00:00:00Z',
-}
-
-const resolvedMarket: PredictionMarket = {
-  ...mockMarket,
-  id: 'resolved-market-1',
-  resolved: true,
-  outcome: 'YES',
 }
 
 describe('useDemoStore', () => {
@@ -112,7 +105,7 @@ describe('useDemoStore', () => {
     it('should reject bet exceeding balance', () => {
       const { result } = renderHook(() => useDemoStore())
       
-      let bet: any
+      let bet: DemoBet | null = null
       act(() => {
         bet = result.current.placeDemoBet({
           market: mockMarket,
@@ -128,7 +121,7 @@ describe('useDemoStore', () => {
     it('should reject bet with zero or negative amount', () => {
       const { result } = renderHook(() => useDemoStore())
       
-      let bet: any
+      let bet: DemoBet | null = null
       act(() => {
         bet = result.current.placeDemoBet({
           market: mockMarket,

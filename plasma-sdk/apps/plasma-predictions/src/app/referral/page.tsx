@@ -4,11 +4,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Users, Copy, Check, Gift, DollarSign, 
-  TrendingUp, Share2, AlertCircle, ExternalLink
+  Share2
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { useDemoStore } from "@/lib/demo-store";
 import { toast } from "sonner";
 
 // Mock referral data
@@ -19,7 +18,6 @@ const mockReferrals = [
 ];
 
 export default function ReferralPage() {
-  const { isDemoMode } = useDemoStore();
   const [copied, setCopied] = useState(false);
   
   // Demo referral code
@@ -53,7 +51,9 @@ export default function ReferralPage() {
           text,
           url: referralLink,
         });
-      } catch {}
+      } catch (error) {
+        console.warn("Share canceled or failed:", error);
+      }
     } else {
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(referralLink)}`;
       window.open(twitterUrl, "_blank");

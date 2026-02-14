@@ -7,7 +7,6 @@
  */
 
 import { useState, useEffect } from "react";
-import { usePlasmaWallet } from "@plasma-pay/privy-auth";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Clock, Copy, Check, ExternalLink, Loader2, Share2 } from "lucide-react";
 
@@ -63,7 +62,6 @@ export default function BillPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [, setGeneratingLinks] = useState(false);
 
   // Fetch bill details
   useEffect(() => {
@@ -79,7 +77,8 @@ export default function BillPage({
         }
         const data = await response.json();
         setBill(data.bill);
-      } catch (err) {
+      } catch (error) {
+        console.error("Failed to load bill:", error);
         setError('Failed to load bill');
       } finally {
         setLoading(false);

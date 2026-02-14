@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 import { parseUnits } from "viem";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import {

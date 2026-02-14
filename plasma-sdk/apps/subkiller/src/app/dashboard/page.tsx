@@ -19,22 +19,32 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { PaymentModal } from '@/components/PaymentModal';
 import { ScanProgress } from '@/components/ScanProgress';
 import { DollarSign, Scan, Filter, LogOut, CheckCircle } from 'lucide-react';
 import { signOut } from 'next-auth/react';
-import type { Subscription, ScanResult } from '@/types';
+import type { Subscription } from '@/types';
 import { calculateTotals } from '@/lib/subscription-detector';
 
 // Conditionally import Privy hook - may not be available if not configured
-let usePlasmaWallet: (() => any) | null = null;
-try {
-  const privyAuth = require('@plasma-pay/privy-auth');
-  usePlasmaWallet = privyAuth.usePlasmaWallet;
-} catch {
-  // Privy not available - wallet features will be disabled
+type WalletState = {
+  wallet: { address?: string } | null;
+  authenticated: boolean;
+  login: () => void;
+};
+
+let usePlasmaWallet: (() => WalletState) | null = null;
+
+if (typeof window !== 'undefined') {
+  import('@plasma-pay/privy-auth')
+    .then((privyAuth) => {
+      usePlasmaWallet = privyAuth.usePlasmaWallet as () => WalletState;
+    })
+    .catch(() => {
+      // Privy not available - wallet features will be disabled
+    });
 }
 
 const useFallbackWallet = () => ({
@@ -63,9 +73,7 @@ export default function Dashboard() {
   
   // Payment state
   const [hasPaid, setHasPaid] = useState(false);
-  const [paymentTxHash, setPaymentTxHash] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [isCheckingPayment, setIsCheckingPayment] = useState(true);
   
   // Filter state
   const [filter, setFilter] = useState<string>('all');
@@ -83,7 +91,6 @@ export default function Dashboard() {
     const checkPaymentStatus = async () => {
       // Need wallet address to check payment status
       if (!wallet?.address) {
-        setIsCheckingPayment(false);
         return;
       }
 
@@ -92,12 +99,9 @@ export default function Dashboard() {
         if (response.ok) {
           const data = await response.json();
           setHasPaid(data.hasPaid || false);
-          setPaymentTxHash(data.txHash || null);
         }
       } catch (error) {
         console.error('Failed to check payment status:', error);
-      } finally {
-        setIsCheckingPayment(false);
       }
     };
 
@@ -168,8 +172,8 @@ export default function Dashboard() {
    * We just update local state here - no more localStorage
    */
   const handlePaymentSuccess = (txHash: string) => {
+    void txHash;
     setHasPaid(true);
-    setPaymentTxHash(txHash);
     setShowPaymentModal(false);
     // Note: Payment is already persisted to database by /api/pay endpoint
     // No localStorage needed - server is source of truth

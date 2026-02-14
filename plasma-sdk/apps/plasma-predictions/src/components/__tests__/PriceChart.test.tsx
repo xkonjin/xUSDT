@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom'
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PriceChart } from '../PriceChart'
 import type { PriceSnapshot } from '@/lib/price-history'
@@ -23,7 +22,7 @@ const generateMockData = (hours: number): PriceSnapshot[] => {
 describe('PriceChart Component', () => {
   const mockData = generateMockData(24)
 
-  const mockGetHistoryForRange = jest.fn((marketId: string, range: string) => {
+  const mockGetHistoryForRange = jest.fn(() => {
     return mockData
   })
 

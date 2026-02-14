@@ -9,6 +9,11 @@ import {
   triggerHaptic,
 } from "@/lib/pwa";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt?: () => Promise<void>;
+  userChoice?: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 describe("PWA Service Worker Registration", () => {
   const mockRegister = jest.fn();
 
@@ -54,7 +59,7 @@ describe("PWA Service Worker Registration", () => {
 });
 
 describe("PWA Install Prompt", () => {
-  let deferredPrompt: any = null;
+  let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
   beforeEach(() => {
     deferredPrompt = null;
@@ -62,10 +67,10 @@ describe("PWA Install Prompt", () => {
   });
 
   it("should capture beforeinstallprompt event", () => {
-    const event = new Event("beforeinstallprompt") as any;
+    const event = new Event("beforeinstallprompt") as BeforeInstallPromptEvent;
     event.preventDefault = jest.fn();
 
-    window.addEventListener("beforeinstallprompt", (e: any) => {
+    window.addEventListener("beforeinstallprompt", (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
       deferredPrompt = e;
     });
@@ -80,7 +85,7 @@ describe("PWA Install Prompt", () => {
     const installableSpy = jest.fn();
     window.addEventListener("pwa-installable", installableSpy);
 
-    const event = new Event("beforeinstallprompt") as any;
+    const event = new Event("beforeinstallprompt") as BeforeInstallPromptEvent;
     event.preventDefault = jest.fn();
 
     window.dispatchEvent(event);
@@ -149,7 +154,7 @@ describe("PWA Utility Functions", () => {
   it("triggerHaptic does not throw when vibrate is not available", () => {
     // Must delete property so `'vibrate' in navigator` returns false
     const desc = Object.getOwnPropertyDescriptor(navigator, "vibrate");
-    // @ts-ignore
+    // @ts-expect-error - removing navigator.vibrate for test
     delete navigator.vibrate;
     expect(() => triggerHaptic()).not.toThrow();
     if (desc) Object.defineProperty(navigator, "vibrate", desc);

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       streams,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { streams: [], error: "Failed to fetch streams" },
       { status: 500 }
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
       stream: result.stream,
       txHash: result.txHash,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error:

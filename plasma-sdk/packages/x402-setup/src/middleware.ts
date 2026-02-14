@@ -5,9 +5,7 @@
 import type { X402Config } from "./types";
 import { verifyPayment } from "./verify";
 
-const PLASMA_CHAIN_ID = 98866;
 const USDT0_ADDRESS = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
-void PLASMA_CHAIN_ID;
 
 export interface MiddlewareConfig extends X402Config {
   services?: Array<{
@@ -23,7 +21,27 @@ export interface X402Middleware {
   handle: MiddlewareHandler;
 }
 
-type MiddlewareHandler = (req: any, res: any, next: any) => Promise<void>;
+type ExpressRequest = {
+  headers: Record<string, string | undefined>;
+  path?: string;
+  url?: string;
+  payment?: unknown;
+};
+
+type ExpressResponse = {
+  status: (code: number) => void;
+  set: (headers: Record<string, string>) => void;
+  json: (body: unknown) => void;
+};
+
+type NextFunction = () => void;
+
+type MiddlewareHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction
+) => Promise<void>;
+
 
 /**
  * Create X402 middleware for Express/Connect-style frameworks
@@ -47,7 +65,7 @@ export function createX402Middleware(config: MiddlewareConfig): X402Middleware {
     price: string,
     description?: string
   ): MiddlewareHandler => {
-    return async (req: any, res: any, next: any) => {
+    return async (req, res, next) => {
       const paymentProof =
         req.headers["x-payment-proof"] || req.headers["X-Payment-Proof"];
 
@@ -96,8 +114,12 @@ export function createX402Middleware(config: MiddlewareConfig): X402Middleware {
   /**
    * Auto-detect middleware based on path
    */
-  const handle: MiddlewareHandler = async (req: any, res: any, next: any) => {
-    const path = req.path || req.url;
+  const handle: MiddlewareHandler = async (req, res, next) => {
+    const path = req.path ?? req.url ?? "";
+    if (!path) {
+      next();
+      return;
+    }
     const serviceConfig = priceMap.get(path);
 
     if (!serviceConfig) {
@@ -136,7 +158,18 @@ export function x402Hono(config: {
   price: string;
   description?: string;
 }) {
-  return async (c: any, next: any) => {
+  return async (
+    c: {
+      req: { header: (name: string) => string | undefined };
+      json: (
+        body: unknown,
+        status?: number,
+        headers?: Record<string, string>
+      ) => unknown;
+      set: (key: string, value: unknown) => void;
+    },
+    next: () => Promise<void>
+  ) => {
     const paymentProof = c.req.header("X-Payment-Proof");
 
     if (!paymentProof) {

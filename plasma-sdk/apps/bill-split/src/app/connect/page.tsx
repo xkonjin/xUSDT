@@ -25,6 +25,15 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: {
+      close: () => void;
+    };
+  };
+};
+
 // ============================================================================
 // PAGE COMPONENT
 // ============================================================================
@@ -72,8 +81,9 @@ export default function ConnectPage() {
         // Try to close the Mini App after a delay
         // This uses Telegram's WebApp API if available
         setTimeout(() => {
-          if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
-            (window as any).Telegram.WebApp.close();
+          if (typeof window !== "undefined") {
+            const telegramWindow = window as TelegramWindow;
+            telegramWindow.Telegram?.WebApp?.close();
           }
         }, 2000);
       } catch (err) {

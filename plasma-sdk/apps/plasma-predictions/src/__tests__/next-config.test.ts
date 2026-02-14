@@ -3,15 +3,20 @@
  * Verifies that bundle analyzer and other performance configurations are properly set up
  */
 
-// Import the next.config.mjs file - need to use require for .mjs
-let nextConfig: any
-try {
-  const configModule = require('../../../next.config.mjs')
-  nextConfig = configModule.default || configModule
-} catch (error) {
-  // Will fail initially before we implement
-  console.error('Could not load next.config.mjs:', error)
-}
+type NextConfigModule = {
+  default?: Record<string, unknown>;
+};
+
+let nextConfig: Record<string, unknown> | null = null;
+
+beforeAll(async () => {
+  try {
+    const configModule = (await import("../../../next.config.mjs")) as NextConfigModule;
+    nextConfig = configModule.default ?? configModule;
+  } catch (error) {
+    console.error("Could not load next.config.mjs:", error);
+  }
+});
 
 describe('plasma-predictions next.config.mjs', () => {
   describe('Bundle Analyzer Configuration', () => {

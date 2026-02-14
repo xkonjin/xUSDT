@@ -7,8 +7,9 @@
  * Supports WhatsApp, SMS, Copy Link, and QR code options.
  */
 
-import { useState, useEffect } from "react";
-import { X, MessageCircle, Copy, QrCode, Check, Share2, Smartphone } from "lucide-react";
+import { useState } from "react";
+import Image from "next/image";
+import { X, Copy, QrCode, Check, Share2, Smartphone } from "lucide-react";
 import QRCode from "qrcode";
 
 interface ShareLink {
@@ -279,10 +280,13 @@ export function ShareSheet({
                 </p>
               </div>
               <div className="bg-white p-4 rounded-2xl shadow-clay flex items-center justify-center">
-                <img 
-                  src={qrCodeUrl} 
+                <Image
+                  src={qrCodeUrl}
                   alt="Payment QR Code"
+                  width={256}
+                  height={256}
                   className="w-64 h-64"
+                  unoptimized
                 />
               </div>
               <button

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlasmaWallet, useUSDT0Balance, useFundWallet } from "@plasma-pay/privy-auth";
 import {
-  Wallet,
   LogOut,
   ChevronDown,
   Plus,
@@ -51,7 +50,7 @@ function Logo() {
 }
 
 export function Header() {
-  const { authenticated, login, logout, wallet, ready } = usePlasmaWallet();
+  const { authenticated, login, logout, wallet } = usePlasmaWallet();
   const address = wallet?.address;
   const { balance, loading: isLoading } = useUSDT0Balance();
   const { fundWallet } = useFundWallet();

@@ -254,8 +254,6 @@ export interface AuthorizationParams {
  * Validate transfer authorization parameters.
  */
 export function validateAuthorization(params: Partial<AuthorizationParams>): ValidationResult<AuthorizationParams> {
-  const errors: string[] = [];
-
   // Validate from address
   const fromResult = validateAddress(params.from);
   if (!fromResult.valid) {

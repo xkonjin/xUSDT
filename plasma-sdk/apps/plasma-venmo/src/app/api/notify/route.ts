@@ -81,10 +81,27 @@ function wrapEmailTemplate(content: string): string {
 const buttonStyle = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #00b4d8 100%); color: #000000; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;`;
 const buttonStylePrimary = `display: inline-block; background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%); color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;`;
 
+type NotificationTemplateData = {
+  amount?: number | string;
+  senderAddress?: string;
+  senderEmail?: string;
+  fromEmail?: string;
+  fromAddress?: string;
+  memo?: string;
+  txHash?: string;
+  claimUrl?: string;
+  reason?: string;
+  title?: string;
+  total?: number | string;
+  billId?: string;
+  share?: number | string;
+  paymentUrl?: string;
+};
+
 // Email templates for different notification types
 const EMAIL_TEMPLATES: Record<NotificationType, {
-  subject: (data: any) => string;
-  html: (data: any) => string;
+  subject: (data: NotificationTemplateData) => string;
+  html: (data: NotificationTemplateData) => string;
 }> = {
   payment_received: {
     subject: (data) => `You received $${data.amount} USDT0`,
@@ -143,7 +160,7 @@ const EMAIL_TEMPLATES: Record<NotificationType, {
     `),
   },
   request_declined: {
-    subject: (data) => `Payment request declined`,
+    subject: (data) => `Payment request declined${data.amount ? `: $${data.amount} USDT0` : ""}`,
     html: (data) => wrapEmailTemplate(`
       <h2 style="margin: 0 0 16px; font-size: 28px; color: #f87171;">Request Declined</h2>
       <p style="margin: 0 0 24px; font-size: 16px; color: rgba(255,255,255,0.8);">
@@ -201,6 +218,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { notificationId, recipientEmail, type, data } = body;
+    const payloadData = data as NotificationTemplateData | undefined;
 
     let notification;
 
@@ -222,9 +240,9 @@ export async function POST(request: Request) {
         data: {
           recipientEmail,
           type,
-          title: EMAIL_TEMPLATES[type as NotificationType]?.subject(data) || type,
+          title: EMAIL_TEMPLATES[type as NotificationType]?.subject(payloadData || {}) || type,
           body: '',
-          data: data ? JSON.stringify(data) : null,
+          data: payloadData ? JSON.stringify(payloadData) : null,
           status: 'pending',
         },
       });
@@ -246,7 +264,9 @@ export async function POST(request: Request) {
     }
 
     // Parse data
-    const notificationData = notification.data ? JSON.parse(notification.data) : {};
+    const notificationData = notification.data
+      ? (JSON.parse(notification.data) as NotificationTemplateData)
+      : ({} as NotificationTemplateData);
 
     const subject = template.subject(notificationData);
     const html = template.html(notificationData);

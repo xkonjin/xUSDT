@@ -28,6 +28,7 @@ import {
   parseUnits,
   type Address,
   type Hex,
+  type Chain,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -37,9 +38,6 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const PLASMA_CHAIN_ID = 98866;
 const PLASMA_RPC_URL = process.env.PLASMA_RPC_URL || "https://rpc.plasma.xyz";
-// @ts-ignore - reserved for future use
-const _FACILITATOR_URL =
-  process.env.PLASMA_FACILITATOR_URL || "https://pay.plasma.xyz";
 const USDT0_ADDRESS = (process.env.USDT0_ADDRESS ||
   "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb") as Address;
 const USDT0_DECIMALS = 6;
@@ -50,7 +48,7 @@ const plasma = {
   name: "Plasma",
   nativeCurrency: { decimals: 18, name: "XPL", symbol: "XPL" },
   rpcUrls: { default: { http: [PLASMA_RPC_URL] } },
-};
+} as const satisfies Chain;
 
 // ERC20 ABI
 const ERC20_ABI = [
@@ -152,8 +150,11 @@ const TOOLS: Tool[] = [
 // Tool Handlers
 // ============================================================================
 
+type PublicClient = ReturnType<typeof createPublicClient>;
+type WalletClient = ReturnType<typeof createWalletClient>;
+
 async function handleGetBalance(
-  publicClient: any,
+  publicClient: PublicClient,
   address: Address
 ): Promise<string> {
   // Get USDT0 balance
@@ -165,7 +166,7 @@ async function handleGetBalance(
       functionName: "balanceOf",
       args: [address],
     })) as bigint;
-  } catch (e) {
+  } catch {
     // Token might not exist yet
   }
 
@@ -193,8 +194,8 @@ async function handleGetBalance(
 }
 
 async function handleSendPayment(
-  publicClient: any,
-  _walletClient: any,
+  publicClient: PublicClient,
+  _walletClient: WalletClient,
   address: Address,
   to: string,
   amount: string,
@@ -250,7 +251,7 @@ async function handleSendPayment(
 async function handlePayInvoice(
   _address: Address,
   invoiceUrl: string,
-  _maxAmount?: string
+  maxAmount?: string
 ): Promise<string> {
   // Fetch the invoice
   const response = await fetch(invoiceUrl);
@@ -280,19 +281,51 @@ async function handlePayInvoice(
   }
 
   try {
-    const paymentRequired = JSON.parse(atob(paymentHeader));
+    const paymentRequired = JSON.parse(
+      Buffer.from(paymentHeader, "base64").toString("utf-8")
+    ) as {
+      invoiceId?: string;
+      paymentOptions?: Array<{ amount?: string }>;
+    };
+
+    const maxAmountAtomic = maxAmount
+      ? parseUnits(maxAmount, USDT0_DECIMALS)
+      : null;
+    const options = Array.isArray(paymentRequired.paymentOptions)
+      ? paymentRequired.paymentOptions
+      : [];
+    const affordable =
+      maxAmountAtomic === null
+        ? options
+        : options.filter((opt) => {
+            const amountValue = opt.amount ? BigInt(opt.amount) : null;
+            return amountValue !== null && amountValue <= maxAmountAtomic;
+          });
+
+    if (maxAmountAtomic !== null && affordable.length == 0) {
+      return JSON.stringify(
+        {
+          status: "amount_exceeds_max",
+          invoiceId: paymentRequired.invoiceId,
+          maxAmount,
+          message: "No payment options within maxAmount",
+        },
+        null,
+        2
+      );
+    }
 
     return JSON.stringify(
       {
         status: "payment_required",
         invoiceId: paymentRequired.invoiceId,
-        options: paymentRequired.paymentOptions,
+        options: affordable,
         message: "Payment required. Use plasma_send_payment to pay.",
       },
       null,
       2
     );
-  } catch (e) {
+  } catch {
     return JSON.stringify(
       {
         status: "error",
@@ -357,13 +390,13 @@ async function main() {
 
   // Initialize clients
   const publicClient = createPublicClient({
-    chain: plasma as any,
+    chain: plasma,
     transport: http(PLASMA_RPC_URL),
   });
 
   const walletClient = createWalletClient({
     account,
-    chain: plasma as any,
+    chain: plasma,
     transport: http(PLASMA_RPC_URL),
   });
 
@@ -388,6 +421,7 @@ async function main() {
   // Handle tool calls
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    const argMap = (args || {}) as Record<string, unknown>;
 
     try {
       let result: string;
@@ -398,21 +432,30 @@ async function main() {
           break;
 
         case "plasma_send_payment":
+          if (
+            typeof argMap.to !== "string" ||
+            typeof argMap.amount !== "string"
+          ) {
+            throw new Error("Missing required arguments: to, amount");
+          }
           result = await handleSendPayment(
             publicClient,
             walletClient,
             address,
-            (args as any).to,
-            (args as any).amount,
-            (args as any).note
+            argMap.to,
+            argMap.amount,
+            typeof argMap.note === "string" ? argMap.note : undefined
           );
           break;
 
         case "plasma_pay_invoice":
+          if (typeof argMap.invoiceUrl !== "string") {
+            throw new Error("Missing required argument: invoiceUrl");
+          }
           result = await handlePayInvoice(
             address,
-            (args as any).invoiceUrl,
-            (args as any).maxAmount
+            argMap.invoiceUrl,
+            typeof argMap.maxAmount === "string" ? argMap.maxAmount : undefined
           );
           break;
 
@@ -431,7 +474,8 @@ async function main() {
       return {
         content: [{ type: "text", text: result }],
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
       return {
         content: [
           {
@@ -439,7 +483,7 @@ async function main() {
             text: JSON.stringify(
               {
                 error: true,
-                message: error.message || "Unknown error",
+                message,
               },
               null,
               2

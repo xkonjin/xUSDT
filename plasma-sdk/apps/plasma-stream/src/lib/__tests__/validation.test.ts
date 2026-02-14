@@ -42,13 +42,15 @@ describe('streamCreateSchema', () => {
   });
 
   it('requires sender address', () => {
-    const { sender, ...streamWithoutSender } = validStream;
+    const streamWithoutSender = { ...validStream };
+    delete streamWithoutSender.sender;
     const result = streamCreateSchema.safeParse(streamWithoutSender);
     expect(result.success).toBe(false);
   });
 
   it('requires recipient address', () => {
-    const { recipient, ...streamWithoutRecipient } = validStream;
+    const streamWithoutRecipient = { ...validStream };
+    delete streamWithoutRecipient.recipient;
     const result = streamCreateSchema.safeParse(streamWithoutRecipient);
     expect(result.success).toBe(false);
   });
@@ -70,13 +72,15 @@ describe('streamCreateSchema', () => {
   });
 
   it('requires depositAmount', () => {
-    const { depositAmount, ...streamWithoutAmount } = validStream;
+    const streamWithoutAmount = { ...validStream };
+    delete streamWithoutAmount.depositAmount;
     const result = streamCreateSchema.safeParse(streamWithoutAmount);
     expect(result.success).toBe(false);
   });
 
   it('requires duration', () => {
-    const { duration, ...streamWithoutDuration } = validStream;
+    const streamWithoutDuration = { ...validStream };
+    delete streamWithoutDuration.duration;
     const result = streamCreateSchema.safeParse(streamWithoutDuration);
     expect(result.success).toBe(false);
   });
@@ -162,13 +166,15 @@ describe('withdrawSchema', () => {
   });
 
   it('requires streamId', () => {
-    const { streamId, ...withoutStreamId } = validWithdraw;
+    const withoutStreamId = { ...validWithdraw };
+    delete withoutStreamId.streamId;
     const result = withdrawSchema.safeParse(withoutStreamId);
     expect(result.success).toBe(false);
   });
 
   it('requires recipientAddress', () => {
-    const { recipientAddress, ...withoutRecipient } = validWithdraw;
+    const withoutRecipient = { ...validWithdraw };
+    delete withoutRecipient.recipientAddress;
     const result = withdrawSchema.safeParse(withoutRecipient);
     expect(result.success).toBe(false);
   });
@@ -202,13 +208,15 @@ describe('cancelSchema', () => {
   });
 
   it('requires streamId', () => {
-    const { streamId, ...withoutStreamId } = validCancel;
+    const withoutStreamId = { ...validCancel };
+    delete withoutStreamId.streamId;
     const result = cancelSchema.safeParse(withoutStreamId);
     expect(result.success).toBe(false);
   });
 
   it('requires senderAddress', () => {
-    const { senderAddress, ...withoutSender } = validCancel;
+    const withoutSender = { ...validCancel };
+    delete withoutSender.senderAddress;
     const result = cancelSchema.safeParse(withoutSender);
     expect(result.success).toBe(false);
   });

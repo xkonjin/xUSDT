@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { ConnectionStatus, PriceChange } from "@/lib/price-updater";
 
 interface LivePriceIndicatorProps {

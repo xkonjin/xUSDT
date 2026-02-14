@@ -9,8 +9,6 @@ import {
   calculateBalances,
   calculateNetBalance,
   groupBalancesByPerson,
-  BalanceSummary,
-  PersonBalance,
 } from '../balance-calculator';
 
 // =============================================================================

@@ -57,6 +57,7 @@ export async function POST(request: Request) {
             send(chunk);
           }
         } catch (error) {
+          console.error("Avatar suggest error:", error);
           const fallback =
             "I can help with sending, requesting, or adding funds. Try hovering a button.";
           send(fallback);

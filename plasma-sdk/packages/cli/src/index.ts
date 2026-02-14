@@ -151,9 +151,10 @@ program
       console.log(chalk.white('  2. Check balance:     ') + chalk.cyan('plasma-pay balance'));
       console.log(chalk.white('  3. Send payment:      ') + chalk.cyan('plasma-pay send'));
       
-    } catch (error: any) {
+    } catch (error) {
       spinner.fail('Failed to initialize wallet');
-      console.error(chalk.red(error.message));
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error(chalk.red(message));
     }
   });
 
@@ -187,9 +188,10 @@ program
       console.log(chalk.gray('XPL:     ') + chalk.blue('0.00'));
       console.log(chalk.gray('Network: ') + chalk.cyan('Plasma'));
       
-    } catch (error: any) {
+    } catch (error) {
       spinner.fail('Failed to fetch balance');
-      console.error(chalk.red(error.message));
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error(chalk.red(message));
     }
   });
 
@@ -375,9 +377,10 @@ program
       console.log(chalk.gray('Chain:     ') + chalk.white(chain));
       console.log(chalk.gray('TX Hash:   ') + chalk.cyan('0x...'));
       
-    } catch (error: any) {
+    } catch (error) {
       spinner.fail('Failed to send payment');
-      console.error(chalk.red(error.message));
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error(chalk.red(message));
     }
   });
 

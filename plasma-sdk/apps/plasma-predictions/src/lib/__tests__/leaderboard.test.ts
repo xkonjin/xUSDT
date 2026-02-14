@@ -1,12 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import {
-  useLeaderboardStore,
-  LeaderboardUser,
-  LeaderboardTimeFilter,
-  calculateUserStats,
-  type UserStats,
-} from "../leaderboard-store";
-import { DemoBet, useDemoStore } from "../demo-store";
+import { useLeaderboardStore, calculateUserStats } from "../leaderboard-store";
+import type { DemoBet } from "../demo-store";
 import type { PredictionMarket } from "../types";
 
 // Mock market for testing

@@ -8,7 +8,6 @@
 import {
   calculateBalances,
   groupBalancesByPerson,
-  BalanceSummary,
   Bill,
 } from '../balance-calculator';
 

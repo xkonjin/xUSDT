@@ -110,8 +110,9 @@ export async function verifyPayment(
         txHash: proof.txHash,
       },
     };
-  } catch (error: any) {
-    return { valid: false, error: error.message || "Verification failed" };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Verification failed";
+    return { valid: false, error: message };
   }
 }
 
@@ -120,7 +121,7 @@ export async function verifyPayment(
  */
 function parsePaymentProof(proofHeader: string): PaymentProof {
   // Support both JSON and base64 encoded proofs
-  let proofData: any;
+  let proofData: unknown;
 
   try {
     // Try JSON first
@@ -135,33 +136,45 @@ function parsePaymentProof(proofHeader: string): PaymentProof {
     }
   }
 
+  if (!proofData || typeof proofData !== "object") {
+    throw new Error("Invalid payment proof format");
+  }
+
+  const data = proofData as Record<string, unknown>;
+  const signature = typeof data.signature === "string" ? data.signature : "";
+  const from = typeof data.from === "string" ? data.from : "";
+  const to = typeof data.to === "string" ? data.to : "";
+  const value = data.value;
+  const nonce = data.nonce;
+  const deadline = data.deadline;
+
   // Validate required fields
   const required = ["signature", "from", "to", "value", "nonce", "deadline"];
-
-  // Validate address formats
-  if (proofData.from && !/^0x[a-fA-F0-9]{40}$/.test(proofData.from)) {
-    throw new Error("Invalid from address format");
-  }
-  if (proofData.to && !/^0x[a-fA-F0-9]{40}$/.test(proofData.to)) {
-    throw new Error("Invalid to address format");
-  }
-  if (proofData.signature && !/^0x[a-fA-F0-9]+$/.test(proofData.signature)) {
-    throw new Error("Invalid signature format");
-  }
   for (const field of required) {
-    if (!proofData[field]) {
+    if (!data[field]) {
       throw new Error(`Missing required field: ${field}`);
     }
   }
 
+  // Validate address formats
+  if (from && !/^0x[a-fA-F0-9]{40}$/.test(from)) {
+    throw new Error("Invalid from address format");
+  }
+  if (to && !/^0x[a-fA-F0-9]{40}$/.test(to)) {
+    throw new Error("Invalid to address format");
+  }
+  if (signature && !/^0x[a-fA-F0-9]+$/.test(signature)) {
+    throw new Error("Invalid signature format");
+  }
+
   return {
-    signature: proofData.signature as Hex,
-    from: proofData.from as Address,
-    to: proofData.to as Address,
-    value: proofData.value.toString(),
-    nonce: proofData.nonce.toString(),
-    deadline: proofData.deadline.toString(),
-    txHash: proofData.txHash as Hex | undefined,
+    signature: signature as Hex,
+    from: from as Address,
+    to: to as Address,
+    value: value?.toString() ?? "0",
+    nonce: nonce?.toString() ?? "0",
+    deadline: deadline?.toString() ?? "0",
+    txHash: data.txHash as Hex | undefined,
   };
 }
 

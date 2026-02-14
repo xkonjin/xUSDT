@@ -49,7 +49,7 @@ export function initSentry() {
     enabled: IS_PRODUCTION || process.env.SENTRY_DEBUG === 'true',
     
     // Add context to errors
-    beforeSend(event, hint) {
+    beforeSend(event) {
       // Don't send errors in development unless debug mode
       if (!IS_PRODUCTION && process.env.SENTRY_DEBUG !== 'true') {
         return null;

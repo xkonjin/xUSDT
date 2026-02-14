@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+interface PWAInstallWindow extends Window {
+  triggerPWAInstall?: () => Promise<boolean>;
+}
+
 export function InstallPWABanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -27,7 +31,7 @@ export function InstallPWABanner() {
 
   const handleInstall = async () => {
     setIsInstalling(true);
-    const globalWindow = window as any;
+    const globalWindow = window as PWAInstallWindow;
     
     if (typeof globalWindow.triggerPWAInstall === 'function') {
       const accepted = await globalWindow.triggerPWAInstall();

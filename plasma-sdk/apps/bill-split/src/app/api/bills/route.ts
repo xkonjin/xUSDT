@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@plasma-pay/db';
-import { validateBillCreate, ValidationError } from '@/lib/validation';
+import { validateBillCreate, ValidationError, type BillCreateInput, type BillItem, type BillParticipant } from '@/lib/validation';
 
 /**
  * POST /api/bills
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Validate and sanitize input
-    let validatedData;
+    let validatedData: BillCreateInput;
     try {
       validatedData = validateBillCreate(body);
     } catch (error) {
@@ -62,14 +62,14 @@ export async function POST(request: Request) {
         currency: 'USDT0',
         status: 'draft',
         items: {
-          create: items.map((item: any) => ({
+          create: items.map((item: BillItem) => ({
             name: item.name,
             price: item.price,
             quantity: item.quantity || 1,
           })),
         },
         participants: {
-          create: participants.map((p: any) => ({
+          create: participants.map((p: BillParticipant) => ({
             name: p.name,
             email: p.email,
             phone: p.phone,
@@ -86,19 +86,19 @@ export async function POST(request: Request) {
 
     // Create a map for item ID lookup (new IDs from database)
     const itemIdMap: Record<string, string> = {};
-    items.forEach((origItem: any, index: number) => {
+    items.forEach((origItem: BillItem, index: number) => {
       itemIdMap[origItem.id] = bill.items[index].id;
     });
 
     // Create a map for participant ID lookup
     const participantIdMap: Record<string, string> = {};
-    participants.forEach((origP: any, index: number) => {
+    participants.forEach((origP: BillParticipant, index: number) => {
       participantIdMap[origP.id] = bill.participants[index].id;
     });
 
     // Create item assignments
     const assignments: { itemId: string; participantId: string }[] = [];
-    items.forEach((origItem: any) => {
+    items.forEach((origItem: BillItem) => {
       if (origItem.assignedToParticipantIds) {
         origItem.assignedToParticipantIds.forEach((origPid: string) => {
           const newItemId = itemIdMap[origItem.id];

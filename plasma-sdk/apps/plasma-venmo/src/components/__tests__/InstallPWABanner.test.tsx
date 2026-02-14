@@ -2,12 +2,16 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InstallPWABanner } from "../InstallPWABanner";
+import { promptInstall, isInstalled } from "@/lib/pwa";
 
 // Mock PWA utilities
 jest.mock("@/lib/pwa", () => ({
   promptInstall: jest.fn(),
   isInstalled: jest.fn(),
 }));
+
+const mockedPromptInstall = promptInstall as jest.Mock;
+const mockedIsInstalled = isInstalled as jest.Mock;
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -38,16 +42,14 @@ describe("InstallPWABanner", () => {
   });
 
   it("does not render when app is installed", () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(true);
+    mockedIsInstalled.mockReturnValue(true);
 
     render(<InstallPWABanner />);
     expect(screen.queryByText("Install Plenmo")).not.toBeInTheDocument();
   });
 
   it("does not render when banner was previously dismissed", () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
     localStorageMock.setItem("pwa-banner-dismissed", "true");
 
     render(<InstallPWABanner />);
@@ -55,16 +57,14 @@ describe("InstallPWABanner", () => {
   });
 
   it("does not render by default (waiting for installable event)", () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     render(<InstallPWABanner />);
     expect(screen.queryByText("Install Plenmo")).not.toBeInTheDocument();
   });
 
   it("renders banner when installable event is dispatched", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     render(<InstallPWABanner />);
 
@@ -77,8 +77,7 @@ describe("InstallPWABanner", () => {
   });
 
   it("shows correct message when banner is displayed", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     render(<InstallPWABanner />);
     window.dispatchEvent(new Event("pwa-installable"));
@@ -93,9 +92,8 @@ describe("InstallPWABanner", () => {
   });
 
   it("calls promptInstall when Install button is clicked", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
-    promptInstall.mockResolvedValue(true);
+    mockedIsInstalled.mockReturnValue(false);
+    mockedPromptInstall.mockResolvedValue(true);
 
     const user = userEvent.setup();
     render(<InstallPWABanner />);
@@ -108,14 +106,13 @@ describe("InstallPWABanner", () => {
     const installButton = screen.getByText("Install");
     await user.click(installButton);
 
-    expect(promptInstall).toHaveBeenCalled();
+    expect(mockedPromptInstall).toHaveBeenCalled();
   });
 
   it("shows installing state while installing", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
     let resolvePrompt: (value: boolean) => void;
-    promptInstall.mockReturnValue(
+    mockedPromptInstall.mockReturnValue(
       new Promise((resolve) => {
         resolvePrompt = resolve;
       })
@@ -139,9 +136,8 @@ describe("InstallPWABanner", () => {
   });
 
   it("hides banner after successful installation", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
-    promptInstall.mockResolvedValue(true);
+    mockedIsInstalled.mockReturnValue(false);
+    mockedPromptInstall.mockResolvedValue(true);
 
     const user = userEvent.setup();
     render(<InstallPWABanner />);
@@ -160,9 +156,8 @@ describe("InstallPWABanner", () => {
   });
 
   it("keeps banner showing after failed installation", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
-    promptInstall.mockResolvedValue(false);
+    mockedIsInstalled.mockReturnValue(false);
+    mockedPromptInstall.mockResolvedValue(false);
 
     const user = userEvent.setup();
     render(<InstallPWABanner />);
@@ -182,8 +177,7 @@ describe("InstallPWABanner", () => {
   });
 
   it('dismisses banner when "Not now" is clicked', async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     const user = userEvent.setup();
     render(<InstallPWABanner />);
@@ -201,8 +195,7 @@ describe("InstallPWABanner", () => {
   });
 
   it("dismisses banner when close button is clicked", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     const user = userEvent.setup();
     render(<InstallPWABanner />);
@@ -220,8 +213,7 @@ describe("InstallPWABanner", () => {
   });
 
   it("does not show banner if previously dismissed", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
     localStorageMock.setItem("pwa-banner-dismissed", "true");
 
     render(<InstallPWABanner />);
@@ -237,10 +229,9 @@ describe("InstallPWABanner", () => {
   });
 
   it("disables install button while installing", async () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
     let resolvePrompt: (value: boolean) => void;
-    promptInstall.mockReturnValue(
+    mockedPromptInstall.mockReturnValue(
       new Promise((resolve) => {
         resolvePrompt = resolve;
       })
@@ -267,8 +258,7 @@ describe("InstallPWABanner", () => {
   });
 
   it("cleans up event listener on unmount", () => {
-    const { promptInstall, isInstalled } = require("@/lib/pwa");
-    isInstalled.mockReturnValue(false);
+    mockedIsInstalled.mockReturnValue(false);
 
     const { unmount } = render(<InstallPWABanner />);
 

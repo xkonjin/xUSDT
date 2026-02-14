@@ -22,42 +22,36 @@ describe('Rate Limiter Helper Functions', () => {
           ['x-forwarded-for', '192.168.1.100, 10.0.0.1'],
         ]) as unknown as Headers,
       } as Request;
-      
-      // Use a custom implementation for testing
-      const headers = mockRequest.headers as unknown as Map<string, string>;
-      const forwarded = headers.get('x-forwarded-for');
-      const ip = forwarded?.split(',')[0].trim() || 'unknown';
-      
-      expect(ip).toBe('192.168.1.100');
+
+      expect(getClientIP(mockRequest)).toBe('192.168.1.100');
     });
 
     it('extracts IP from cf-connecting-ip header', () => {
-      const mockHeaders = new Map([
-        ['cf-connecting-ip', '10.0.0.50'],
-      ]);
-      
-      const cfIP = mockHeaders.get('cf-connecting-ip');
-      expect(cfIP).toBe('10.0.0.50');
+      const mockRequest = {
+        headers: new Map([
+          ['cf-connecting-ip', '10.0.0.50'],
+        ]) as unknown as Headers,
+      } as Request;
+
+      expect(getClientIP(mockRequest)).toBe('10.0.0.50');
     });
 
     it('extracts IP from x-real-ip header', () => {
-      const mockHeaders = new Map([
-        ['x-real-ip', '172.16.0.1'],
-      ]);
-      
-      const realIP = mockHeaders.get('x-real-ip');
-      expect(realIP).toBe('172.16.0.1');
+      const mockRequest = {
+        headers: new Map([
+          ['x-real-ip', '172.16.0.1'],
+        ]) as unknown as Headers,
+      } as Request;
+
+      expect(getClientIP(mockRequest)).toBe('172.16.0.1');
     });
 
     it('returns unknown for missing headers', () => {
-      const mockHeaders = new Map<string, string>();
-      
-      const forwarded = mockHeaders.get('x-forwarded-for');
-      const cfIP = mockHeaders.get('cf-connecting-ip');
-      const realIP = mockHeaders.get('x-real-ip');
-      
-      const ip = forwarded?.split(',')[0].trim() || cfIP || realIP || 'unknown';
-      expect(ip).toBe('unknown');
+      const mockRequest = {
+        headers: new Map() as unknown as Headers,
+      } as Request;
+
+      expect(getClientIP(mockRequest)).toBe('unknown');
     });
   });
 

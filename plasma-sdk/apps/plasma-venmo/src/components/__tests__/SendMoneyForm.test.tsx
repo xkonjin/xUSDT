@@ -51,14 +51,14 @@ jest.mock("../RecentContacts", () => ({
 }));
 
 describe("SendMoneyForm", () => {
-  const mockWallet = {
+  const mockWallet: { address: string } = {
     address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-  } as any;
+  };
 
   const defaultProps = {
     wallet: mockWallet,
     balance: "100.00",
-    contacts: [] as any[],
+    contacts: [] as Array<Record<string, unknown>>,
     contactsLoading: false,
   };
 

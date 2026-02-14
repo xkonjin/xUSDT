@@ -128,6 +128,7 @@ export async function GET(request: Request) {
  * Search contacts from user settings and transaction history
  */
 async function searchContacts(query: string, userAddress: Address | null): Promise<Contact[]> {
+  void userAddress;
   const contacts: Contact[] = [];
   const seenAddresses = new Set<string>();
 

@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { 
   generateCancellationEmailTemplate, 
@@ -31,7 +32,7 @@ interface CancelSubscriptionRequest {
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions) as any;
+    const session = (await getServerSession(authOptions)) as Session | null;
     
     if (!session?.accessToken) {
       return NextResponse.json(
@@ -79,13 +80,14 @@ export async function POST(req: NextRequest) {
       case 'copy':
         status = 'copied';
         break;
-      case 'status':
+      case 'status': {
         // Just get current status
         const currentStatus = await getCancellationStatus(walletAddress, subscription.id);
         return NextResponse.json({
           success: true,
           status: currentStatus,
         });
+      }
       default:
         status = 'pending';
     }
@@ -114,7 +116,7 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions) as any;
+    const session = (await getServerSession(authOptions)) as Session | null;
     
     if (!session?.accessToken) {
       return NextResponse.json(

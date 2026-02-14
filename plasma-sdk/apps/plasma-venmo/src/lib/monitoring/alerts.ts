@@ -5,7 +5,7 @@
  * Supports: Slack, Discord, Email (via Resend), and PagerDuty.
  */
 
-import { captureException, captureMessage } from './sentry';
+import { captureMessage } from './sentry';
 
 export interface AlertContext {
   correlationId: string;

@@ -36,8 +36,8 @@ describe('sanitizeString', () => {
   });
 
   it('handles null/undefined', () => {
-    expect(sanitizeString(null as any)).toBe('');
-    expect(sanitizeString(undefined as any)).toBe('');
+    expect(sanitizeString(null)).toBe('');
+    expect(sanitizeString(undefined)).toBe('');
   });
 
   it('limits string length', () => {
@@ -74,7 +74,8 @@ describe('billCreateSchema', () => {
   });
 
   it('requires creatorAddress', () => {
-    const { creatorAddress, ...billWithoutCreator } = validBill;
+    const billWithoutCreator = { ...validBill };
+    delete billWithoutCreator.creatorAddress;
     const result = billCreateSchema.safeParse(billWithoutCreator);
     expect(result.success).toBe(false);
   });
@@ -88,7 +89,8 @@ describe('billCreateSchema', () => {
   });
 
   it('requires title', () => {
-    const { title, ...billWithoutTitle } = validBill;
+    const billWithoutTitle = { ...validBill };
+    delete billWithoutTitle.title;
     const result = billCreateSchema.safeParse(billWithoutTitle);
     expect(result.success).toBe(false);
   });

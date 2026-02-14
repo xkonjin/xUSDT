@@ -111,6 +111,7 @@ export class KeyManager {
   async generateWallet(
     name?: string
   ): Promise<{ address: Address; privateKey: Hex }> {
+    void name;
     const privateKey = generatePrivateKey();
     const account = privateKeyToAccount(privateKey);
 
@@ -141,8 +142,9 @@ export class KeyManager {
 
       const account = privateKeyToAccount(key as Hex);
       return { valid: true, address: account.address };
-    } catch (error: any) {
-      return { valid: false, error: error.message };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid private key";
+      return { valid: false, error: message };
     }
   }
 
@@ -161,7 +163,7 @@ export class KeyManager {
         try {
           await keytar.setPassword(SERVICE_NAME, address, privateKey);
           return { method: "keyring", success: true };
-        } catch (error) {
+        } catch {
           console.warn(
             "Failed to store in keyring, falling back to encrypted file"
           );
@@ -174,7 +176,7 @@ export class KeyManager {
       throw new Error("Password required for encrypted file storage");
     }
 
-    const encrypted = await this.encryptKey(privateKey, password);
+    await this.encryptKey(privateKey, password);
     return { method: "encrypted", success: true };
   }
 
@@ -248,7 +250,11 @@ export class KeyManager {
 
     const salt = randomBytes(32);
     const iv = randomBytes(16);
-    const key = (await scryptAsync(password, salt, 32)) as Buffer;
+    const key = (await scryptAsync(password, salt, 32, {
+      N: SCRYPT_N,
+      r: SCRYPT_R,
+      p: SCRYPT_P,
+    })) as Buffer;
 
     const cipher = createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
     let encrypted = cipher.update(privateKey, "utf8", "hex");
@@ -291,7 +297,11 @@ export class KeyManager {
     const salt = Buffer.from(saltHex, "hex");
     const iv = Buffer.from(ivHex, "hex");
     const authTag = Buffer.from(authTagHex, "hex");
-    const key = (await scryptAsync(password, salt, 32)) as Buffer;
+    const key = (await scryptAsync(password, salt, 32, {
+      N: SCRYPT_N,
+      r: SCRYPT_R,
+      p: SCRYPT_P,
+    })) as Buffer;
 
     const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
@@ -300,7 +310,7 @@ export class KeyManager {
     try {
       decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");
-    } catch (error) {
+    } catch {
       // Clear sensitive data before throwing
       secureClear(key);
       secureClear(salt);

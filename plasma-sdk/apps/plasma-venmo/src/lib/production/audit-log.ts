@@ -1,33 +1,34 @@
-import { db } from "@plasma-pay/db";
 import * as Sentry from "@sentry/nextjs";
 
 /**
  * Audit action types for financial operations.
  */
-export enum AuditAction {
+export const AuditAction = {
   // Payment actions
-  PAYMENT_INITIATED = "PAYMENT_INITIATED",
-  PAYMENT_COMPLETED = "PAYMENT_COMPLETED",
-  PAYMENT_FAILED = "PAYMENT_FAILED",
-  
+  PAYMENT_INITIATED: "PAYMENT_INITIATED",
+  PAYMENT_COMPLETED: "PAYMENT_COMPLETED",
+  PAYMENT_FAILED: "PAYMENT_FAILED",
+
   // Transfer actions
-  TRANSFER_INITIATED = "TRANSFER_INITIATED",
-  TRANSFER_COMPLETED = "TRANSFER_COMPLETED",
-  TRANSFER_FAILED = "TRANSFER_FAILED",
-  
+  TRANSFER_INITIATED: "TRANSFER_INITIATED",
+  TRANSFER_COMPLETED: "TRANSFER_COMPLETED",
+  TRANSFER_FAILED: "TRANSFER_FAILED",
+
   // Claim actions
-  CLAIM_CREATED = "CLAIM_CREATED",
-  CLAIM_EXECUTED = "CLAIM_EXECUTED",
-  CLAIM_EXPIRED = "CLAIM_EXPIRED",
-  
+  CLAIM_CREATED: "CLAIM_CREATED",
+  CLAIM_EXECUTED: "CLAIM_EXECUTED",
+  CLAIM_EXPIRED: "CLAIM_EXPIRED",
+
   // Auth actions
-  USER_LOGIN = "USER_LOGIN",
-  USER_LOGOUT = "USER_LOGOUT",
-  
+  USER_LOGIN: "USER_LOGIN",
+  USER_LOGOUT: "USER_LOGOUT",
+
   // Admin actions
-  ADMIN_ACTION = "ADMIN_ACTION",
-  CONFIG_CHANGED = "CONFIG_CHANGED",
-}
+  ADMIN_ACTION: "ADMIN_ACTION",
+  CONFIG_CHANGED: "CONFIG_CHANGED",
+} as const;
+
+export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
 /**
  * Audit log entry interface.

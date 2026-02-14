@@ -4,14 +4,13 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Check, Loader2, AlertCircle, ArrowRight, Wallet, LogIn } from "lucide-react";
 import { usePlasmaWallet, useUSDT0Balance, useFundWallet } from "@plasma-pay/privy-auth";
-import { getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
+import { getErrorDetails } from "@plasma-pay/ui";
 import { usePredictionStore } from "@/lib/store";
 import { usePlaceBet } from "@/hooks/useBets";
-import { useDemoStore, formatDemoBalance } from "@/lib/demo-store";
+import { useDemoStore } from "@/lib/demo-store";
 import { useBalance, formatBalance } from "@/hooks/useBalance";
 import { OddsBar } from "./OddsBar";
 import {
-  formatUSDT,
   parseUSDT,
   QUICK_AMOUNTS,
   USDT0_DECIMALS,
@@ -21,7 +20,7 @@ export function BettingModal() {
   const { bettingModal, closeBettingModal, slippage } = usePredictionStore();
   const { isOpen, market, outcome: initialOutcome } = bettingModal;
   const { authenticated, login, ready: walletReady } = usePlasmaWallet();
-  const { balance: walletBalance, formatted: formattedWalletBalance, refresh: refreshBalance, loading: balanceLoading } = useUSDT0Balance();
+  const { balance: walletBalance, refresh: refreshBalance, loading: balanceLoading } = useUSDT0Balance();
   const placeBetMutation = usePlaceBet();
   const { fundWallet, ready: fundReady } = useFundWallet();
   

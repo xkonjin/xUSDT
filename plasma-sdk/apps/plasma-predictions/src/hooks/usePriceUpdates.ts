@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePriceUpdaterContext } from '@/lib/price-updater-context';
 import type { PriceUpdate, ConnectionStatus, PriceChange } from '@/lib/price-updater';
 

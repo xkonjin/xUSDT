@@ -105,6 +105,8 @@ function validateLifiSignature(payload: string, signature: string): boolean {
  * deBridge uses ECDSA signature
  */
 function validateDebridgeSignature(_payload: string, _signature: string): boolean {
+  void _payload;
+  void _signature;
   const secret = process.env.DEBRIDGE_WEBHOOK_SECRET;
   if (!secret) {
     console.warn('DEBRIDGE_WEBHOOK_SECRET not configured');

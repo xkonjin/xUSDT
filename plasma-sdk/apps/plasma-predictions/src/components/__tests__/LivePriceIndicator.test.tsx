@@ -1,19 +1,21 @@
-import React from 'react'
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import { LivePriceIndicator, ConnectionStatusBadge, PriceChangeAnimation } from '../LivePriceIndicator'
-import type { ConnectionStatus, PriceUpdate } from '@/lib/price-updater'
+
+type MockDivProps = ComponentPropsWithoutRef<"div">;
+type MockSpanProps = ComponentPropsWithoutRef<"span">;
 
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: any) => (
+    div: ({ children, className, ...props }: MockDivProps) => (
       <div className={className} {...props}>{children}</div>
     ),
-    span: ({ children, className, ...props }: any) => (
+    span: ({ children, className, ...props }: MockSpanProps) => (
       <span className={className} {...props}>{children}</span>
     ),
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }))
 
 describe('LivePriceIndicator', () => {

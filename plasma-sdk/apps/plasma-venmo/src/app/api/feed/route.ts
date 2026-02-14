@@ -227,7 +227,6 @@ export async function POST(request: Request) {
     }
     
     // Toggle the like state
-    const wasLiked = hasUserLiked(userAddress, activityId);
     const isNowLiked = toggleUserLike(userAddress, activityId);
     
     // Update the like count in the database

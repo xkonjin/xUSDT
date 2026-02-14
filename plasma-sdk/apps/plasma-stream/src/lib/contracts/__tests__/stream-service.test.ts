@@ -10,7 +10,6 @@ import {
   resetStreamService,
   StreamService,
   CreateStreamParams,
-  Stream,
 } from "../stream-service";
 
 // Mock the prisma client

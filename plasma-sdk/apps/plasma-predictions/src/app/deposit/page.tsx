@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export default function DepositPage() {
   const { isDemoMode } = useDemoStore();
   const [copied, setCopied] = useState(false);
-  const [balance, setBalance] = useState(0);
+  const [balance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Demo wallet address

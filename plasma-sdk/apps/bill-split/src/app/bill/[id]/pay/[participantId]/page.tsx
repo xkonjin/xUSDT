@@ -22,8 +22,8 @@ import {
   useFundWallet,
   useConnectExternalWallet,
 } from "@plasma-pay/privy-auth";
-import { PaymentProgress, type PaymentStatus, getUserFriendlyError, getErrorDetails } from "@plasma-pay/ui";
-import { parseUnits, formatUnits } from "viem";
+import { PaymentProgress, type PaymentStatus, getErrorDetails } from "@plasma-pay/ui";
+import { parseUnits } from "viem";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -36,7 +36,6 @@ import {
   Copy,
   Check,
   RefreshCw,
-  Plus,
   HelpCircle,
   QrCode,
   ArrowRightLeft,
@@ -78,8 +77,8 @@ export default function BillPayPage({
   const participantId = params.participantId;
 
   // Wallet state
-  const { authenticated, ready, wallet, login, logout } = usePlasmaWallet();
-  const { balance, formatted: balanceFormatted, loading: balanceLoading, refresh: refreshBalance } = useUSDT0Balance();
+  const { authenticated, ready, wallet, login } = usePlasmaWallet();
+  const { formatted: balanceFormatted, loading: balanceLoading, refresh: refreshBalance } = useUSDT0Balance();
   const { fundWallet } = useFundWallet();
   const { connectWallet: connectExternalWallet } = useConnectExternalWallet();
 
@@ -151,7 +150,8 @@ export default function BillPayPage({
         }
 
         const data = await response.json();
-        const participant = data.bill.participants.find((p: any) => p.id === participantId);
+        const participants = (data.bill?.participants ?? []) as Array<BillPayData["participant"]>;
+        const participant = participants.find((p) => p.id === participantId);
         
         if (!participant) {
           setError('Participant not found');
@@ -171,7 +171,7 @@ export default function BillPayPage({
             txHash: participant.txHash,
           },
         });
-      } catch (err) {
+      } catch {
         setError('Failed to load bill');
       } finally {
         setLoading(false);
@@ -296,10 +296,11 @@ export default function BillPayPage({
       // Calculate amount needed (shortfall + small buffer for any fees)
       const amountNeeded = Math.max(shortfall + 0.01, 1).toFixed(2);
       
-      await fundWallet({ 
-        amount: amountNeeded,
-        method: method as any,
-      });
+      const fundParams: Parameters<typeof fundWallet>[0] = method
+        ? { amount: amountNeeded, method }
+        : { amount: amountNeeded };
+
+      await fundWallet(fundParams);
       
       // Refresh balance after a delay to allow transaction to process
       setTimeout(() => {

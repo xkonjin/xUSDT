@@ -1,7 +1,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React, { type ReactNode } from 'react'
-import { useUserBets, usePortfolioStats, usePlaceBet, useCashOut, useDemoUserBets, useDemoPortfolioStats, useDemoPlaceBet, useDemoCashOut } from '../useBets'
+import type { ReactNode } from 'react'
+import { useDemoUserBets, useDemoPortfolioStats, useDemoPlaceBet, useDemoCashOut } from '../useBets'
 import { useDemoStore } from '@/lib/demo-store'
 import type { PredictionMarket } from '@/lib/types'
 

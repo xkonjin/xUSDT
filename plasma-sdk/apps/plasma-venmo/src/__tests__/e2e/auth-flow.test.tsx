@@ -8,15 +8,14 @@
  * - Auth state transitions
  */
 
-import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import { render, screen } from '@testing-library/react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import '@testing-library/jest-dom';
 
 import {
   createMockWallet,
   createMockUser,
-  createPrivyMocks,
   mockLocalStorage,
   TEST_ADDRESSES,
   TEST_EMAILS,
@@ -46,7 +45,7 @@ let mockWalletsState = {
 jest.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockPrivyState,
   useWallets: () => mockWalletsState,
-  PrivyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PrivyProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('next/navigation', () => ({
@@ -71,7 +70,6 @@ Object.defineProperty(window, 'localStorage', { value: mockStorage });
 // ============================================================================
 
 function AuthTestComponent() {
-  const { usePrivy, useWallets } = require('@privy-io/react-auth');
   const { ready, authenticated, user, login, logout } = usePrivy();
   const { wallets } = useWallets();
 
@@ -164,7 +162,6 @@ describe('Auth Flow E2E Tests', () => {
 
   describe('Login Flow', () => {
     it('should trigger Privy login when connect button clicked', async () => {
-      const user = userEvent.setup();
       
       render(<AuthTestComponent />);
       
@@ -261,7 +258,6 @@ describe('Auth Flow E2E Tests', () => {
 
   describe('Logout Flow', () => {
     it('should trigger Privy logout when logout button clicked', async () => {
-      const user = userEvent.setup();
       const mockUser = createMockUser();
       const mockWallet = createMockWallet();
       
@@ -439,7 +435,6 @@ describe('Auth Flow E2E Tests', () => {
     });
 
     it('should handle rapid login/logout', async () => {
-      const user = userEvent.setup();
       const mockUser = createMockUser();
       const mockWallet = createMockWallet();
       

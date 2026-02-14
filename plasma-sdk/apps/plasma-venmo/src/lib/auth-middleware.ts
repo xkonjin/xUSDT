@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { Address } from 'viem';
-import { verifyMessage, recoverMessageAddress } from 'viem';
+import { recoverMessageAddress } from 'viem';
 
 // =============================================================================
 // Types
@@ -60,7 +60,7 @@ export async function verifySession(request: NextRequest): Promise<AuthResult> {
       },
     };
   } catch (error) {
-    console.error('[auth] Session verification failed');
+    console.error('[auth] Session verification failed', error);
     return { authenticated: false, error: 'Session verification failed' };
   }
 }
@@ -87,6 +87,7 @@ async function validateSessionToken(token: string): Promise<AuthenticatedUser | 
 }
 
 function decodeSessionToken(token: string): AuthenticatedUser | null {
+  void token;
   // Placeholder - implement based on your auth system
   // For Privy, use their SDK to verify the token
   return null;
@@ -138,7 +139,7 @@ export async function verifySignatureAuth(params: SignatureAuthParams): Promise<
       },
     };
   } catch (error) {
-    console.error('[auth] Signature verification error');
+    console.error('[auth] Signature verification error', error);
     return { authenticated: false, error: 'Invalid signature' };
   }
 }
@@ -262,7 +263,7 @@ const CSRF_COOKIE = 'csrf_token';
  * Generate a CSRF token.
  */
 export function generateCSRFToken(): string {
-  const crypto = globalThis.crypto || require('crypto').webcrypto;
+  const crypto = globalThis.crypto || webcrypto;
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');

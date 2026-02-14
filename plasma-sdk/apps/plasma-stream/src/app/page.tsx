@@ -18,7 +18,6 @@ import {
   ArrowDownLeft,
   RefreshCw,
   Clock,
-  User,
   Play,
   Pause,
   Download,

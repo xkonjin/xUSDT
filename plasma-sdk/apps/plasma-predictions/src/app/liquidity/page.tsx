@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Droplets, TrendingUp, DollarSign, Plus, Minus, 
-  Wallet, AlertCircle, ArrowUpRight, Clock
+  AlertCircle, Clock
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -33,10 +33,10 @@ const mockPositions = [
 ];
 
 export default function LiquidityPage() {
-  const { isDemoMode, demoBalance } = useDemoStore();
+  const { isDemoMode } = useDemoStore();
   const [positions] = useState(mockPositions);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [, setShowAddModal] = useState(false);
+  const [, setSelectedPosition] = useState<string | null>(null);
 
   const totalTVL = positions.reduce((sum, p) => sum + p.currentValue, 0);
   const totalFees = positions.reduce((sum, p) => sum + p.feesEarned, 0);

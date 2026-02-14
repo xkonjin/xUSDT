@@ -168,7 +168,8 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
         }
 
         setClaim(data.claim);
-      } catch (err) {
+      } catch (error) {
+        console.error("Failed to load claim:", error);
         setError("Failed to load claim");
       } finally {
         setLoading(false);

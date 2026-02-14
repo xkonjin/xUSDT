@@ -7,13 +7,13 @@
 import { NextResponse } from 'next/server';
 
 // Lazy-load OpenAI client to avoid build-time errors
-function getOpenAIClient() {
+async function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
   
-  const { default: OpenAI } = require('openai');
+  const { default: OpenAI } = await import('openai');
   return new OpenAI({ apiKey });
 }
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     // Initialize OpenAI client
     let openai;
     try {
-      openai = getOpenAIClient();
+      openai = await getOpenAIClient();
     } catch {
       // Return mock data if OpenAI is not configured (dev mode)
       console.log('OpenAI not configured, returning mock data');

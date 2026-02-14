@@ -87,6 +87,14 @@ class Settings(BaseSettings):
     )
 
     # -------------------------------------------------------------------------
+    # Predictions (Plasma predictions module)
+    # -------------------------------------------------------------------------
+    PREDICTIONS_ENABLE_MOCK: bool = Field(
+        default=False,
+        description="Enable mock betting/cashout flows for predictions routes"
+    )
+
+    # -------------------------------------------------------------------------
     # Polymarket Integration Configuration
     # -------------------------------------------------------------------------
     # Polymarket prediction markets integration settings.

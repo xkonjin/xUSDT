@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, DollarSign, TrendingUp, TrendingDown, AlertCircle, Check } from "lucide-react";
+import { X, DollarSign, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 import { useDemoStore } from "@/lib/demo-store";
-import { formatUSDT } from "@/lib/constants";
 import { toast } from "sonner";
 
 interface CashOutModalProps {
@@ -24,7 +23,7 @@ interface CashOutModalProps {
 
 export function CashOutModal({ isOpen, onClose, bet }: CashOutModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isDemoMode, cashOutDemoBet, demoBalance } = useDemoStore();
+  const { isDemoMode, cashOutDemoBet } = useDemoStore();
 
   if (!bet) return null;
 
@@ -53,7 +52,7 @@ export function CashOutModal({ isOpen, onClose, bet }: CashOutModalProps) {
         toast.success("Position closed!");
         onClose();
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to cash out");
     } finally {
       setIsProcessing(false);

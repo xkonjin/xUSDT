@@ -56,7 +56,7 @@ export default function PayPage({
   const linkId = params.linkId;
 
   // Wallet and auth state
-  const { user, authenticated, ready, wallet, login } = usePlasmaWallet();
+  const { authenticated, ready, wallet, login } = usePlasmaWallet();
   const { formatted: balance } = useUSDT0Balance();
 
   // Page state
@@ -88,7 +88,8 @@ export default function PayPage({
         if (data.paymentLink.amount !== null) {
           setAmount(data.paymentLink.amount.toString());
         }
-      } catch (err) {
+      } catch (error) {
+        console.error("Failed to load payment link:", error);
         setError("Failed to load payment link");
       } finally {
         setLoading(false);
