@@ -111,7 +111,7 @@ const ConfirmationModal = memo(function ConfirmationModal({
 
         <div className="text-center mb-6">
           <p className="text-white/50 text-sm mb-1">Sending</p>
-          <p className="text-4xl font-bold gradient-text">${amount}</p>
+          <p className="text-4xl font-bold text-white">${amount}</p>
           <p className="text-white/40 text-sm">USD</p>
         </div>
 
@@ -221,11 +221,11 @@ const SuccessOverlay = memo(function SuccessOverlay({
       wrapperClassName="max-w-sm"
     >
       <div className="clay-card p-8 text-center max-w-sm">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center animate-success-scale">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-plenmo-500 flex items-center justify-center animate-success-scale">
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
 
-        <p className="text-4xl font-bold gradient-text mb-2">${amount}</p>
+        <p className="text-4xl font-bold text-white mb-2">${amount}</p>
         <p className="text-lg text-white/60 mb-1">
           {isClaimFlow ? "pending for" : "sent to"}
         </p>

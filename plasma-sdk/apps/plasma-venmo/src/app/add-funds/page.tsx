@@ -1,46 +1,70 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ZKP2POnramp } from '@/components/onramp/ZKP2POnramp';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { usePlasmaWallet } from "@plasma-pay/privy-auth";
+import { ZKP2POnramp } from "@/components/onramp/ZKP2POnramp";
+import { ArrowLeft, Shield, Loader2 } from "lucide-react";
 
 export default function AddFundsPage() {
   const router = useRouter();
+  const { wallet, ready } = usePlasmaWallet();
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // In production, this would come from the user's wallet
-  const userWalletAddress = '0x0000000000000000000000000000000000000000';
-
   const handleSuccess = (txHash: string) => {
-    console.log('Onramp successful:', txHash);
+    console.log("Onramp successful:", txHash);
     setShowSuccess(true);
   };
 
   const handleClose = () => {
     if (showSuccess) {
-      router.push('/');
+      router.push("/");
     } else {
       router.back();
     }
   };
 
+  if (!ready) {
+    return (
+      <div className="min-h-dvh bg-[rgb(var(--bg-primary))] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!wallet?.address) {
+    return (
+      <div className="min-h-dvh bg-[rgb(var(--bg-primary))] flex items-center justify-center px-6">
+        <div className="text-center space-y-4">
+          <p className="text-white/60 text-sm">
+            Please sign in to add funds to your wallet.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="clay-button px-6 py-3 text-sm font-semibold"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
+    <div className="min-h-dvh bg-[rgb(var(--bg-primary))] px-4 py-6">
       <div className="mx-auto max-w-md">
         {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          className="mb-6 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Back</span>
         </button>
 
         {/* ZKP2P Onramp Component */}
         <ZKP2POnramp
-          recipientAddress={userWalletAddress}
+          recipientAddress={wallet.address}
           onSuccess={handleSuccess}
           onClose={handleClose}
           defaultAmount="100"
@@ -48,41 +72,29 @@ export default function AddFundsPage() {
         />
 
         {/* Info section */}
-        <div className="mt-6 rounded-xl bg-white p-4 shadow-sm">
-          <h3 className="mb-3 font-semibold text-gray-900">How it works</h3>
+        <div className="mt-6 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] p-5">
+          <h3 className="mb-4 font-heading font-semibold text-white text-sm">
+            How it works
+          </h3>
           <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
-                1
+            {[
+              "Choose your amount and preferred payment method (Venmo, Revolut, etc.)",
+              "Complete the payment through the ZKP2P extension",
+              "Receive USDT0 in your Plenmo wallet instantly",
+            ].map((text, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-plenmo-500/10 text-xs font-bold text-plenmo-500">
+                  {i + 1}
+                </div>
+                <p className="text-sm text-white/50 leading-relaxed">{text}</p>
               </div>
-              <p className="text-sm text-gray-600">
-                Choose your amount and preferred payment method (Venmo, Revolut, etc.)
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
-                2
-              </div>
-              <p className="text-sm text-gray-600">
-                Complete the payment through the Peer extension
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
-                3
-              </div>
-              <p className="text-sm text-gray-600">
-                Receive USDC in your Plenmo wallet instantly
-              </p>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Security note */}
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/30">
+          <Shield className="h-3.5 w-3.5" />
           <span>Secured by zero-knowledge proofs</span>
         </div>
       </div>

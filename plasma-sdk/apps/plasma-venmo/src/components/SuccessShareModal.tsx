@@ -117,9 +117,7 @@ export function SuccessShareModal({
               <p className="text-white/70 text-sm mb-1">
                 Share with friends and earn
               </p>
-              <p className="text-[rgb(0,212,255)] font-semibold">
-                $0.10 per signup
-              </p>
+              <p className="text-plenmo-500 font-semibold">$0.10 per signup</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

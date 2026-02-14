@@ -117,7 +117,7 @@ function QRCodeModal({ walletAddress, username, onClose }: QRCodeModalProps) {
       zIndex={110}
       wrapperClassName="max-w-sm"
     >
-      <div className="relative w-full bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="relative w-full bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"

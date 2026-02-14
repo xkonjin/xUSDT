@@ -2,14 +2,21 @@
 
 /**
  * ExternalWalletPay Component
- * 
+ *
  * Allows users to pay payment links using an external wallet (MetaMask, Rabby, etc.)
  * This provides an alternative for users who don't want to create a Privy embedded wallet
  * or who have USDT0 in an existing wallet.
  */
 
 import { useState } from "react";
-import { Wallet, Copy, Check, ExternalLink, AlertCircle, X } from "lucide-react";
+import {
+  Wallet,
+  Copy,
+  Check,
+  ExternalLink,
+  AlertCircle,
+  X,
+} from "lucide-react";
 import { ModalPortal } from "./ui/ModalPortal";
 
 interface ExternalWalletPayProps {
@@ -34,11 +41,11 @@ const PLASMA_CHAIN_CONFIG = {
 
 const USDT0_ADDRESS = "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb";
 
-export function ExternalWalletPayButton({ 
-  recipientAddress, 
+export function ExternalWalletPayButton({
+  recipientAddress,
   amount,
-  memo 
-}: Omit<ExternalWalletPayProps, 'onClose'>) {
+  memo,
+}: Omit<ExternalWalletPayProps, "onClose">) {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -63,11 +70,11 @@ export function ExternalWalletPayButton({
   );
 }
 
-export function ExternalWalletPayModal({ 
-  recipientAddress, 
-  amount, 
+export function ExternalWalletPayModal({
+  recipientAddress,
+  amount,
   memo,
-  onClose 
+  onClose,
 }: ExternalWalletPayProps) {
   const [copied, setCopied] = useState<"address" | "amount" | null>(null);
   const [addingNetwork, setAddingNetwork] = useState(false);
@@ -81,7 +88,16 @@ export function ExternalWalletPayModal({
 
   // Add Plasma network to MetaMask
   const addPlasmaNetwork = async () => {
-    const ethereum = (window as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+    const ethereum = (
+      window as {
+        ethereum?: {
+          request: (args: {
+            method: string;
+            params?: unknown[];
+          }) => Promise<unknown>;
+        };
+      }
+    ).ethereum;
     if (!ethereum) {
       setError("Please install MetaMask or another Web3 wallet");
       return;
@@ -96,7 +112,8 @@ export function ExternalWalletPayModal({
         params: [PLASMA_CHAIN_CONFIG],
       });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to add network";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to add network";
       setError(errorMessage);
     } finally {
       setAddingNetwork(false);
@@ -106,22 +123,28 @@ export function ExternalWalletPayModal({
   // Open MetaMask with pre-filled transfer (if supported)
   const openInMetaMask = () => {
     // Deep link format for MetaMask token transfer
-    const deepLink = `https://metamask.app.link/send/${USDT0_ADDRESS}@${PLASMA_CHAIN_CONFIG.chainId}/transfer?address=${recipientAddress}&uint256=${parseFloat(amount) * 1e6}`;
+    const deepLink = `https://metamask.app.link/send/${USDT0_ADDRESS}@${
+      PLASMA_CHAIN_CONFIG.chainId
+    }/transfer?address=${recipientAddress}&uint256=${parseFloat(amount) * 1e6}`;
     window.open(deepLink, "_blank");
   };
 
   return (
-    <ModalPortal isOpen={true} onClose={onClose || (() => undefined)} zIndex={110}>
-      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
+    <ModalPortal
+      isOpen={true}
+      onClose={onClose || (() => undefined)}
+      zIndex={110}
+    >
+      <div className="relative w-full max-w-md bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
               <Wallet className="w-5 h-5 text-white" />
             </div>
             <h3 className="text-xl font-bold text-white">Pay with Wallet</h3>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors"
           >
@@ -132,14 +155,19 @@ export function ExternalWalletPayModal({
         {/* Instructions */}
         <div className="space-y-4 mb-6">
           <p className="text-white/60 text-sm">
-            Send USDT0 from your external wallet (MetaMask, Rabby, etc.) to complete this payment:
+            Send USDT0 from your external wallet (MetaMask, Rabby, etc.) to
+            complete this payment:
           </p>
 
           {/* Step 1: Add Network */}
           <div className="bg-white/5 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">1</span>
-              <span className="text-white font-medium text-sm">Add Plasma Network</span>
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 text-xs font-bold flex items-center justify-center">
+                1
+              </span>
+              <span className="text-white font-medium text-sm">
+                Add Plasma Network
+              </span>
             </div>
             <button
               onClick={addPlasmaNetwork}
@@ -153,8 +181,12 @@ export function ExternalWalletPayModal({
           {/* Step 2: Amount */}
           <div className="bg-white/5 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">2</span>
-              <span className="text-white font-medium text-sm">Send Amount</span>
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 text-xs font-bold flex items-center justify-center">
+                2
+              </span>
+              <span className="text-white font-medium text-sm">
+                Send Amount
+              </span>
             </div>
             <div className="flex items-center justify-between bg-black/20 rounded-xl p-3 mt-2">
               <div>
@@ -177,7 +209,9 @@ export function ExternalWalletPayModal({
           {memo && (
             <div className="bg-white/5 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">2a</span>
+                <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 text-xs font-bold flex items-center justify-center">
+                  2a
+                </span>
                 <span className="text-white font-medium text-sm">Memo</span>
               </div>
               <p className="text-white/70 text-sm">{memo}</p>
@@ -187,8 +221,12 @@ export function ExternalWalletPayModal({
           {/* Step 3: Recipient */}
           <div className="bg-white/5 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-xs font-bold flex items-center justify-center">3</span>
-              <span className="text-white font-medium text-sm">Send To Address</span>
+              <span className="w-6 h-6 rounded-full bg-plenmo-500/20 text-plenmo-500 text-xs font-bold flex items-center justify-center">
+                3
+              </span>
+              <span className="text-white font-medium text-sm">
+                Send To Address
+              </span>
             </div>
             <div className="flex items-center justify-between bg-black/20 rounded-xl p-3 mt-2">
               <code className="text-white/80 text-xs font-mono break-all pr-2">
@@ -220,15 +258,18 @@ export function ExternalWalletPayModal({
         <div className="flex items-start gap-2 text-amber-400/80 text-xs bg-amber-500/10 rounded-xl p-3 mb-6">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>
-            Only send <strong>USDT0</strong> on <strong>Plasma Chain</strong> (ID: 9745). 
-            Sending other tokens or on wrong networks will result in lost funds.
+            Only send <strong>USDT0</strong> on <strong>Plasma Chain</strong>{" "}
+            (ID: 9745). Sending other tokens or on wrong networks will result in
+            lost funds.
           </span>
         </div>
 
         {/* Token Contract Info */}
         <div className="text-center mb-4">
           <p className="text-white/40 text-xs mb-1">USDT0 Token Contract:</p>
-          <code className="text-white/60 text-xs font-mono">{USDT0_ADDRESS}</code>
+          <code className="text-white/60 text-xs font-mono">
+            {USDT0_ADDRESS}
+          </code>
         </div>
 
         {/* Actions */}
@@ -240,7 +281,7 @@ export function ExternalWalletPayModal({
             <ExternalLink className="w-4 h-4" />
             Open in MetaMask
           </button>
-          
+
           <button
             onClick={onClose}
             className="w-full py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 font-medium transition-colors"

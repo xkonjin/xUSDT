@@ -2,7 +2,7 @@
 
 /**
  * WalletManager Component
- * 
+ *
  * Comprehensive wallet management dashboard including:
  * - Balance display
  * - Fund wallet options
@@ -12,20 +12,24 @@
  */
 
 import { useState } from "react";
-import { 
-  Wallet, 
-  Copy, 
-  Check, 
-  ExternalLink, 
+import {
+  Wallet,
+  Copy,
+  Check,
+  ExternalLink,
   ChevronDown,
   ChevronUp,
   Settings,
   X,
   ArrowUpRight,
   ArrowDownLeft,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
-import { useUSDT0Balance, useAllWallets, useConnectExternalWallet } from "@plasma-pay/privy-auth";
+import {
+  useUSDT0Balance,
+  useAllWallets,
+  useConnectExternalWallet,
+} from "@plasma-pay/privy-auth";
 import { FundWalletModal } from "./FundWallet";
 import { ModalPortal } from "./ui/ModalPortal";
 
@@ -38,11 +42,14 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showFundModal, setShowFundModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>("wallets");
-  
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "wallets"
+  );
+
   const { formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
   const { wallets, embeddedWallet, externalWallets } = useAllWallets();
-  const { connectWallet, loading: connectingWallet } = useConnectExternalWallet();
+  const { connectWallet, loading: connectingWallet } =
+    useConnectExternalWallet();
 
   if (!isOpen) return null;
 
@@ -58,16 +65,16 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
 
   return (
     <ModalPortal isOpen={true} onClose={onClose} zIndex={110}>
-      <div className="relative w-full max-w-md bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-md bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-purple-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-plenmo-500/15 flex items-center justify-center">
               <Settings className="w-5 h-5 text-white" />
             </div>
             <h2 className="text-xl font-bold text-white">Wallet Manager</h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors"
           >
@@ -86,19 +93,21 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                 disabled={balanceLoading}
                 className="text-white/40 hover:text-white/70 transition-colors"
               >
-                <RefreshCw className={`w-4 h-4 ${balanceLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${balanceLoading ? "animate-spin" : ""}`}
+                />
               </button>
             </div>
             <div className="text-4xl font-bold text-white mb-4">
               ${formatted || "0.00"}
               <span className="text-white/30 text-lg ml-2">USDT0</span>
             </div>
-            
+
             {/* Quick Actions */}
             <div className="flex gap-2">
               <button
                 onClick={() => setShowFundModal(true)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/30 transition-colors text-sm font-medium"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-plenmo-500/20 text-plenmo-500 hover:bg-plenmo-500/30 transition-colors text-sm font-medium"
               >
                 <ArrowDownLeft className="w-4 h-4" />
                 Add Funds
@@ -121,8 +130,12 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
             >
               <div className="flex items-center gap-3">
                 <Wallet className="w-5 h-5 text-white/50" />
-                <span className="text-white font-medium">Connected Wallets</span>
-                <span className="text-white/30 text-sm">({wallets.length})</span>
+                <span className="text-white font-medium">
+                  Connected Wallets
+                </span>
+                <span className="text-white/30 text-sm">
+                  ({wallets.length})
+                </span>
               </div>
               {expandedSection === "wallets" ? (
                 <ChevronUp className="w-5 h-5 text-white/30" />
@@ -130,20 +143,23 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                 <ChevronDown className="w-5 h-5 text-white/30" />
               )}
             </button>
-            
+
             {expandedSection === "wallets" && (
               <div className="px-4 pb-4 space-y-2">
                 {/* Embedded Wallet */}
                 {embeddedWallet && (
                   <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgb(0,212,255)] to-blue-500 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-plenmo-500/15 flex items-center justify-center">
                         <Wallet className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-white text-sm font-medium">Plasma Wallet</p>
+                        <p className="text-white text-sm font-medium">
+                          Plasma Wallet
+                        </p>
                         <p className="text-white/40 text-xs font-mono">
-                          {embeddedWallet.address.slice(0, 6)}...{embeddedWallet.address.slice(-4)}
+                          {embeddedWallet.address.slice(0, 6)}...
+                          {embeddedWallet.address.slice(-4)}
                         </p>
                       </div>
                     </div>
@@ -168,17 +184,21 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
 
                 {/* External Wallets */}
                 {externalWallets.map((wallet) => (
-                  <div key={wallet.address} className="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+                  <div
+                    key={wallet.address}
+                    className="flex items-center justify-between p-3 bg-black/20 rounded-xl"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
                         <ExternalLink className="w-4 h-4 text-white" />
                       </div>
                       <div>
                         <p className="text-white text-sm font-medium capitalize">
-                          {wallet.walletClientType || 'External'}
+                          {wallet.walletClientType || "External"}
                         </p>
                         <p className="text-white/40 text-xs font-mono">
-                          {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                          {wallet.address.slice(0, 6)}...
+                          {wallet.address.slice(-4)}
                         </p>
                       </div>
                     </div>
@@ -226,7 +246,7 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                 <ChevronDown className="w-5 h-5 text-white/30" />
               )}
             </button>
-            
+
             {expandedSection === "deposit" && embeddedWallet && (
               <div className="px-4 pb-4">
                 <p className="text-white/50 text-sm mb-3">
@@ -249,7 +269,8 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                   </button>
                 </div>
                 <div className="text-amber-400/80 text-xs bg-amber-500/10 rounded-xl p-3">
-                  <strong>Important:</strong> Only send USDT0 on Plasma Chain (ID: 9745)
+                  <strong>Important:</strong> Only send USDT0 on Plasma Chain
+                  (ID: 9745)
                 </div>
               </div>
             )}
@@ -264,18 +285,18 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
 
       {/* Fund Wallet Modal */}
       {showFundModal && embeddedWallet && (
-        <FundWalletModal 
-          walletAddress={embeddedWallet.address} 
-          onClose={() => setShowFundModal(false)} 
+        <FundWalletModal
+          walletAddress={embeddedWallet.address}
+          onClose={() => setShowFundModal(false)}
         />
       )}
 
       {/* Withdraw Modal */}
       {showWithdrawModal && embeddedWallet && (
-        <WithdrawModal 
+        <WithdrawModal
           walletAddress={embeddedWallet.address}
           balance={formatted || "0"}
-          onClose={() => setShowWithdrawModal(false)} 
+          onClose={() => setShowWithdrawModal(false)}
         />
       )}
     </ModalPortal>
@@ -307,7 +328,11 @@ interface WithdrawModalProps {
   onClose: () => void;
 }
 
-function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) {
+function WithdrawModal({
+  walletAddress,
+  balance,
+  onClose,
+}: WithdrawModalProps) {
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [withdrawing, setWithdrawing] = useState(false);
@@ -369,9 +394,11 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
   if (success) {
     return (
       <ModalPortal isOpen={true} onClose={onClose} zIndex={120}>
-        <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6 text-center">
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6 text-center">
           <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">Withdrawal Sent!</h3>
+          <h3 className="text-xl font-bold text-white mb-2">
+            Withdrawal Sent!
+          </h3>
           <p className="text-white/50 text-sm mb-4">
             Your USDT0 is on its way.
           </p>
@@ -384,7 +411,10 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
             View transaction
             <ExternalLink className="w-3 h-3" />
           </a>
-          <button onClick={onClose} className="w-full clay-button clay-button-primary">
+          <button
+            onClick={onClose}
+            className="w-full clay-button clay-button-primary"
+          >
             Done
           </button>
         </div>
@@ -394,10 +424,10 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
 
   return (
     <ModalPortal isOpen={true} onClose={onClose} zIndex={120}>
-      <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl p-6">
+      <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Withdraw USDT0</h3>
-          <button 
+          <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors"
           >
@@ -423,7 +453,7 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
             value={toAddress}
             onChange={(e) => setToAddress(e.target.value)}
             placeholder="0x..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[rgb(0,212,255)]"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-plenmo-500"
           />
         </div>
 
@@ -431,7 +461,9 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
         <div className="mb-4">
           <label className="block text-white/50 text-sm mb-2">Amount</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+              $
+            </span>
             <input
               type="number"
               value={amount}
@@ -440,11 +472,11 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
               step="0.01"
               min="0"
               max={balance}
-              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-20 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[rgb(0,212,255)]"
+              className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-20 py-3 text-white placeholder-white/30 focus:outline-none focus:border-plenmo-500"
             />
             <button
               onClick={() => setAmount(balance)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[rgb(0,212,255)] text-sm hover:underline"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-plenmo-500 text-sm hover:underline"
             >
               Max
             </button>
@@ -460,7 +492,8 @@ function WithdrawModal({ walletAddress, balance, onClose }: WithdrawModalProps) 
 
         {/* Warning */}
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-400 text-xs mb-4">
-          <strong>Note:</strong> Ensure the address is correct. Transactions cannot be reversed.
+          <strong>Note:</strong> Ensure the address is correct. Transactions
+          cannot be reversed.
         </div>
 
         {/* Submit */}

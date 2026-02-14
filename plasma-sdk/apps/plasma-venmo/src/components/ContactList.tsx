@@ -165,7 +165,7 @@ export const ContactList = memo(function ContactList({
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search contacts..."
           aria-label="Search contacts"
-          className="w-full pl-12 pr-10 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:border-[rgb(0,212,255)]/50 transition-colors"
+          className="w-full pl-12 pr-10 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:border-plenmo-500/50 transition-colors"
         />
         {searchQuery && (
           <button
@@ -193,7 +193,7 @@ export const ContactList = memo(function ContactList({
                 onClick={() => onSelectContact(contact)}
                 className="flex flex-col items-center gap-2 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors min-w-[80px]"
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[rgb(0,212,255)]/30 to-purple-500/30 flex items-center justify-center text-white font-medium">
+                <div className="w-12 h-12 rounded-full bg-plenmo-500/15 flex items-center justify-center text-white font-medium">
                   {getInitials(contact.name)}
                 </div>
                 <span className="text-white text-xs truncate max-w-[70px]">
@@ -227,7 +227,7 @@ export const ContactList = memo(function ContactList({
             className="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors cursor-pointer group"
           >
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[rgb(0,212,255)]/30 to-purple-500/30 flex items-center justify-center text-white font-medium flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-plenmo-500/15 flex items-center justify-center text-white font-medium flex-shrink-0">
               {getInitials(contact.name)}
             </div>
 
@@ -276,7 +276,7 @@ export const ContactList = memo(function ContactList({
                         onSelectContact(contact);
                       }
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-[rgb(0,212,255)]/10 text-[rgb(0,212,255)] hover:bg-[rgb(0,212,255)]/20 transition-colors text-sm font-medium flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl bg-plenmo-500/10 text-plenmo-500 hover:bg-plenmo-500/20 transition-colors text-sm font-medium flex items-center gap-1.5"
                     title={`Send money to ${contact.name}`}
                   >
                     <Send className="w-4 h-4" />

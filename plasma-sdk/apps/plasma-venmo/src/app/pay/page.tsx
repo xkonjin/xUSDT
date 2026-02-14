@@ -2,7 +2,7 @@
 
 /**
  * Pay Page - /pay?to=address&amount=X&memo=Y
- * 
+ *
  * This page handles direct payments to a wallet address.
  * Used by QR codes and direct payment links.
  */
@@ -11,9 +11,18 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { parseUnits } from "viem";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
-import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
+import {
+  createTransferParams,
+  buildTransferAuthorizationTypedData,
+} from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { Avatar } from "@/components/ui/Avatar";
 import { splitSignature, isValidAddress } from "@/lib/crypto";
@@ -37,7 +46,8 @@ function PayPageContent() {
   const isValidAmount = parseFloat(amount) > 0;
   const numericBalance = parseFloat(balance || "0");
   const numericAmount = parseFloat(amount || "0");
-  const insufficientBalance = numericAmount > 0 && numericAmount > numericBalance;
+  const insufficientBalance =
+    numericAmount > 0 && numericAmount > numericBalance;
 
   async function handlePay() {
     if (!wallet || !to || !amount || paying) return;
@@ -97,7 +107,7 @@ function PayPageContent() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
+          <Loader2 className="w-12 h-12 text-plenmo-500 animate-spin" />
           <span className="text-white/50">Loading...</span>
         </div>
       </main>
@@ -110,13 +120,15 @@ function PayPageContent() {
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Invalid Payment Link</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Invalid Payment Link
+          </h1>
           <p className="text-white/50 mb-6">
             {to ? "The wallet address is invalid." : "No recipient specified."}
           </p>
-          <Link 
+          <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+            className="inline-flex items-center gap-2 text-plenmo-500 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Go to Plenmo
@@ -131,12 +143,14 @@ function PayPageContent() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full">
-          <div className="liquid-glass rounded-3xl p-8 text-center">
+          <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-8 text-center">
             <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-white mb-2">Payment Sent!</h1>
-            <p className="text-5xl font-bold gradient-text my-4">${amount}</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Payment Sent!
+            </h1>
+            <p className="text-5xl font-bold text-white my-4">${amount}</p>
             <p className="text-white/50 mb-6">USDT0 sent successfully</p>
-            
+
             <a
               href={`https://scan.plasma.to/tx/${success}`}
               target="_blank"
@@ -146,9 +160,12 @@ function PayPageContent() {
               View transaction
               <ExternalLink className="w-4 h-4" />
             </a>
-            
+
             <div className="mt-6">
-              <Link href="/" className="btn-primary inline-block">
+              <Link
+                href="/"
+                className="clay-button clay-button-primary inline-block"
+              >
                 Back to Home
               </Link>
             </div>
@@ -159,7 +176,8 @@ function PayPageContent() {
   }
 
   // Main payment UI
-  const canPay = authenticated && wallet && isValidAmount && !insufficientBalance && !paying;
+  const canPay =
+    authenticated && wallet && isValidAmount && !insufficientBalance && !paying;
 
   return (
     <main className="min-h-screen bg-black p-4 relative overflow-hidden">
@@ -168,7 +186,7 @@ function PayPageContent() {
       </div>
 
       <div className="max-w-md mx-auto pt-8 relative z-10">
-        <Link 
+        <Link
           href="/"
           className="inline-flex items-center gap-2 text-white/50 hover:text-white mb-6 transition-colors"
         >
@@ -176,9 +194,9 @@ function PayPageContent() {
           Back
         </Link>
 
-        <div className="liquid-glass-elevated rounded-3xl p-8">
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-8">
           <h1 className="text-2xl font-bold text-white mb-6">Send Payment</h1>
-          
+
           {/* Recipient */}
           <div className="flex items-center gap-4 bg-white/5 rounded-2xl p-4 mb-6">
             <Avatar name={to} size="lg" />
@@ -198,15 +216,19 @@ function PayPageContent() {
 
           {/* Amount input */}
           <div className="mb-6">
-            <label className="block text-white/50 text-sm mb-2">Amount (USDT0)</label>
+            <label className="block text-white/50 text-sm mb-2">
+              Amount (USDT0)
+            </label>
             {prefilledAmount ? (
               <div className="text-5xl font-bold tracking-tight">
-                <span className="gradient-text">${prefilledAmount}</span>
+                <span className="text-white">${prefilledAmount}</span>
                 <span className="text-white/30 text-xl ml-2">USDT0</span>
               </div>
             ) : (
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-2xl">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-2xl">
+                  $
+                </span>
                 <input
                   type="number"
                   value={amount}
@@ -214,7 +236,7 @@ function PayPageContent() {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="input-glass w-full pl-10 text-2xl font-bold"
+                  className="clay-input w-full pl-10 text-2xl font-bold"
                   disabled={paying}
                 />
               </div>
@@ -250,14 +272,17 @@ function PayPageContent() {
 
           {/* Action button */}
           {!authenticated ? (
-            <button onClick={login} className="w-full btn-primary">
+            <button
+              onClick={login}
+              className="w-full clay-button clay-button-primary"
+            >
               Login to Pay
             </button>
           ) : (
             <button
               onClick={handlePay}
               disabled={!canPay}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full clay-button clay-button-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {paying ? (
                 <>
@@ -281,11 +306,13 @@ function PayPageContent() {
 
 export default function PayPage() {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-12 h-12 text-[rgb(0,212,255)] animate-spin" />
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-black">
+          <Loader2 className="w-12 h-12 text-plenmo-500 animate-spin" />
+        </main>
+      }
+    >
       <PayPageContent />
     </Suspense>
   );

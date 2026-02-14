@@ -80,18 +80,16 @@ export function Header({
     <>
       <header
         className={cn(
-          "flex items-center justify-between sticky top-0 z-10 transition-all duration-300",
+          "flex items-center justify-between sticky top-0 z-10 transition-all duration-200",
           scrolled
-            ? "backdrop-blur-lg bg-black/20 border-b border-white/10 py-3 mb-4"
-            : "py-4 mb-8",
+            ? "bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06] py-3 mb-4"
+            : "py-4 mb-6",
           className
         )}
       >
         {/* Logo */}
-        <h1 className="text-2xl font-bold tracking-tight group cursor-default">
-          <span className="gradient-text group-hover:opacity-90 transition-opacity">
-            Plenmo
-          </span>
+        <h1 className="text-xl font-heading font-bold tracking-tight text-white cursor-default">
+          Plenmo
         </h1>
 
         {/* Desktop: Inline Search + Actions */}
@@ -146,7 +144,7 @@ export function Header({
       {mobileSearchOpen && !isDesktopView && !isDesktop && (
         <div
           data-testid="mobile-search-panel"
-          className="fixed inset-x-0 top-0 z-50 bg-black/95 backdrop-blur-xl p-4 animate-slide-down"
+          className="fixed inset-x-0 top-0 z-50 bg-[rgb(var(--bg-primary))] border-b border-white/[0.06] p-4 animate-slide-down"
         >
           <div className="flex items-center gap-3">
             <SearchBar

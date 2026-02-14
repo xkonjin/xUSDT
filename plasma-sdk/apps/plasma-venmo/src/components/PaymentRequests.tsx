@@ -2,15 +2,25 @@
 
 /**
  * PaymentRequests Component
- * 
+ *
  * Displays incoming payment requests that the user needs to pay or decline.
  */
 
 import { useState, useEffect } from "react";
-import { HandCoins, X, Loader2, Clock, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  HandCoins,
+  X,
+  Loader2,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { parseUnits } from "viem";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
-import { createTransferParams, buildTransferAuthorizationTypedData } from "@plasma-pay/gasless";
+import {
+  createTransferParams,
+  buildTransferAuthorizationTypedData,
+} from "@plasma-pay/gasless";
 import { PLASMA_MAINNET_CHAIN_ID, USDT0_ADDRESS } from "@plasma-pay/core";
 import { Avatar } from "./ui/Avatar";
 import { RequestSkeleton } from "./ui/Skeleton";
@@ -37,7 +47,11 @@ interface PaymentRequestsProps {
   onRefresh?: () => void;
 }
 
-export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequestsProps) {
+export function PaymentRequests({
+  wallet,
+  userEmail,
+  onRefresh,
+}: PaymentRequestsProps) {
   // State
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +67,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -139,10 +153,12 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       }
 
       // Remove from list
-      setRequests(requests.filter(r => r.id !== request.id));
+      setRequests(requests.filter((r) => r.id !== request.id));
       onRefresh?.();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Payment failed. Please try again.");
+      setActionError(
+        err instanceof Error ? err.message : "Payment failed. Please try again."
+      );
     } finally {
       setPayingId(null);
     }
@@ -169,9 +185,13 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       }
 
       // Remove from list
-      setRequests(requests.filter(r => r.id !== request.id));
+      setRequests(requests.filter((r) => r.id !== request.id));
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to decline. Please try again.");
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to decline. Please try again."
+      );
     } finally {
       setDecliningId(null);
     }
@@ -226,9 +246,7 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
         <HandCoins className="w-5 h-5 text-plenmo-500" />
         Pending Requests
-        <span className="clay-badge clay-badge-success">
-          {requests.length}
-        </span>
+        <span className="clay-badge clay-badge-success">{requests.length}</span>
       </h2>
 
       {/* Action error alert */}
@@ -242,15 +260,12 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
       <div className="space-y-3">
         {requests.map((request) => {
           const requesterName = request.fromEmail || request.fromAddress;
-          
+
           return (
-            <div
-              key={request.id}
-              className="clay-list-item"
-            >
+            <div key={request.id} className="clay-list-item">
               <div className="flex items-center gap-4">
                 <Avatar name={requesterName} size="lg" />
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-xl text-white">
@@ -258,11 +273,15 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
                     </span>
                     <span className="text-white/40 text-sm">USDT0</span>
                   </div>
-                  
+
                   <p className="text-white/60 text-sm truncate">
-                    {request.fromEmail || `${request.fromAddress.slice(0, 6)}...${request.fromAddress.slice(-4)}`}
+                    {request.fromEmail ||
+                      `${request.fromAddress.slice(
+                        0,
+                        6
+                      )}...${request.fromAddress.slice(-4)}`}
                   </p>
-                  
+
                   {request.memo && (
                     <p className="text-white/40 text-xs mt-1 truncate italic">
                       &ldquo;{request.memo}&rdquo;
@@ -273,32 +292,44 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => declineRequest(request)}
-                    disabled={decliningId === request.id || payingId === request.id}
+                    disabled={
+                      decliningId === request.id || payingId === request.id
+                    }
                     className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/50 hover:text-red-400 transition-colors disabled:opacity-50"
                     aria-label={`Decline payment request for $${request.amount}`}
                   >
                     {decliningId === request.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                      <Loader2
+                        className="w-5 h-5 animate-spin"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <X className="w-5 h-5" aria-hidden="true" />
                     )}
                   </button>
-                  
+
                   <button
                     onClick={() => payRequest(request)}
-                    disabled={payingId === request.id || decliningId === request.id}
-                    className="px-4 py-2.5 rounded-xl bg-[rgb(0,212,255)] hover:bg-[rgb(0,190,230)] text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                    aria-label={`Pay $${request.amount} to ${request.fromEmail || request.fromAddress}`}
+                    disabled={
+                      payingId === request.id || decliningId === request.id
+                    }
+                    className="px-4 py-2.5 rounded-xl bg-plenmo-500 hover:bg-plenmo-600 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                    aria-label={`Pay $${request.amount} to ${
+                      request.fromEmail || request.fromAddress
+                    }`}
                   >
                     {payingId === request.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                      <Loader2
+                        className="w-4 h-4 animate-spin"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <>Pay</>
                     )}
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-1 mt-3 text-white/30 text-xs">
                 <Clock className="w-3 h-3" />
                 <span>Expires {formatRelativeTime(request.expiresAt)}</span>
@@ -310,4 +341,3 @@ export function PaymentRequests({ wallet, userEmail, onRefresh }: PaymentRequest
     </div>
   );
 }
-

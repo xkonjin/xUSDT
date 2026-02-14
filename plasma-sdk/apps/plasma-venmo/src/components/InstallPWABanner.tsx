@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { promptInstall, isInstalled } from '@/lib/pwa';
+import { useEffect, useState } from "react";
+import { promptInstall, isInstalled } from "@/lib/pwa";
 
 export function InstallPWABanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -14,7 +14,7 @@ export function InstallPWABanner() {
     }
 
     // Check if user dismissed banner before
-    const dismissed = localStorage.getItem('pwa-banner-dismissed');
+    const dismissed = localStorage.getItem("pwa-banner-dismissed");
     if (dismissed) {
       return;
     }
@@ -24,17 +24,17 @@ export function InstallPWABanner() {
       setShowBanner(true);
     };
 
-    window.addEventListener('pwa-installable', handleInstallable);
+    window.addEventListener("pwa-installable", handleInstallable);
 
     return () => {
-      window.removeEventListener('pwa-installable', handleInstallable);
+      window.removeEventListener("pwa-installable", handleInstallable);
     };
   }, []);
 
   const handleInstall = async () => {
     setIsInstalling(true);
     const accepted = await promptInstall();
-    
+
     if (accepted) {
       setShowBanner(false);
     } else {
@@ -44,7 +44,7 @@ export function InstallPWABanner() {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('pwa-banner-dismissed', 'true');
+    localStorage.setItem("pwa-banner-dismissed", "true");
   };
 
   if (!showBanner) {
@@ -55,7 +55,7 @@ export function InstallPWABanner() {
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-slide-up">
       <div className="clay-card p-4 border-2 border-white/10">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-plenmo-500/15 flex items-center justify-center flex-shrink-0">
             <svg
               className="w-6 h-6 text-white"
               fill="none"
@@ -70,22 +70,23 @@ export function InstallPWABanner() {
               />
             </svg>
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-white mb-1">Install Plenmo</h3>
             <p className="text-sm text-white/70 mb-3">
-              Get quick access and work offline. Install the app for the best experience.
+              Get quick access and work offline. Install the app for the best
+              experience.
             </p>
-            
+
             <div className="flex gap-2">
               <button
                 onClick={handleInstall}
                 disabled={isInstalling}
                 className="clay-button-sm px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
               >
-                {isInstalling ? 'Installing...' : 'Install'}
+                {isInstalling ? "Installing..." : "Install"}
               </button>
-              
+
               <button
                 onClick={handleDismiss}
                 className="px-4 py-2 text-white/60 hover:text-white font-medium rounded-lg transition-colors"
@@ -94,7 +95,7 @@ export function InstallPWABanner() {
               </button>
             </div>
           </div>
-          
+
           <button
             onClick={handleDismiss}
             className="text-white/40 hover:text-white/60 transition-colors"

@@ -277,7 +277,7 @@ export function ZKP2POnrampV2({
   );
 
   return (
-    <div className="bg-gradient-to-br from-white/[0.12] to-white/[0.06] backdrop-blur-xl border border-white/15 rounded-3xl overflow-hidden max-w-md w-full">
+    <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl overflow-hidden max-w-md w-full">
       {/* Header */}
       <div className="relative px-6 py-5 border-b border-white/10">
         <div className="absolute inset-0 bg-gradient-to-r from-plenmo-500/10 to-plenmo-600/10" />

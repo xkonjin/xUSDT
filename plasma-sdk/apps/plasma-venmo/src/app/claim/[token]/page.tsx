@@ -282,10 +282,10 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="max-w-md w-full">
-          <div className="liquid-glass rounded-3xl p-8 text-center">
+          <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-8 text-center">
             <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-white mb-2">Claimed!</h1>
-            <p className="text-5xl font-bold gradient-text my-4">
+            <p className="text-5xl font-bold text-white my-4">
               ${claim.amount}
             </p>
             <p className="text-white/50 mb-6">
@@ -305,7 +305,10 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
             )}
 
             <div className="mt-6">
-              <Link href="/" className="btn-primary inline-block">
+              <Link
+                href="/"
+                className="clay-button clay-button-primary inline-block"
+              >
                 Open Plenmo
               </Link>
             </div>
@@ -365,7 +368,7 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
 
       <div className="max-w-md mx-auto pt-12 relative z-10">
         {/* Gift Card */}
-        <div className="liquid-glass-elevated rounded-3xl p-8 text-center">
+        <div className="bg-[rgb(var(--bg-elevated))] border border-white/[0.06] rounded-2xl p-8 text-center">
           {/* Gift icon */}
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center">
             <Gift className="w-10 h-10 text-white" />
@@ -386,7 +389,7 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
 
           {/* Amount */}
           <div className="my-8">
-            <p className="text-6xl font-bold gradient-text">${claim.amount}</p>
+            <p className="text-6xl font-bold text-white">${claim.amount}</p>
             <p className="text-white/40 text-lg mt-2">USD</p>
           </div>
 
@@ -411,7 +414,7 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
             {!authenticated ? (
               <button
                 onClick={login}
-                className="w-full btn-primary text-lg py-4"
+                className="w-full clay-button clay-button-primary text-lg py-4"
               >
                 Sign up to Claim
               </button>
@@ -419,7 +422,7 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
               <button
                 onClick={handleClaim}
                 disabled={claiming}
-                className="w-full btn-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full clay-button clay-button-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {claiming ? (
                   <>
@@ -469,7 +472,7 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
 
         {/* Zero fees badge */}
         <div className="text-center mt-6">
-          <span className="inline-flex items-center gap-2 text-white/40 text-sm px-4 py-2 rounded-full liquid-glass-subtle">
+          <span className="inline-flex items-center gap-2 text-white/40 text-sm px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.06]">
             <span className="w-2 h-2 rounded-full bg-plenmo-500" />
             Zero fees. Instant transfer.
           </span>
