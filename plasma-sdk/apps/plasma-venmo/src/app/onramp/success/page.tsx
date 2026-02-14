@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 export default function OnrampSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [countdown, setCountdown] = useState(5);
 
-  const txHash = searchParams.get('tx');
-  const amount = searchParams.get('amount');
-  const currency = searchParams.get('currency') || 'USD';
+  const txHash = searchParams.get("tx");
+  const amount = searchParams.get("amount");
+  const currency = searchParams.get("currency") || "USD";
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push('/');
+          router.push("/");
           return 0;
         }
         return prev - 1;
@@ -38,11 +38,21 @@ export default function OnrampSuccessPage() {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', duration: 0.6, delay: 0.2 }}
+          transition={{ type: "spring", duration: 0.6, delay: 0.2 }}
           className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-emerald-500"
         >
-          <svg className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          <svg
+            className="h-12 w-12 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={3}
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </motion.div>
 
@@ -62,7 +72,13 @@ export default function OnrampSuccessPage() {
           className="mb-6 text-gray-600"
         >
           {amount ? (
-            <>Your account has been credited with <span className="font-semibold">${amount} {currency}</span> in USDC.</>
+            <>
+              Your account has been credited with{" "}
+              <span className="font-semibold">
+                ${amount} {currency}
+              </span>{" "}
+              in USDC.
+            </>
           ) : (
             <>Your funds have been added to your Plenmo account.</>
           )}
@@ -88,8 +104,8 @@ export default function OnrampSuccessPage() {
           transition={{ delay: 0.6 }}
         >
           <button
-            onClick={() => router.push('/')}
-            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 py-4 font-semibold text-white transition hover:opacity-90"
+            onClick={() => router.push("/")}
+            className="w-full rounded-xl bg-plenmo-500 hover:bg-plenmo-400 py-4 font-semibold text-white transition"
           >
             Go to Dashboard
           </button>
