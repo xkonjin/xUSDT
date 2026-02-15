@@ -150,7 +150,7 @@ export default function InvitePage() {
         ) : stats ? (
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white/[0.04] rounded-2xl p-4 text-center">
-              <Users className="w-5 h-5 mx-auto mb-2 text-purple-400" />
+              <Users className="w-5 h-5 mx-auto mb-2 text-plenmo-400" />
               <p className="text-2xl font-bold text-white">
                 {stats.totalReferred}
               </p>

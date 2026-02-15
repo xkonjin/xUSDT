@@ -3,25 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlasmaWallet } from "@plasma-pay/privy-auth";
-import { ZKP2POnramp } from "@/components/onramp/ZKP2POnramp";
-import { ArrowLeft, Shield, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import {
+  ArrowLeft,
+  Shield,
+  Loader2,
+  CreditCard,
+  Smartphone,
+  ChevronRight,
+} from "lucide-react";
+import { ModalPortal } from "@/components/ui/ModalPortal";
+
+const ZKP2POnrampV2 = dynamic(
+  () => import("@/components/onramp/ZKP2POnrampV2"),
+  { ssr: false }
+);
+const StripeOnramp = dynamic(() => import("@/components/onramp/StripeOnramp"), {
+  ssr: false,
+});
+
+type OnrampMethod = "zkp2p" | "stripe" | null;
 
 export default function AddFundsPage() {
   const router = useRouter();
   const { wallet, ready } = usePlasmaWallet();
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [activeMethod, setActiveMethod] = useState<OnrampMethod>(null);
 
-  const handleSuccess = (txHash: string) => {
-    console.log("Onramp successful:", txHash);
-    setShowSuccess(true);
+  const handleSuccess = () => {
+    router.push("/onramp/success");
   };
 
   const handleClose = () => {
-    if (showSuccess) {
-      router.push("/");
-    } else {
-      router.back();
-    }
+    setActiveMethod(null);
   };
 
   if (!ready) {
@@ -50,6 +63,8 @@ export default function AddFundsPage() {
     );
   }
 
+  const hasStripe = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
   return (
     <div className="min-h-dvh bg-[rgb(var(--bg-primary))] px-4 py-6">
       <div className="mx-auto max-w-md">
@@ -62,24 +77,67 @@ export default function AddFundsPage() {
           <span className="text-sm font-medium">Back</span>
         </button>
 
-        {/* ZKP2P Onramp Component */}
-        <ZKP2POnramp
-          recipientAddress={wallet.address}
-          onSuccess={handleSuccess}
-          onClose={handleClose}
-          defaultAmount="100"
-          defaultCurrency="USD"
-        />
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-heading font-bold text-white mb-1">
+            Add Funds
+          </h1>
+          <p className="text-white/50 text-sm">
+            Choose how you want to add money to your Plenmo wallet.
+          </p>
+        </div>
+
+        {/* Method Picker */}
+        <div className="space-y-3">
+          {/* ZKP2P Fiat */}
+          <button
+            onClick={() => setActiveMethod("zkp2p")}
+            className="w-full flex items-center gap-4 p-5 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:border-plenmo-500/30 hover:bg-white/[0.04] transition-all group"
+          >
+            <div className="w-12 h-12 rounded-xl bg-plenmo-500/10 flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-6 h-6 text-plenmo-500" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-white font-semibold block">
+                Venmo, Zelle, Cash App
+              </span>
+              <span className="text-white/40 text-sm">
+                Pay with your existing apps via ZKP2P
+              </span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/40 transition-colors" />
+          </button>
+
+          {/* Stripe Card */}
+          <button
+            onClick={() => setActiveMethod("stripe")}
+            disabled={!hasStripe}
+            className="w-full flex items-center gap-4 p-5 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:border-plenmo-500/30 hover:bg-white/[0.04] transition-all disabled:opacity-40 disabled:cursor-not-allowed group"
+          >
+            <div className="w-12 h-12 rounded-xl bg-plenmo-500/10 flex items-center justify-center flex-shrink-0">
+              <CreditCard className="w-6 h-6 text-plenmo-500" />
+            </div>
+            <div className="flex-1 text-left">
+              <span className="text-white font-semibold block">
+                Credit or Debit Card
+              </span>
+              <span className="text-white/40 text-sm">
+                {hasStripe ? "Visa, Mastercard, Apple Pay" : "Coming soon"}
+              </span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/40 transition-colors" />
+          </button>
+        </div>
 
         {/* Info section */}
-        <div className="mt-6 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] p-5">
+        <div className="mt-8 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] p-5">
           <h3 className="mb-4 font-heading font-semibold text-white text-sm">
             How it works
           </h3>
           <div className="space-y-3">
             {[
-              "Choose your amount and preferred payment method (Venmo, Revolut, etc.)",
-              "Complete the payment through the ZKP2P extension",
+              "Choose your preferred payment method",
+              "Complete the payment through the provider",
               "Receive USDT0 in your Plenmo wallet instantly",
             ].map((text, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -98,6 +156,29 @@ export default function AddFundsPage() {
           <span>Secured by zero-knowledge proofs</span>
         </div>
       </div>
+
+      {/* ZKP2P Modal */}
+      {activeMethod === "zkp2p" && (
+        <ModalPortal isOpen={true} onClose={handleClose} zIndex={110}>
+          <ZKP2POnrampV2
+            recipientAddress={wallet.address}
+            defaultAmount="100"
+            onSuccess={handleSuccess}
+            onClose={handleClose}
+          />
+        </ModalPortal>
+      )}
+
+      {/* Stripe Modal */}
+      {activeMethod === "stripe" && (
+        <ModalPortal isOpen={true} onClose={handleClose} zIndex={110}>
+          <StripeOnramp
+            walletAddress={wallet.address}
+            onSuccess={handleSuccess}
+            onClose={handleClose}
+          />
+        </ModalPortal>
+      )}
     </div>
   );
 }

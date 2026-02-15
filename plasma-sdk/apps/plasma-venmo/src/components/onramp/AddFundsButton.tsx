@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ZKP2POnramp } from './ZKP2POnramp';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { ZKP2POnramp } from "./ZKP2POnramp";
 
 interface AddFundsButtonProps {
   recipientAddress: string;
-  variant?: 'primary' | 'secondary' | 'minimal';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "minimal";
+  size?: "sm" | "md" | "lg";
   className?: string;
   useModal?: boolean;
   onSuccess?: (txHash: string) => void;
@@ -16,9 +16,9 @@ interface AddFundsButtonProps {
 
 export function AddFundsButton({
   recipientAddress,
-  variant = 'primary',
-  size = 'md',
-  className = '',
+  variant = "primary",
+  size = "md",
+  className = "",
   useModal = true,
   onSuccess,
 }: AddFundsButtonProps) {
@@ -29,7 +29,7 @@ export function AddFundsButton({
     if (useModal) {
       setShowModal(true);
     } else {
-      router.push('/add-funds');
+      router.push("/add-funds");
     }
   };
 
@@ -40,16 +40,18 @@ export function AddFundsButton({
 
   // Size classes
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-base',
-    lg: 'px-6 py-3.5 text-lg',
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2.5 text-base",
+    lg: "px-6 py-3.5 text-lg",
   };
 
   // Variant classes
   const variantClasses = {
-    primary: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:opacity-90',
-    secondary: 'bg-white border-2 border-green-500 text-green-600 hover:bg-green-50',
-    minimal: 'text-green-600 hover:text-green-700 hover:bg-green-50',
+    primary:
+      "bg-gradient-to-r from-plenmo-500 to-plenmo-600 text-white hover:opacity-90",
+    secondary:
+      "bg-white border-2 border-green-500 text-green-600 hover:bg-green-50",
+    minimal: "text-green-600 hover:text-green-700 hover:bg-green-50",
   };
 
   return (
@@ -63,8 +65,18 @@ export function AddFundsButton({
           ${className}
         `}
       >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
         </svg>
         <span>Add Funds</span>
       </button>

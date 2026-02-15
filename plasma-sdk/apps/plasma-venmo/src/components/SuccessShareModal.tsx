@@ -146,7 +146,7 @@ export function SuccessShareModal({
           </div>
         ) : (
           <div className="text-center py-4">
-            <Gift className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+            <Gift className="w-8 h-8 text-plenmo-400 mx-auto mb-2" />
             <p className="text-white/70">Thanks for sharing!</p>
           </div>
         )}
