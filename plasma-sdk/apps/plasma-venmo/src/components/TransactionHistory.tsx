@@ -277,7 +277,7 @@ export function TransactionHistory({
                       className={`absolute -bottom-0.5 -right-0.5 p-1.5 rounded-full shadow-lg ${
                         tx.type === "sent"
                           ? "bg-gradient-to-br from-red-400 to-red-500"
-                          : "bg-gradient-to-br from-green-400 to-green-500"
+                          : "bg-gradient-to-br from-plenmo-400 to-plenmo-500"
                       }`}
                     >
                       {tx.type === "sent" ? (

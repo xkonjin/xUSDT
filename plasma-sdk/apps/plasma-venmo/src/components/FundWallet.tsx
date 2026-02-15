@@ -390,7 +390,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <h4 className="text-white font-semibold">Bridge Any Token</h4>
-              <span className="px-2 py-0.5 text-[10px] font-bold bg-purple-500/20 text-purple-400 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-plenmo-500/20 text-plenmo-400 rounded-full">
                 MULTI-CHAIN
               </span>
             </div>
@@ -440,7 +440,7 @@ export function FundWalletModal({ walletAddress, onClose }: FundWalletProps) {
           onClick={copyAddress}
           className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left border border-white/10 hover:border-white/20"
         >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-600 flex items-center justify-center flex-shrink-0">
             <ArrowDownLeft className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">

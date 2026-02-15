@@ -32,8 +32,9 @@ const MOCK_RECIPIENT_ADDRESS = (process.env
 const isMockMode = () => process.env.NEXT_PUBLIC_MOCK_AUTH === "true";
 
 export async function POST(request: Request) {
+  let identifier: string | undefined;
   try {
-    const { identifier } = await request.json();
+    ({ identifier } = await request.json());
 
     if (!identifier) {
       return NextResponse.json(
@@ -141,7 +142,7 @@ export async function POST(request: Request) {
     if (errorMessage.includes("not found") || errorMessage.includes("404")) {
       return NextResponse.json({
         needsClaim: true,
-        identifier: "unknown",
+        identifier,
         message: "Recipient not registered yet. A claim link will be created.",
       });
     }

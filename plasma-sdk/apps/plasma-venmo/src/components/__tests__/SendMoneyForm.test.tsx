@@ -74,14 +74,10 @@ describe("SendMoneyForm", () => {
   it("should render the form", () => {
     render(<SendMoneyForm {...defaultProps} />);
 
-    // Component uses aria-label "Recipient email, phone, or wallet address"
     expect(screen.getByLabelText(/recipient/i)).toBeInTheDocument();
-    // Component uses aria-label "Payment amount in USD"
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument();
-    // Submit button says "Review Payment"
-    expect(
-      screen.getByRole("button", { name: /review payment/i })
-    ).toBeInTheDocument();
+    // The form has "Send" and "Request" buttons
+    expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
   });
 
   it("should show Send Money heading", () => {
@@ -89,13 +85,11 @@ describe("SendMoneyForm", () => {
     expect(screen.getByText("Send Money")).toBeInTheDocument();
   });
 
-  it("should disable review button when no recipient or amount", () => {
+  it("should disable send button when no recipient or amount", () => {
     render(<SendMoneyForm {...defaultProps} />);
 
-    const reviewButton = screen.getByRole("button", {
-      name: /review payment/i,
-    });
-    expect(reviewButton).toBeDisabled();
+    const sendButton = screen.getByRole("button", { name: /send/i });
+    expect(sendButton).toBeDisabled();
   });
 
   it("should show insufficient balance warning when amount exceeds balance", async () => {
@@ -114,7 +108,7 @@ describe("SendMoneyForm", () => {
     });
   });
 
-  it("should disable review button when insufficient balance", async () => {
+  it("should disable send button when insufficient balance", async () => {
     render(<SendMoneyForm {...defaultProps} balance="25.00" />);
 
     const recipientInput = screen.getByLabelText(/recipient/i);
@@ -125,11 +119,11 @@ describe("SendMoneyForm", () => {
     const amountInput = screen.getByLabelText(/amount/i);
     fireEvent.change(amountInput, { target: { value: "50.00" } });
 
-    const reviewButton = screen.getByRole("button", { name: /review/i });
-    expect(reviewButton).toBeDisabled();
+    const sendButton = screen.getByRole("button", { name: /send/i });
+    expect(sendButton).toBeDisabled();
   });
 
-  it("should enable review button when amount is within balance", async () => {
+  it("should enable send button when amount is within balance", async () => {
     render(<SendMoneyForm {...defaultProps} balance="100.00" />);
 
     const recipientInput = screen.getByLabelText(/recipient/i);
@@ -140,8 +134,8 @@ describe("SendMoneyForm", () => {
     const amountInput = screen.getByLabelText(/amount/i);
     fireEvent.change(amountInput, { target: { value: "50.00" } });
 
-    const reviewButton = screen.getByRole("button", { name: /review/i });
-    expect(reviewButton).not.toBeDisabled();
+    const sendButton = screen.getByRole("button", { name: /send/i });
+    expect(sendButton).not.toBeDisabled();
   });
 
   it("should not show insufficient balance when amount equals balance", async () => {
@@ -205,8 +199,8 @@ describe("SendMoneyForm", () => {
     const amountInput = screen.getByLabelText(/amount/i);
     fireEvent.change(amountInput, { target: { value: "10.00" } });
 
-    const reviewButton = screen.getByRole("button", { name: /review/i });
-    fireEvent.click(reviewButton);
+    const sendButton = screen.getByRole("button", { name: /send/i });
+    fireEvent.click(sendButton);
 
     await waitFor(() => {
       expect(screen.getByText(/confirm payment/i)).toBeInTheDocument();
@@ -265,12 +259,12 @@ describe("SendMoneyForm", () => {
       expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument();
     });
 
-    const reviewButton = screen.getByRole("button", { name: /review/i });
-    expect(reviewButton).toBeDisabled();
+    const sendButton = screen.getByRole("button", { name: /send/i });
+    expect(sendButton).toBeDisabled();
   });
 
-  it("should show network fee text", () => {
+  it("should show zero fees text", () => {
     render(<SendMoneyForm {...defaultProps} />);
-    expect(screen.getByText(/0\.5% network fee/i)).toBeInTheDocument();
+    expect(screen.getByText(/zero fees/i)).toBeInTheDocument();
   });
 });

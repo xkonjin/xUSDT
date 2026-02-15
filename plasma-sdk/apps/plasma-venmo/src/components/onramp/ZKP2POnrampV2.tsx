@@ -693,7 +693,7 @@ export function ZKP2POnrampV2({
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold text-lg transition-all hover:opacity-90"
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-plenmo-500 to-plenmo-600 text-white font-semibold text-lg transition-all hover:opacity-90"
                   >
                     Done
                   </button>
