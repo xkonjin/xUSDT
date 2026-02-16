@@ -9,7 +9,7 @@
  */
 
 import { ReactNode } from "react";
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -27,8 +27,6 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Splitzy",
   },
-  viewport:
-    "width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes",
   icons: {
     icon: [
       { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
@@ -38,6 +36,13 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 /**

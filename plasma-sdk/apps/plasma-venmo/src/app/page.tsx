@@ -14,6 +14,8 @@ import { WalletManagerButton } from "@/components/WalletManager";
 import { QRCodeButton } from "@/components/QRCode";
 import { UserProfileButton } from "@/components/UserProfile";
 import { BottomNav, type NavTab } from "@/components/BottomNav";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import {
   Send,
   HandCoins,
@@ -159,6 +161,28 @@ export default function HomePage() {
     ) as HTMLButtonElement;
     if (qrButton) qrButton.click();
   }, []);
+
+  // Keyboard shortcut handlers
+  const handleShortcutSend = useCallback(() => {
+    setActiveFormTab("send");
+    setNavTab("send");
+  }, []);
+
+  const handleShortcutRequest = useCallback(() => {
+    setActiveFormTab("request");
+    setNavTab("send");
+  }, []);
+
+  const handleShortcutAddFunds = useCallback(() => {
+    router.push("/add-funds");
+  }, [router]);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts({
+    onSend: handleShortcutSend,
+    onRequest: handleShortcutRequest,
+    onAddFunds: handleShortcutAddFunds,
+  });
 
   if (!ready) {
     return (
@@ -624,76 +648,110 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-dvh pb-28 bg-[rgb(var(--bg-primary))]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06]">
-        <div className="flex items-center justify-between p-4 md:p-6 max-w-lg md:max-w-2xl mx-auto">
-          <h1 className="text-xl font-heading font-bold tracking-tight text-white">
-            Plenmo
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <QRCodeButton
-              walletAddress={wallet?.address}
-              username={userEmail}
-            />
-            <WalletManagerButton />
-            <UserProfileButton
-              user={user}
-              walletAddress={wallet?.address}
-              onLogout={logout}
-            />
+    <div className="min-h-dvh bg-[rgb(var(--bg-primary))] lg:flex">
+      {/* Desktop Sidebar - lg+ only */}
+      <DesktopSidebar
+        activeTab={navTab}
+        onTabChange={setNavTab}
+        onSend={handleShortcutSend}
+        onRequest={handleShortcutRequest}
+        onAddFunds={handleShortcutAddFunds}
+        balance={formatted || undefined}
+        balanceLoading={balanceLoading}
+        balanceVisible={balanceVisible}
+        onToggleBalance={() => setBalanceVisible(!balanceVisible)}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+        userEmail={userEmail}
+        walletAddress={wallet?.address}
+        onLogout={logout}
+      />
+
+      {/* Main content area */}
+      <main className="flex-1 min-h-dvh pb-24 md:pb-36 lg:pb-8">
+        {/* Header - hidden on lg+ (sidebar replaces it) */}
+        <header className="sticky top-0 z-40 bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06] lg:hidden">
+          <div className="flex items-center justify-between p-4 md:p-6 max-w-lg md:max-w-2xl mx-auto">
+            <h1 className="text-xl font-heading font-bold tracking-tight text-white">
+              Plenmo
+            </h1>
+            <div className="flex items-center gap-1.5">
+              <QRCodeButton
+                walletAddress={wallet?.address}
+                username={userEmail}
+              />
+              <WalletManagerButton />
+              <UserProfileButton
+                user={user}
+                walletAddress={wallet?.address}
+                onLogout={logout}
+              />
+            </div>
           </div>
+        </header>
+
+        {/* Desktop header - lg+ only, simpler */}
+        <header className="hidden lg:block sticky top-0 z-40 bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06]">
+          <div className="flex items-center justify-between p-4 max-w-2xl mx-auto">
+            <h2 className="text-lg font-heading font-semibold text-white/70 capitalize">
+              {navTab === "send"
+                ? activeFormTab === "request"
+                  ? "Request"
+                  : "Send"
+                : navTab}
+            </h2>
+            <div className="flex items-center gap-1.5">
+              <QRCodeButton
+                walletAddress={wallet?.address}
+                username={userEmail}
+              />
+              <WalletManagerButton />
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-lg md:max-w-2xl lg:max-w-xl mx-auto px-4 pt-4">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={navTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              {renderTabContent()}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      </header>
 
-      <div className="max-w-lg md:max-w-2xl mx-auto px-4 pt-4">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={navTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          >
-            {renderTabContent()}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+        {/* Bottom Nav - Mobile/tablet only */}
+        <BottomNav activeTab={navTab} onTabChange={setNavTab} />
 
-      {/* Bottom Nav - Mobile only */}
-      <BottomNav activeTab={navTab} onTabChange={setNavTab} />
-
-      {/* Desktop action bar */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 hidden md:block"
-        aria-label="Quick actions"
-      >
-        <div className="bg-gradient-to-t from-[rgb(var(--bg-primary))] via-[rgb(var(--bg-primary))]/95 to-transparent pt-6 pb-4 px-4">
-          <div className="flex gap-2 max-w-lg md:max-w-2xl mx-auto">
+        {/* Quick actions bar - tablet only (hidden on mobile where BottomNav has enough, and on lg+ where sidebar has actions) */}
+        <div
+          className="fixed bottom-[72px] left-0 right-0 z-40 hidden md:block lg:hidden"
+          role="toolbar"
+          aria-label="Quick actions"
+        >
+          <div className="flex gap-2 max-w-2xl mx-auto px-4 pb-2">
             <button
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[44px]"
               aria-label="Request money"
-              onClick={() => {
-                setActiveFormTab("request");
-                setNavTab("send");
-              }}
+              onClick={handleShortcutRequest}
             >
               <ArrowDownLeft className="w-4 h-4" aria-hidden="true" />
               <span>Request</span>
             </button>
             <button
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-plenmo-500 text-black text-sm font-semibold hover:bg-plenmo-400 transition-colors min-h-[48px]"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-plenmo-500 text-black text-sm font-semibold hover:bg-plenmo-400 transition-colors min-h-[44px]"
               aria-label="Send money"
-              onClick={() => {
-                setActiveFormTab("send");
-                setNavTab("send");
-              }}
+              onClick={handleShortcutSend}
             >
               <Send className="w-4 h-4" aria-hidden="true" />
               <span>Send</span>
             </button>
             <button
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[44px]"
               aria-label="Scan QR code"
               onClick={handleQRClick}
             >
@@ -702,7 +760,7 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-      </nav>
-    </main>
+      </main>
+    </div>
   );
 }

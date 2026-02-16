@@ -79,8 +79,8 @@ export function PrivatePaymentProgress({
           if (pollRef.current) clearInterval(pollRef.current);
           if (timerRef.current) clearInterval(timerRef.current);
         }
-      } catch {
-        // Network error, keep polling
+      } catch (err) {
+        console.warn("[PrivatePayment] Status poll failed:", err);
       }
     }
 
