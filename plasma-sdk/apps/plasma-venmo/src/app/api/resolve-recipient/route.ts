@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     if (!identifier) {
       return NextResponse.json(
         { error: "Missing identifier" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       }
       return NextResponse.json(
         { error: "Invalid identifier. Use email, phone, or wallet address." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       }
       return NextResponse.json(
         { error: "Service not configured" },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -117,13 +117,13 @@ export async function POST(request: Request) {
 
     const embeddedWallet = user.linkedAccounts.find(
       (account) =>
-        account.type === "wallet" && account.walletClientType === "privy"
+        account.type === "wallet" && account.walletClientType === "privy",
     );
 
     if (!embeddedWallet || !("address" in embeddedWallet)) {
       return NextResponse.json(
         { error: "Recipient has no wallet. They need to complete signup." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
           error:
             "Authentication service misconfigured. Please contact support.",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         { error: "Could not reach identity service. Please try again." },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
         error:
           "Failed to resolve recipient. Please try again or use a wallet address.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
