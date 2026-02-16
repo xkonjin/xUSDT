@@ -9,6 +9,7 @@ import {
   Wallet,
   CheckCircle,
   Zap,
+  Shield,
 } from "lucide-react";
 import type { PlasmaEmbeddedWallet } from "@plasma-pay/privy-auth";
 import {
@@ -29,6 +30,7 @@ import {
 } from "@/lib/constants";
 import { playSound, hapticFeedback } from "@/lib/sounds";
 import { RecentContacts } from "./RecentContacts";
+import { PrivatePaymentProgress } from "./PrivatePaymentProgress";
 import { ModalPortal } from "./ui/ModalPortal";
 import { useToast } from "./ui/Toast";
 import type { Contact } from "./ContactList";
@@ -299,6 +301,9 @@ export function SendMoneyForm({
   const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [lastRecipient, setLastRecipient] = useState<string | null>(null);
+  const [privateMode, setPrivateMode] = useState(false);
+  const [showPrivateProgress, setShowPrivateProgress] = useState(false);
+  const [houdiniId, setHoudiniId] = useState<string | null>(null);
 
   const {
     onSuccess: assistantSuccess,
@@ -416,7 +421,70 @@ export function SendMoneyForm({
     assistantLoading();
 
     try {
-      // Update to submitting state
+      // Private mode: route through Houdini Swap
+      if (privateMode) {
+        setPaymentStatus("submitting");
+
+        // First resolve recipient to a wallet address
+        const resolveRes = await fetch("/api/resolve-recipient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ identifier: recipient }),
+        });
+        const resolveData = await resolveRes.json();
+        const recipientAddress = resolveData.address;
+
+        if (!recipientAddress) {
+          throw new Error(
+            "Could not resolve recipient address for private send"
+          );
+        }
+
+        // Create Houdini exchange: USDT → USDT (same token, private routing)
+        const exchangeRes = await fetch("/api/houdini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount,
+            from: "USDT",
+            to: "USDT",
+            addressTo: recipientAddress,
+            anonymous: true,
+          }),
+        });
+        const exchange = await exchangeRes.json();
+
+        if (exchange.error) {
+          throw new Error(exchange.error);
+        }
+
+        // Send USDT0 to the Houdini deposit address
+        const result = await sendMoney(wallet, {
+          recipientIdentifier: exchange.senderAddress,
+          amount: exchange.inAmount || amount,
+        });
+
+        if (result.success) {
+          // Show the Houdini progress tracker
+          setHoudiniId(exchange.houdiniId);
+          setShowConfirm(false);
+          setShowPrivateProgress(true);
+          setPaymentStatus("idle");
+          assistantSuccess(
+            "Private payment initiated! Routing through Houdini..."
+          );
+        } else {
+          throw new Error(
+            result.error || "Failed to send to Houdini deposit address"
+          );
+        }
+
+        setLoading(false);
+        isSubmittingRef.current = false;
+        return;
+      }
+
+      // Standard mode: direct gasless transfer
       setPaymentStatus("submitting");
 
       const result = await sendMoney(wallet, {
@@ -477,6 +545,7 @@ export function SendMoneyForm({
     recipient,
     amount,
     recipientName,
+    privateMode,
     assistantLoading,
     assistantSuccess,
     assistantError,
@@ -674,6 +743,51 @@ export function SendMoneyForm({
           />
         </div>
 
+        {/* Privacy Toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            setPrivateMode(!privateMode);
+            playSound("tap");
+          }}
+          className={`w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+            privateMode
+              ? "bg-plenmo-500/10 border-plenmo-500/30"
+              : "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]"
+          }`}
+        >
+          <Shield
+            className={`w-5 h-5 ${
+              privateMode ? "text-plenmo-500" : "text-white/30"
+            }`}
+          />
+          <div className="flex-1 text-left">
+            <span
+              className={`text-sm font-medium ${
+                privateMode ? "text-white" : "text-white/60"
+              }`}
+            >
+              Private Send
+            </span>
+            <p className="text-white/30 text-xs mt-0.5">
+              {privateMode
+                ? "On — sender-recipient link hidden on-chain"
+                : "Off — standard direct transfer"}
+            </p>
+          </div>
+          <div
+            className={`w-10 h-6 rounded-full transition-colors relative ${
+              privateMode ? "bg-plenmo-500" : "bg-white/10"
+            }`}
+          >
+            <div
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                privateMode ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </div>
+        </button>
+
         {(insufficientBalance || amountTooSmall || amountTooLarge) &&
           !error && (
             <div
@@ -743,7 +857,9 @@ export function SendMoneyForm({
 
         <div className="text-center">
           <p className="text-white/40 text-xs font-body">
-            Zero fees · Instant delivery
+            {privateMode
+              ? "Private via Houdini Swap · 15-45 min"
+              : "Zero fees · Instant delivery"}
           </p>
         </div>
       </form>
@@ -774,6 +890,26 @@ export function SendMoneyForm({
         onClose={handleSuccessClose}
         onSendAgain={handleSendAgain}
       />
+
+      {/* Private Payment Progress */}
+      {showPrivateProgress && houdiniId && (
+        <PrivatePaymentProgress
+          houdiniId={houdiniId}
+          amount={amount}
+          recipient={recipientName || recipient}
+          onComplete={(txHash) => {
+            setShowPrivateProgress(false);
+            setSuccessTxHash(txHash);
+            setShowSuccess(true);
+            playSound("success");
+            hapticFeedback("medium");
+          }}
+          onClose={() => {
+            setShowPrivateProgress(false);
+            setHoudiniId(null);
+          }}
+        />
+      )}
 
       {/* Aria live region for status updates */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
