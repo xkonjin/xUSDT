@@ -68,6 +68,13 @@ const FIAT_METHODS = [
     available: true,
   },
   {
+    id: "cashapp",
+    name: "Cash App",
+    icon: "💚",
+    description: "Pay with Cash App",
+    available: true,
+  },
+  {
     id: "zelle",
     name: "Zelle",
     icon: "🟣",
@@ -75,10 +82,24 @@ const FIAT_METHODS = [
     available: true,
   },
   {
-    id: "cashapp",
-    name: "Cash App",
-    icon: "💚",
-    description: "Pay with Cash App",
+    id: "revolut",
+    name: "Revolut",
+    icon: "🔵",
+    description: "Pay with Revolut",
+    available: true,
+  },
+  {
+    id: "paypal",
+    name: "PayPal",
+    icon: "🅿️",
+    description: "Pay with PayPal",
+    available: true,
+  },
+  {
+    id: "wise",
+    name: "Wise",
+    icon: "🟢",
+    description: "Pay with Wise",
     available: true,
   },
   {
@@ -308,14 +329,16 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
       <main className="min-h-dvh flex items-center justify-center bg-[rgb(var(--bg-primary))] p-4">
         <div className="max-w-sm w-full">
           <div className="clay-card p-8 text-center">
-            <CheckCircle className="w-16 h-16 text-plenmo-500 mx-auto mb-4" />
+            <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-plenmo-500 flex items-center justify-center animate-success-scale">
+              <CheckCircle className="w-10 h-10 text-black" />
+            </div>
             <h1 className="text-2xl font-heading font-bold text-white mb-2">
               Payment Complete
             </h1>
             <p className="text-white/40 text-sm mb-6">
               {paymentLink.amount !== null
-                ? `$${paymentLink.amount} sent successfully`
-                : "Payment sent successfully"}
+                ? `$${paymentLink.amount} sent to ${recipientName}`
+                : `Payment sent to ${recipientName}`}
             </p>
 
             {(success || paymentLink.txHash) && (
@@ -382,9 +405,14 @@ export default function PayPage({ params }: { params: { linkId: string } }) {
       <div className="max-w-sm mx-auto pt-6 pb-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-white/30 text-xs font-body uppercase tracking-widest mb-6">
+          <p className="text-white/30 text-xs font-body uppercase tracking-widest mb-4">
             Plenmo
           </p>
+
+          {/* Recipient avatar */}
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-plenmo-500 to-plenmo-500/60 flex items-center justify-center mx-auto mb-3 text-black font-heading font-bold text-xl">
+            {recipientName?.charAt(0)?.toUpperCase() || "?"}
+          </div>
 
           {/* Recipient */}
           <p className="text-white/50 text-sm font-body mb-1">

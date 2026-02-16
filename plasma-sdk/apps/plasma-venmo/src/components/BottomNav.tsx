@@ -23,7 +23,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
       aria-label="Main navigation"
     >
       <div
-        className="flex items-center justify-around py-2 px-3 bg-[rgb(var(--bg-elevated))] border-t border-white/[0.06]"
+        className="flex items-center justify-around py-2 px-3 bg-[rgb(var(--bg-elevated))]/95 backdrop-blur-lg border-t border-white/[0.06]"
         style={{
           paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
         }}
@@ -42,15 +42,20 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               }}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
-              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 min-h-[44px] transition-colors duration-200 ${
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-h-[48px] transition-colors duration-200 ${
                 isActive ? "text-plenmo-500" : "text-white/30"
               }`}
             >
               <Icon
-                className="w-5 h-5 transition-all duration-200"
+                className={`w-5 h-5 transition-all duration-200 ${
+                  isActive ? "scale-110" : ""
+                }`}
                 fill={isActive ? "currentColor" : "none"}
               />
               <span className="text-[10px] font-medium mt-0.5">{label}</span>
+              {isActive && (
+                <div className="w-1 h-1 rounded-full bg-plenmo-500 mt-0.5" />
+              )}
             </button>
           );
         })}

@@ -2,13 +2,27 @@
 
 /**
  * PaymentLinks Component
- * 
+ *
  * Displays a list of payment links created by the user.
  * Includes ability to create new links and copy URLs.
  */
 
 import { useState, useEffect } from "react";
-import { Link2, Copy, Check, Plus, ExternalLink, Trash2, Loader2, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Link2,
+  Copy,
+  Check,
+  Plus,
+  ExternalLink,
+  Trash2,
+  Loader2,
+  DollarSign,
+  AlertCircle,
+  RefreshCw,
+  MessageCircle,
+  Send as SendIcon,
+  Share2,
+} from "lucide-react";
 import type { Address } from "viem";
 import { PaymentLinkSkeleton } from "./ui/Skeleton";
 import { EmptyState } from "./ui/EmptyState";
@@ -44,7 +58,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
-  
+
   // Form state
   const [newAmount, setNewAmount] = useState("");
   const [newMemo, setNewMemo] = useState("");
@@ -68,7 +82,9 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
       const data = await response.json();
       setLinks(data.paymentLinks || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load payment links");
+      setError(
+        err instanceof Error ? err.message : "Failed to load payment links"
+      );
       setLinks([]);
     } finally {
       setLoading(false);
@@ -130,7 +146,11 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
       setNewExpires("");
       onRefresh?.();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to create link. Please try again.");
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create link. Please try again."
+      );
     } finally {
       setCreating(false);
     }
@@ -153,11 +173,53 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
         throw new Error("Failed to cancel payment link");
       }
 
-      setLinks(links.map(l => 
-        l.id === linkId ? { ...l, status: "cancelled" } : l
-      ));
+      setLinks(
+        links.map((l) => (l.id === linkId ? { ...l, status: "cancelled" } : l))
+      );
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to cancel link. Please try again.");
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to cancel link. Please try again."
+      );
+    }
+  }
+
+  // Share payment link via different channels
+  function shareLink(
+    link: PaymentLink,
+    channel: "whatsapp" | "sms" | "telegram" | "native"
+  ) {
+    const amountText = link.amount !== null ? `$${link.amount}` : "any amount";
+    const text = `Pay ${amountText} via Plenmo`;
+
+    switch (channel) {
+      case "whatsapp": {
+        const url = `https://wa.me/?text=${encodeURIComponent(
+          `${text}: ${link.url}`
+        )}`;
+        window.open(url, "_blank");
+        break;
+      }
+      case "sms": {
+        window.location.href = `sms:?body=${encodeURIComponent(
+          `${text}: ${link.url}`
+        )}`;
+        break;
+      }
+      case "telegram": {
+        const url = `https://t.me/share/url?url=${encodeURIComponent(
+          link.url
+        )}&text=${encodeURIComponent(text)}`;
+        window.open(url, "_blank");
+        break;
+      }
+      case "native": {
+        if (navigator.share) {
+          navigator.share({ title: text, url: link.url }).catch(() => {});
+        }
+        break;
+      }
     }
   }
 
@@ -229,7 +291,9 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
               Amount (optional - leave empty for any amount)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
+                $
+              </span>
               <input
                 type="number"
                 value={newAmount}
@@ -241,7 +305,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-white/50 text-xs mb-1">
               Memo (optional)
@@ -319,8 +383,11 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
             <div
               key={link.id}
               className={`p-4 clay-card transition-all duration-200 ${
-                link.status === "paid" ? "border border-green-500/20" :
-                link.status === "cancelled" || link.status === "expired" ? "opacity-50" : ""
+                link.status === "paid"
+                  ? "border border-green-500/20"
+                  : link.status === "cancelled" || link.status === "expired"
+                  ? "opacity-50"
+                  : ""
               }`}
             >
               <div className="flex items-center justify-between">
@@ -329,26 +396,33 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                     <span className="font-medium text-white">
                       {link.amount !== null ? `$${link.amount}` : "Any amount"}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      link.status === "active" ? "bg-plenmo-500/20 text-plenmo-500" :
-                      link.status === "paid" ? "bg-green-500/20 text-green-400" :
-                      "bg-white/10 text-white/40"
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        link.status === "active"
+                          ? "bg-plenmo-500/20 text-plenmo-500"
+                          : link.status === "paid"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-white/10 text-white/40"
+                      }`}
+                    >
                       {link.status}
                     </span>
                   </div>
-                  
+
                   {link.memo && (
-                    <p className="text-white/40 text-sm truncate mt-1">{link.memo}</p>
+                    <p className="text-white/40 text-sm truncate mt-1">
+                      {link.memo}
+                    </p>
                   )}
-                  
+
                   <div className="text-white/30 text-xs mt-1">
                     Created {formatRelativeTime(link.createdAt)}
-                    {link.paidAt && ` • Paid ${formatRelativeTime(link.paidAt)}`}
+                    {link.paidAt &&
+                      ` • Paid ${formatRelativeTime(link.paidAt)}`}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 ml-4">
+                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                   {link.status === "active" && (
                     <>
                       <button
@@ -363,6 +437,30 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                         )}
                       </button>
                       <button
+                        onClick={() => shareLink(link, "whatsapp")}
+                        className="p-2 rounded-xl hover:bg-green-500/10 transition-colors"
+                        title="Share via WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4 text-white/40 hover:text-green-400" />
+                      </button>
+                      <button
+                        onClick={() => shareLink(link, "telegram")}
+                        className="p-2 rounded-xl hover:bg-blue-500/10 transition-colors"
+                        title="Share via Telegram"
+                      >
+                        <SendIcon className="w-4 h-4 text-white/40 hover:text-blue-400" />
+                      </button>
+                      {typeof navigator !== "undefined" &&
+                        "share" in navigator && (
+                          <button
+                            onClick={() => shareLink(link, "native")}
+                            className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+                            title="Share"
+                          >
+                            <Share2 className="w-4 h-4 text-white/40" />
+                          </button>
+                        )}
+                      <button
                         onClick={() => cancelLink(link.id)}
                         className="p-2 rounded-xl hover:bg-red-500/10 transition-colors"
                         title="Cancel link"
@@ -371,7 +469,7 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
                       </button>
                     </>
                   )}
-                  
+
                   {link.txHash && (
                     <a
                       href={`https://scan.plasma.to/tx/${link.txHash}`}
@@ -392,4 +490,3 @@ export function PaymentLinks({ address, onRefresh }: PaymentLinksProps) {
     </div>
   );
 }
-
