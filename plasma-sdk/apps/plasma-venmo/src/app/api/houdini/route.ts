@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
     const to = searchParams.get("to") || "USDT";
     const anonymous = searchParams.get("anonymous") || "true";
 
-    if (!amount) {
-      return NextResponse.json({ error: "Missing amount" }, { status: 400 });
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
     const params = new URLSearchParams({ amount, from, to, anonymous });
@@ -61,9 +61,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const res = await fetch(`${HOUDINI_BASE}/status?id=${id}`, {
-      headers: getHeaders(req),
-    });
+    const res = await fetch(
+      `${HOUDINI_BASE}/status?id=${encodeURIComponent(id)}`,
+      {
+        headers: getHeaders(req),
+      }
+    );
 
     if (!res.ok) {
       const text = await res.text();
@@ -94,11 +97,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { amount, from, to, addressTo, anonymous = true } = body;
 
-  if (!amount || !addressTo) {
-    return NextResponse.json(
-      { error: "Missing amount or addressTo" },
-      { status: 400 }
-    );
+  if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+  if (!addressTo || typeof addressTo !== "string" || addressTo.length < 10) {
+    return NextResponse.json({ error: "Invalid addressTo" }, { status: 400 });
   }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "0.0.0.0";

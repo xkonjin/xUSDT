@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 interface ShortcutHandlers {
   onSend?: () => void; // Cmd+S or Ctrl+S
@@ -9,39 +9,40 @@ interface ShortcutHandlers {
 }
 
 export function useKeyboardShortcuts(handlers: ShortcutHandlers) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      // Only handle when Cmd (Mac) or Ctrl (Win) is held
-      const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod) return;
+  const handlersRef = useRef(handlers);
+  useEffect(() => {
+    handlersRef.current = handlers;
+  }, [handlers]);
 
-      // Don't trigger when typing in inputs/textareas
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    const isMod = e.metaKey || e.ctrlKey;
+    if (!isMod) return;
 
-      switch (e.key.toLowerCase()) {
-        case "s":
-          e.preventDefault();
-          handlers.onSend?.();
-          break;
-        case "r":
-          e.preventDefault();
-          handlers.onRequest?.();
-          break;
-        case "f":
-          e.preventDefault();
-          handlers.onAddFunds?.();
-          break;
-      }
-    },
-    [handlers]
-  );
+    // Don't trigger when typing in inputs/textareas
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+
+    switch (e.key.toLowerCase()) {
+      case "s":
+        e.preventDefault();
+        handlersRef.current.onSend?.();
+        break;
+      case "r":
+        e.preventDefault();
+        handlersRef.current.onRequest?.();
+        break;
+      case "f":
+        e.preventDefault();
+        handlersRef.current.onAddFunds?.();
+        break;
+    }
+  }, []);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
