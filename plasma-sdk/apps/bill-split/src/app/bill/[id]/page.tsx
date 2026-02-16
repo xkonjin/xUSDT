@@ -2,13 +2,22 @@
 
 /**
  * Bill Detail Page
- * 
+ *
  * Shows bill details, participant shares, and payment links.
  */
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Clock, Copy, Check, ExternalLink, Loader2, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  Copy,
+  Check,
+  ExternalLink,
+  Loader2,
+  Share2,
+} from "lucide-react";
 
 interface BillItem {
   id: string;
@@ -47,16 +56,12 @@ interface BillData {
   createdAt: string;
 }
 
-export default function BillPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function BillPage({ params }: { params: { id: string } }) {
   // Extract bill ID from route params (Next.js 14 synchronous pattern)
   const billId = params.id;
 
   // Wallet is available via usePlasmaWallet() if needed for signing
-  
+
   // State
   const [bill, setBill] = useState<BillData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,14 +77,14 @@ export default function BillPage({
         const response = await fetch(`/api/bills/${billId}`);
         if (!response.ok) {
           const data = await response.json();
-          setError(data.error || 'Bill not found');
+          setError(data.error || "Bill not found");
           return;
         }
         const data = await response.json();
         setBill(data.bill);
       } catch (error) {
         console.error("Failed to load bill:", error);
-        setError('Failed to load bill');
+        setError("Failed to load bill");
       } finally {
         setLoading(false);
       }
@@ -101,10 +106,10 @@ export default function BillPage({
   async function shareBill() {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const url = `${baseUrl}/bill/${billId}`;
-    
+
     if (navigator.share) {
       await navigator.share({
-        title: bill?.title || 'Bill Split',
+        title: bill?.title || "Bill Split",
         text: `Split this bill: ${bill?.total?.toFixed(2)} USDT0`,
         url,
       });
@@ -116,7 +121,7 @@ export default function BillPage({
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[rgb(0,212,255)] animate-spin" />
+        <Loader2 className="w-10 h-10 text-splitzy-400 animate-spin" />
       </main>
     );
   }
@@ -125,8 +130,8 @@ export default function BillPage({
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'Bill not found'}</p>
-          <Link href="/" className="text-[rgb(0,212,255)] hover:underline">
+          <p className="text-red-400 mb-4">{error || "Bill not found"}</p>
+          <Link href="/" className="text-splitzy-400 hover:underline">
             Go back
           </Link>
         </div>
@@ -134,7 +139,7 @@ export default function BillPage({
     );
   }
 
-  const paidCount = bill.participants.filter(p => p.paid).length;
+  const paidCount = bill.participants.filter((p) => p.paid).length;
   const allPaid = paidCount === bill.participants.length;
 
   return (
@@ -142,7 +147,10 @@ export default function BillPage({
       {/* Header */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+          <Link
+            href="/"
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+          >
             <ArrowLeft className="w-5 h-5 text-white/60" />
           </Link>
           <div>
@@ -162,14 +170,20 @@ export default function BillPage({
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Total summary */}
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-[rgb(0,212,255)]/20 to-purple-500/20 border border-white/10">
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-splitzy-500/20 to-splitzy-600/20 border border-white/10">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/50 text-sm mb-1">Total Bill</p>
-              <p className="text-4xl font-bold gradient-text">${bill.total.toFixed(2)}</p>
+              <p className="text-4xl font-bold gradient-text">
+                ${bill.total.toFixed(2)}
+              </p>
             </div>
             <div className="text-right">
-              <div className={`flex items-center gap-2 ${allPaid ? 'text-green-400' : 'text-yellow-400'}`}>
+              <div
+                className={`flex items-center gap-2 ${
+                  allPaid ? "text-green-400" : "text-yellow-400"
+                }`}
+              >
                 {allPaid ? (
                   <>
                     <CheckCircle className="w-5 h-5" />
@@ -178,7 +192,9 @@ export default function BillPage({
                 ) : (
                   <>
                     <Clock className="w-5 h-5" />
-                    <span className="font-medium">{paidCount}/{bill.participants.length} paid</span>
+                    <span className="font-medium">
+                      {paidCount}/{bill.participants.length} paid
+                    </span>
                   </>
                 )}
               </div>
@@ -207,45 +223,47 @@ export default function BillPage({
         </div>
 
         {/* Items */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            🍽️ Items
-          </h2>
-          <div className="space-y-2">
-            {bill.items.map((item) => {
-              // Get assigned participants
-              const assignedParticipants = bill.participants.filter(p =>
-                item.assignments.some(a => a.participantId === p.id)
-              );
+        {bill.items && bill.items.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              🍽️ Items
+            </h2>
+            <div className="space-y-2">
+              {bill.items.map((item) => {
+                // Get assigned participants
+                const assignedParticipants = bill.participants.filter((p) =>
+                  item.assignments.some((a) => a.participantId === p.id)
+                );
 
-              return (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-xl bg-white/5 flex items-center justify-between"
-                >
-                  <div className="flex-1">
-                    <span className="text-white">{item.name}</span>
-                    {assignedParticipants.length > 0 && (
-                      <div className="flex gap-1 mt-1">
-                        {assignedParticipants.map(p => (
-                          <span
-                            key={p.id}
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: p.color }}
-                            title={p.name}
-                          />
-                        ))}
-                      </div>
-                    )}
+                return (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-xl bg-white/5 flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <span className="text-white">{item.name}</span>
+                      {assignedParticipants.length > 0 && (
+                        <div className="flex gap-1 mt-1">
+                          {assignedParticipants.map((p) => (
+                            <span
+                              key={p.id}
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: p.color }}
+                              title={p.name}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-white/50">
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </span>
                   </div>
-                  <span className="text-white/50">
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Participants & Payment */}
         <div className="space-y-3">
@@ -258,8 +276,8 @@ export default function BillPage({
                 key={participant.id}
                 className={`p-4 rounded-2xl transition-all ${
                   participant.paid
-                    ? 'bg-green-500/10 border border-green-500/20'
-                    : 'bg-white/5'
+                    ? "bg-green-500/10 border border-green-500/20"
+                    : "bg-white/5"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -269,9 +287,13 @@ export default function BillPage({
                       style={{ backgroundColor: participant.color }}
                     />
                     <div>
-                      <p className="font-medium text-white">{participant.name}</p>
+                      <p className="font-medium text-white">
+                        {participant.name}
+                      </p>
                       {participant.email && (
-                        <p className="text-white/40 text-sm">{participant.email}</p>
+                        <p className="text-white/40 text-sm">
+                          {participant.email}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -311,7 +333,7 @@ export default function BillPage({
                     </button>
                     <Link
                       href={`/bill/${billId}/pay/${participant.id}`}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-[rgb(0,212,255)]/20 text-[rgb(0,212,255)] text-sm hover:bg-[rgb(0,212,255)]/30 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-splitzy-500/20 text-splitzy-400 text-sm hover:bg-splitzy-500/30 transition-colors"
                     >
                       Pay Now
                     </Link>
@@ -324,7 +346,7 @@ export default function BillPage({
                     href={`https://scan.plasma.to/tx/${participant.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 flex items-center gap-1 text-[rgb(0,212,255)] text-xs hover:underline"
+                    className="mt-2 flex items-center gap-1 text-splitzy-400 text-xs hover:underline"
                   >
                     View transaction
                     <ExternalLink className="w-3 h-3" />
@@ -338,4 +360,3 @@ export default function BillPage({
     </main>
   );
 }
-

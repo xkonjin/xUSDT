@@ -91,6 +91,10 @@ export default function NewBillPage() {
   const [creating, setCreating] = useState(false);
   const [billId, setBillId] = useState<string | null>(null);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [shareForParticipant, setShareForParticipant] = useState<string | null>(
+    null
+  );
 
   // Calculated values
   const total = parseFloat(totalAmount) || 0;
@@ -158,6 +162,13 @@ export default function NewBillPage() {
       case 2:
         return participants.length >= 2;
       case 3:
+        if (splitMethod === "custom") {
+          const assignedTotal = Object.values(shares).reduce(
+            (a, b) => a + b,
+            0
+          );
+          return Math.abs(assignedTotal - total) < 0.01;
+        }
         return true;
       case 4:
         return true;
@@ -171,6 +182,7 @@ export default function NewBillPage() {
     if (!file) return;
 
     setScanning(true);
+    setScanError(null);
     setReceiptPreview(URL.createObjectURL(file));
 
     try {
@@ -214,7 +226,10 @@ export default function NewBillPage() {
         }
       }
     } catch {
-      // Silent fail
+      setScanError(
+        "Could not read receipt. Try a clearer photo or enter details manually."
+      );
+      setReceiptPreview(null);
     } finally {
       setScanning(false);
     }
@@ -223,6 +238,16 @@ export default function NewBillPage() {
   // Add participant
   function addParticipant() {
     if (!newParticipantName.trim()) return;
+
+    if (
+      participants.some(
+        (p) =>
+          p.name.toLowerCase().trim() ===
+          newParticipantName.trim().toLowerCase()
+      )
+    ) {
+      return;
+    }
 
     const participant: Participant = {
       id: uuid(),
@@ -444,26 +469,33 @@ export default function NewBillPage() {
 
           {/* Step Indicator */}
           {currentStep < 5 && (
-            <div className="step-indicator mt-4">
-              {STEPS.slice(0, 4).map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div
-                    className={`
-                      step-dot
-                      ${currentStep === step.id ? "step-dot-active" : ""}
-                      ${currentStep > step.id ? "step-dot-completed" : ""}
-                    `}
-                  />
-                  {index < 3 && (
+            <div>
+              <div className="step-indicator mt-4">
+                {STEPS.slice(0, 4).map((step, index) => (
+                  <div key={step.id} className="flex items-center">
                     <div
                       className={`
-                        step-connector
-                        ${currentStep > step.id ? "step-connector-active" : ""}
+                        step-dot
+                        ${currentStep === step.id ? "step-dot-active" : ""}
+                        ${currentStep > step.id ? "step-dot-completed" : ""}
                       `}
                     />
-                  )}
-                </div>
-              ))}
+                    {index < 3 && (
+                      <div
+                        className={`
+                          step-connector
+                          ${
+                            currentStep > step.id ? "step-connector-active" : ""
+                          }
+                        `}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-sm text-white/50 mt-2">
+                {STEPS[currentStep - 1]?.title || ""}
+              </p>
             </div>
           )}
         </div>
@@ -513,6 +545,7 @@ export default function NewBillPage() {
                   onChange={(e) => setTotalAmount(e.target.value)}
                   placeholder="0.00"
                   step="0.01"
+                  min="0"
                   className="clay-input clay-input-large pl-10"
                 />
               </div>
@@ -530,6 +563,12 @@ export default function NewBillPage() {
                   e.target.files?.[0] && handleScan(e.target.files[0])
                 }
               />
+
+              {scanError && (
+                <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-sm text-red-400">{scanError}</p>
+                </div>
+              )}
 
               {scanning ? (
                 <div className="text-center py-6">
@@ -788,6 +827,7 @@ export default function NewBillPage() {
                         }
                         placeholder="0.00"
                         step="0.01"
+                        min="0"
                         className="clay-input text-right pr-3 pl-7 py-2"
                       />
                     </div>
@@ -871,6 +911,7 @@ export default function NewBillPage() {
                       onChange={(e) => setNewItemPrice(e.target.value)}
                       placeholder="0.00"
                       step="0.01"
+                      min="0"
                       className="clay-input pl-7"
                     />
                   </div>
@@ -989,6 +1030,7 @@ export default function NewBillPage() {
                   </div>
                   <button
                     onClick={() => {
+                      setShareForParticipant(p.id);
                       setShowShareSheet(true);
                     }}
                     className="w-full clay-button-secondary clay-button-small"
@@ -1062,9 +1104,13 @@ export default function NewBillPage() {
       {/* Share Sheet */}
       <ShareSheet
         isOpen={showShareSheet}
-        onClose={() => setShowShareSheet(false)}
+        onClose={() => {
+          setShowShareSheet(false);
+          setShareForParticipant(null);
+        }}
         billTitle={title}
         shareLinks={generateShareLinks()}
+        selectedParticipantId={shareForParticipant || undefined}
       />
     </main>
   );

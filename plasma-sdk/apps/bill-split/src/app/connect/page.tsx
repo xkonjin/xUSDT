@@ -2,10 +2,10 @@
 
 /**
  * Telegram Wallet Connection Page
- * 
+ *
  * This page is opened as a Telegram Mini App when users tap
  * "Connect Wallet" in the Splitzy bot.
- * 
+ *
  * Flow:
  * 1. User taps connect button in Telegram
  * 2. Mini App opens with their Telegram user ID in URL
@@ -24,7 +24,6 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-
 
 type TelegramWindow = Window & {
   Telegram?: {
@@ -54,7 +53,13 @@ export default function ConnectPage() {
   // Auto-save when wallet is connected
   useEffect(() => {
     async function saveMapping() {
-      if (!authenticated || !wallet?.address || !telegramUserId || saving || saved) {
+      if (
+        !authenticated ||
+        !wallet?.address ||
+        !telegramUserId ||
+        saving ||
+        saved
+      ) {
         return;
       }
 
@@ -94,13 +99,20 @@ export default function ConnectPage() {
     }
 
     saveMapping();
-  }, [authenticated, wallet?.address, telegramUserId, telegramUsername, saving, saved]);
+  }, [
+    authenticated,
+    wallet?.address,
+    telegramUserId,
+    telegramUsername,
+    saving,
+    saved,
+  ]);
 
   // Loading state
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="w-10 h-10 text-[rgb(0,212,255)] animate-spin" />
+        <Loader2 className="w-10 h-10 text-splitzy-400 animate-spin" />
       </main>
     );
   }
@@ -111,7 +123,9 @@ export default function ConnectPage() {
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="text-center max-w-md">
           <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">Open from Telegram</h1>
+          <h1 className="text-xl font-bold text-white mb-2">
+            Open from Telegram
+          </h1>
           <p className="text-white/50">
             This page should be opened from the Splitzy bot in Telegram.
           </p>
@@ -128,7 +142,9 @@ export default function ConnectPage() {
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
             <CheckCircle className="w-10 h-10 text-green-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Wallet Connected!</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Wallet Connected!
+          </h1>
           <p className="text-white/50 mb-4">
             Your Plasma wallet is now linked to your Telegram account.
           </p>
@@ -148,7 +164,7 @@ export default function ConnectPage() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 text-[rgb(0,212,255)] animate-spin mx-auto mb-4" />
+          <Loader2 className="w-10 h-10 text-splitzy-400 animate-spin mx-auto mb-4" />
           <p className="text-white/50">Saving wallet connection...</p>
         </div>
       </main>
@@ -175,20 +191,20 @@ export default function ConnectPage() {
           {authenticated ? (
             // Already connected - show address
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[rgb(0,212,255)]/20 flex items-center justify-center">
-                <Wallet className="w-8 h-8 text-[rgb(0,212,255)]" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-splitzy-500/20 flex items-center justify-center">
+                <Wallet className="w-8 h-8 text-splitzy-400" />
               </div>
               <p className="text-white font-medium mb-2">Wallet Connected</p>
               <p className="text-white/50 font-mono text-sm mb-4">
                 {wallet?.address?.slice(0, 10)}...{wallet?.address?.slice(-8)}
               </p>
-              
+
               {error && (
                 <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
                   {error}
                 </div>
               )}
-              
+
               <div className="flex gap-3">
                 <button
                   onClick={() => logout()}
@@ -198,7 +214,7 @@ export default function ConnectPage() {
                 </button>
                 <button
                   onClick={() => setSaved(false)} // Retry save
-                  className="flex-1 p-3 rounded-xl bg-[rgb(0,212,255)] hover:bg-[rgb(0,180,220)] text-black font-medium text-sm transition-colors"
+                  className="flex-1 p-3 rounded-xl bg-splitzy-500 hover:bg-splitzy-600 text-black font-medium text-sm transition-colors"
                 >
                   Continue
                 </button>
@@ -215,7 +231,7 @@ export default function ConnectPage() {
               </p>
               <button
                 onClick={login}
-                className="w-full p-4 rounded-2xl bg-gradient-to-r from-[rgb(0,212,255)] to-purple-500 text-white font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-[rgb(0,212,255)]/20 transition-all"
+                className="w-full p-4 rounded-2xl bg-gradient-to-r from-splitzy-500 to-splitzy-600 text-white font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-splitzy-500/20 transition-all"
               >
                 <Wallet className="w-5 h-5" />
                 Connect Wallet
@@ -229,7 +245,9 @@ export default function ConnectPage() {
         <div className="mt-8 space-y-4">
           <div className="flex items-start gap-3 text-white/40 text-sm">
             <span className="text-lg">💰</span>
-            <p>Receive payments from any chain, automatically converted to USDT0</p>
+            <p>
+              Receive payments from any chain, automatically converted to USDT0
+            </p>
           </div>
           <div className="flex items-start gap-3 text-white/40 text-sm">
             <span className="text-lg">⚡</span>
@@ -244,10 +262,9 @@ export default function ConnectPage() {
 
       {/* Gradient background effect */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-30%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,212,255,0.1)_0%,transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-[-20%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(139,92,246,0.08)_0%,transparent_70%)] blur-3xl" />
+        <div className="absolute top-[-30%] left-[30%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(20,184,166,0.1)_0%,transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-[-20%] right-[20%] w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(13,148,136,0.08)_0%,transparent_70%)] blur-3xl" />
       </div>
     </main>
   );
 }
-

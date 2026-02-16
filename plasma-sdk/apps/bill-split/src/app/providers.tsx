@@ -13,7 +13,7 @@ import { initPostHog } from "@/lib/posthog";
 
 const PlasmaProviders = createPlasmaProviders({
   loginMethods: ["email", "sms", "google", "apple"],
-  accentColor: "#00d4ff",
+  accentColor: "#14B8A6",
   ErrorBoundary,
 });
 

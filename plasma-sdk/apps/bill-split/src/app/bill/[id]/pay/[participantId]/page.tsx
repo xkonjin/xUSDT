@@ -326,7 +326,7 @@ export default function BillPayPage({
     ) {
       return "Network error. Please check your connection and try again.";
     }
-    return `Payment failed: ${errorMsg}`;
+    return "Payment failed. Please try again or contact support.";
   }
 
   // Retry payment
@@ -382,7 +382,7 @@ export default function BillPayPage({
   if (loading || !ready) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[rgb(0,212,255)] animate-spin" />
+        <Loader2 className="w-10 h-10 text-splitzy-400 animate-spin" />
       </main>
     );
   }
@@ -394,7 +394,7 @@ export default function BillPayPage({
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <p className="text-red-400 mb-4">{error}</p>
-          <Link href="/" className="text-[rgb(0,212,255)] hover:underline">
+          <Link href="/" className="text-splitzy-400 hover:underline">
             Go home
           </Link>
         </div>
@@ -426,7 +426,7 @@ export default function BillPayPage({
                 }`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[rgb(0,212,255)] hover:underline"
+                className="inline-flex items-center gap-2 text-splitzy-400 hover:underline"
               >
                 View transaction
                 <ExternalLink className="w-4 h-4" />

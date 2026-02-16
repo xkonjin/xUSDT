@@ -270,7 +270,7 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
                 </div>
                 <div className="text-amber-400/80 text-xs bg-amber-500/10 rounded-xl p-3">
                   <strong>Important:</strong> Only send USDT0 on Plasma Chain
-                  (ID: 9745)
+                  (ID: 98866)
                 </div>
               </div>
             )}
@@ -278,7 +278,7 @@ export function WalletManager({ isOpen, onClose }: WalletManagerProps) {
 
           {/* Network Info */}
           <div className="text-center text-white/30 text-xs pt-2">
-            <p>Plasma Chain (ID: 9745) • Zero Gas Fees</p>
+            <p>Plasma Chain (ID: 98866) • Zero Gas Fees</p>
           </div>
         </div>
       </div>
