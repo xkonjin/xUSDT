@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { usePlasmaWallet, useUSDT0Balance } from "@plasma-pay/privy-auth";
 import { SendMoneyForm } from "@/components/SendMoneyForm";
@@ -55,6 +56,7 @@ const fadeUp: import("framer-motion").Variants = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const { user, authenticated, ready, wallet, login, logout } =
     usePlasmaWallet();
   const { formatted, refresh, loading: balanceLoading } = useUSDT0Balance();
@@ -303,7 +305,7 @@ export default function HomePage() {
           </span>
         </motion.button>
         <motion.button
-          onClick={() => {}}
+          onClick={() => router.push("/add-funds")}
           whileTap={{ scale: 0.97 }}
           className="flex flex-col items-center justify-center gap-2 min-h-[48px] p-3 rounded-2xl bg-[rgb(var(--bg-elevated))] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
           aria-label="Add funds"
@@ -625,7 +627,7 @@ export default function HomePage() {
     <main className="min-h-dvh pb-28 bg-[rgb(var(--bg-primary))]">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[rgb(var(--bg-primary))]/95 backdrop-blur-sm border-b border-white/[0.06]">
-        <div className="flex items-center justify-between p-4 md:p-6 max-w-lg mx-auto">
+        <div className="flex items-center justify-between p-4 md:p-6 max-w-lg md:max-w-2xl mx-auto">
           <h1 className="text-xl font-heading font-bold tracking-tight text-white">
             Plenmo
           </h1>
@@ -644,7 +646,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 pt-4">
+      <div className="max-w-lg md:max-w-2xl mx-auto px-4 pt-4">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={navTab}
@@ -663,40 +665,42 @@ export default function HomePage() {
 
       {/* Desktop action bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 hidden md:block safe-area-inset-bottom"
+        className="fixed bottom-0 left-0 right-0 z-50 hidden md:block"
         aria-label="Quick actions"
       >
-        <div className="flex gap-2 p-4 max-w-lg mx-auto">
-          <button
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
-            aria-label="Request money"
-            onClick={() => {
-              setActiveFormTab("request");
-              setNavTab("send");
-            }}
-          >
-            <ArrowDownLeft className="w-4 h-4" aria-hidden="true" />
-            <span>Request</span>
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-plenmo-500 text-black text-sm font-semibold hover:bg-plenmo-400 transition-colors min-h-[48px]"
-            aria-label="Send money"
-            onClick={() => {
-              setActiveFormTab("send");
-              setNavTab("send");
-            }}
-          >
-            <Send className="w-4 h-4" aria-hidden="true" />
-            <span>Send</span>
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
-            aria-label="Scan QR code"
-            onClick={handleQRClick}
-          >
-            <QrCode className="w-4 h-4" aria-hidden="true" />
-            <span>Scan</span>
-          </button>
+        <div className="bg-gradient-to-t from-[rgb(var(--bg-primary))] via-[rgb(var(--bg-primary))]/95 to-transparent pt-6 pb-4 px-4">
+          <div className="flex gap-2 max-w-lg md:max-w-2xl mx-auto">
+            <button
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
+              aria-label="Request money"
+              onClick={() => {
+                setActiveFormTab("request");
+                setNavTab("send");
+              }}
+            >
+              <ArrowDownLeft className="w-4 h-4" aria-hidden="true" />
+              <span>Request</span>
+            </button>
+            <button
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-plenmo-500 text-black text-sm font-semibold hover:bg-plenmo-400 transition-colors min-h-[48px]"
+              aria-label="Send money"
+              onClick={() => {
+                setActiveFormTab("send");
+                setNavTab("send");
+              }}
+            >
+              <Send className="w-4 h-4" aria-hidden="true" />
+              <span>Send</span>
+            </button>
+            <button
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-white/5 border border-white/[0.06] text-white/60 text-sm font-medium hover:bg-white/8 transition-colors min-h-[48px]"
+              aria-label="Scan QR code"
+              onClick={handleQRClick}
+            >
+              <QrCode className="w-4 h-4" aria-hidden="true" />
+              <span>Scan</span>
+            </button>
+          </div>
         </div>
       </nav>
     </main>
