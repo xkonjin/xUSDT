@@ -2,10 +2,10 @@
 
 /**
  * New Bill Page - Multi-Step Wizard
- * 
+ *
  * Claymorphism design with teal brand colors.
  * NO wallet signing required - bills are created without signatures.
- * 
+ *
  * Flow:
  * 1. Bill Details (title, amount, optional receipt photo)
  * 2. Add Participants (people by name with colors)
@@ -33,14 +33,19 @@ import {
   Sparkles,
   Share2,
 } from "lucide-react";
-import { ParticipantChip, ParticipantAvatar, getParticipantColor, PARTICIPANT_COLORS } from "@/components/ParticipantChip";
+import {
+  ParticipantChip,
+  ParticipantAvatar,
+  getParticipantColor,
+  PARTICIPANT_COLORS,
+} from "@/components/ParticipantChip";
 import { ShareSheet } from "@/components/ShareSheet";
 
 // Types
 interface Participant {
   id: string;
   name: string;
-  color: typeof PARTICIPANT_COLORS[number];
+  color: (typeof PARTICIPANT_COLORS)[number];
   share?: number;
   customAmount?: number;
 }
@@ -53,15 +58,15 @@ interface BillItem {
   assignedToParticipantIds: string[];
 }
 
-type SplitMethod = 'even' | 'custom' | 'by-item';
+type SplitMethod = "even" | "custom" | "by-item";
 
 // Step definitions
 const STEPS = [
-  { id: 1, title: 'Bill Details', icon: Receipt },
-  { id: 2, title: 'Add People', icon: Users },
-  { id: 3, title: 'Split Method', icon: DollarSign },
-  { id: 4, title: 'Review', icon: Check },
-  { id: 5, title: 'Share', icon: Share2 },
+  { id: 1, title: "Bill Details", icon: Receipt },
+  { id: 2, title: "Add People", icon: Users },
+  { id: 3, title: "Split Method", icon: DollarSign },
+  { id: 4, title: "Review", icon: Check },
+  { id: 5, title: "Share", icon: Share2 },
 ] as const;
 
 export default function NewBillPage() {
@@ -75,7 +80,7 @@ export default function NewBillPage() {
   const [totalAmount, setTotalAmount] = useState("");
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [splitMethod, setSplitMethod] = useState<SplitMethod>('even');
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>("even");
   const [items, setItems] = useState<BillItem[]>([]);
 
   // UI state
@@ -93,22 +98,27 @@ export default function NewBillPage() {
   // Calculate per-person shares
   const calculateShares = (): Record<string, number> => {
     const shares: Record<string, number> = {};
-    participants.forEach(p => { shares[p.id] = 0; });
+    participants.forEach((p) => {
+      shares[p.id] = 0;
+    });
 
     if (participants.length === 0) return shares;
 
-    if (splitMethod === 'even') {
+    if (splitMethod === "even") {
       const perPerson = total / participants.length;
-      participants.forEach(p => { shares[p.id] = perPerson; });
-    } else if (splitMethod === 'custom') {
-      participants.forEach(p => {
+      participants.forEach((p) => {
+        shares[p.id] = perPerson;
+      });
+    } else if (splitMethod === "custom") {
+      participants.forEach((p) => {
         shares[p.id] = p.customAmount || 0;
       });
-    } else if (splitMethod === 'by-item') {
-      items.forEach(item => {
+    } else if (splitMethod === "by-item") {
+      items.forEach((item) => {
         if (item.assignedToParticipantIds.length > 0) {
-          const perPerson = (item.price * item.quantity) / item.assignedToParticipantIds.length;
-          item.assignedToParticipantIds.forEach(pid => {
+          const perPerson =
+            (item.price * item.quantity) / item.assignedToParticipantIds.length;
+          item.assignedToParticipantIds.forEach((pid) => {
             shares[pid] = (shares[pid] || 0) + perPerson;
           });
         }
@@ -122,29 +132,37 @@ export default function NewBillPage() {
 
   // Generate share links - uses the proper bill/participant pay URL
   const generateShareLinks = () => {
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3007');
-    
-    return participants.map(p => ({
+    const baseUrl =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3007";
+
+    return participants.map((p) => ({
       participantId: p.id,
       participantName: p.name,
       amount: p.share || shares[p.id] || 0,
       // Use the actual payment URL pattern: /bill/[id]/pay/[participantId]
-      url: billId 
+      url: billId
         ? `${baseUrl}/bill/${billId}/pay/${p.id}`
-        : `${baseUrl}/pay/demo?name=${encodeURIComponent(p.name)}&amount=${(shares[p.id] || 0).toFixed(2)}`,
+        : `${baseUrl}/pay/demo?name=${encodeURIComponent(p.name)}&amount=${(
+            shares[p.id] || 0
+          ).toFixed(2)}`,
     }));
   };
 
   // Step validation
   const canProceed = (): boolean => {
     switch (currentStep) {
-      case 1: return title.trim().length > 0 && total > 0;
-      case 2: return participants.length >= 2;
-      case 3: return true;
-      case 4: return true;
-      default: return false;
+      case 1:
+        return title.trim().length > 0 && total > 0;
+      case 2:
+        return participants.length >= 2;
+      case 3:
+        return true;
+      case 4:
+        return true;
+      default:
+        return false;
     }
   };
 
@@ -170,12 +188,12 @@ export default function NewBillPage() {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Set title from merchant
         if (data.merchant && !title) {
           setTitle(data.merchant);
         }
-        
+
         // Set total
         if (data.total) {
           setTotalAmount(data.total.toString());
@@ -183,13 +201,15 @@ export default function NewBillPage() {
 
         // Add scanned items for by-item splitting
         if (data.items && data.items.length > 0) {
-          const newItems: BillItem[] = data.items.map((item: { name: string; price: number; quantity?: number }) => ({
-            id: uuid(),
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity || 1,
-            assignedToParticipantIds: [],
-          }));
+          const newItems: BillItem[] = data.items.map(
+            (item: { name: string; price: number; quantity?: number }) => ({
+              id: uuid(),
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity || 1,
+              assignedToParticipantIds: [],
+            })
+          );
           setItems(newItems);
         }
       }
@@ -216,11 +236,15 @@ export default function NewBillPage() {
 
   // Remove participant
   function removeParticipant(id: string) {
-    setParticipants(participants.filter(p => p.id !== id));
-    setItems(items.map(item => ({
-      ...item,
-      assignedToParticipantIds: item.assignedToParticipantIds.filter(pid => pid !== id),
-    })));
+    setParticipants(participants.filter((p) => p.id !== id));
+    setItems(
+      items.map((item) => ({
+        ...item,
+        assignedToParticipantIds: item.assignedToParticipantIds.filter(
+          (pid) => pid !== id
+        ),
+      }))
+    );
   }
 
   // Add item (for by-item splitting)
@@ -242,42 +266,47 @@ export default function NewBillPage() {
 
   // Toggle item assignment
   function toggleItemAssignment(itemId: string, participantId: string) {
-    setItems(items.map(item => {
-      if (item.id !== itemId) return item;
-      const isAssigned = item.assignedToParticipantIds.includes(participantId);
-      return {
-        ...item,
-        assignedToParticipantIds: isAssigned
-          ? item.assignedToParticipantIds.filter(id => id !== participantId)
-          : [...item.assignedToParticipantIds, participantId],
-      };
-    }));
+    setItems(
+      items.map((item) => {
+        if (item.id !== itemId) return item;
+        const isAssigned =
+          item.assignedToParticipantIds.includes(participantId);
+        return {
+          ...item,
+          assignedToParticipantIds: isAssigned
+            ? item.assignedToParticipantIds.filter((id) => id !== participantId)
+            : [...item.assignedToParticipantIds, participantId],
+        };
+      })
+    );
   }
 
   // Update custom amount
   function updateCustomAmount(participantId: string, amount: number) {
-    setParticipants(participants.map(p => 
-      p.id === participantId ? { ...p, customAmount: amount } : p
-    ));
+    setParticipants(
+      participants.map((p) =>
+        p.id === participantId ? { ...p, customAmount: amount } : p
+      )
+    );
   }
 
   // Create bill (no signing!) - saves to database
   async function createBill() {
     setCreating(true);
-    
+
     try {
       // Create bill via API (stores in database for payment link to work)
-      const response = await fetch('/api/bills', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/bills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          creatorAddress: '0x0000000000000000000000000000000000000000', // Guest bills use zero address
+          creatorAddress: "0x0000000000000000000000000000000000000000", // Guest bills use zero address
           title,
           total,
           subtotal: total,
           tax: 0,
           tip: 0,
-          participants: participants.map(p => ({
+          participants: participants.map((p) => ({
             id: p.id,
             name: p.name,
             email: null,
@@ -285,7 +314,7 @@ export default function NewBillPage() {
             color: p.color,
             share: shares[p.id] || 0,
           })),
-          items: items.map(item => ({
+          items: items.map((item) => ({
             id: item.id,
             name: item.name,
             price: item.price,
@@ -296,9 +325,9 @@ export default function NewBillPage() {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create bill');
+        throw new Error(result.error || "Failed to create bill");
       }
 
       // Also save to localStorage for quick access
@@ -306,29 +335,36 @@ export default function NewBillPage() {
         id: result.bill.id,
         title,
         total,
-        participants: (result.bill?.participants ?? []).map((p: {
-          id: string;
-          name: string;
-          color: string;
-          share: number;
-          paid: boolean;
-        }) => ({
-          id: p.id,
-          name: p.name,
-          color: p.color,
-          share: p.share,
-          paid: p.paid,
-        })),
+        participants: (result.bill?.participants ?? []).map(
+          (p: {
+            id: string;
+            name: string;
+            color: string;
+            share: number;
+            paid: boolean;
+          }) => ({
+            id: p.id,
+            name: p.name,
+            color: p.color,
+            share: p.share,
+            paid: p.paid,
+          })
+        ),
         items,
         splitMethod,
         createdAt: new Date().toISOString(),
-        status: 'active',
+        status: "active",
       };
-      const existingBills = JSON.parse(localStorage.getItem('splitzy_bills') || '[]');
-      localStorage.setItem('splitzy_bills', JSON.stringify([localBill, ...existingBills]));
+      const existingBills = JSON.parse(
+        localStorage.getItem("splitzy_bills") || "[]"
+      );
+      localStorage.setItem(
+        "splitzy_bills",
+        JSON.stringify([localBill, ...existingBills])
+      );
 
       setBillId(result.bill.id);
-      
+
       // Update participants with database IDs for correct payment links
       const updatedParticipants = participants.map((p, idx) => ({
         ...p,
@@ -336,18 +372,18 @@ export default function NewBillPage() {
         share: result.bill.participants[idx]?.share || shares[p.id] || 0,
       }));
       setParticipants(updatedParticipants);
-      
+
       // Move to share step
       setCurrentStep(5);
     } catch (err) {
-      console.error('Create bill error:', err);
+      console.error("Create bill error:", err);
       // Fallback to localStorage-only for demo
       const newBillId = uuid();
       const localBill = {
         id: newBillId,
         title,
         total,
-        participants: participants.map(p => ({
+        participants: participants.map((p) => ({
           ...p,
           share: shares[p.id] || 0,
           paid: false,
@@ -355,10 +391,15 @@ export default function NewBillPage() {
         items,
         splitMethod,
         createdAt: new Date().toISOString(),
-        status: 'active',
+        status: "active",
       };
-      const existingBills = JSON.parse(localStorage.getItem('splitzy_bills') || '[]');
-      localStorage.setItem('splitzy_bills', JSON.stringify([localBill, ...existingBills]));
+      const existingBills = JSON.parse(
+        localStorage.getItem("splitzy_bills") || "[]"
+      );
+      localStorage.setItem(
+        "splitzy_bills",
+        JSON.stringify([localBill, ...existingBills])
+      );
       setBillId(newBillId);
       setCurrentStep(5);
     } finally {
@@ -382,22 +423,22 @@ export default function NewBillPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 pb-32">
+    <main className="min-h-screen pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-[rgb(20,20,25)]/80 backdrop-blur-md border-b border-white/6">
         <div className="max-w-lg mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link 
-              href="/" 
-              className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+            <Link
+              href="/"
+              className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
+              <ArrowLeft className="w-5 h-5 text-white/60" />
             </Link>
-            
-            <h1 className="text-lg font-bold text-slate-800 font-heading">
-              {currentStep === 5 ? 'Share Bill' : 'New Bill'}
+
+            <h1 className="text-lg font-bold text-white font-heading">
+              {currentStep === 5 ? "Share Bill" : "New Bill"}
             </h1>
-            
+
             <div className="w-10" />
           </div>
 
@@ -406,18 +447,18 @@ export default function NewBillPage() {
             <div className="step-indicator mt-4">
               {STEPS.slice(0, 4).map((step, index) => (
                 <div key={step.id} className="flex items-center">
-                  <div 
+                  <div
                     className={`
                       step-dot
-                      ${currentStep === step.id ? 'step-dot-active' : ''}
-                      ${currentStep > step.id ? 'step-dot-completed' : ''}
+                      ${currentStep === step.id ? "step-dot-active" : ""}
+                      ${currentStep > step.id ? "step-dot-completed" : ""}
                     `}
                   />
                   {index < 3 && (
-                    <div 
+                    <div
                       className={`
                         step-connector
-                        ${currentStep > step.id ? 'step-connector-active' : ''}
+                        ${currentStep > step.id ? "step-connector-active" : ""}
                       `}
                     />
                   )}
@@ -436,13 +477,17 @@ export default function NewBillPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal">
                 <Receipt className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 font-heading">Bill Details</h2>
-              <p className="text-slate-500 mt-1">What&apos;s this bill for?</p>
+              <h2 className="text-2xl font-bold text-white font-heading">
+                Bill Details
+              </h2>
+              <p className="text-white/50 mt-1">What&apos;s this bill for?</p>
             </div>
 
             {/* Title Input */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">Bill Name</label>
+              <label className="block text-sm font-medium text-white/50 mb-2">
+                Bill Name
+              </label>
               <input
                 type="text"
                 value={title}
@@ -455,9 +500,13 @@ export default function NewBillPage() {
 
             {/* Total Amount */}
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">Total Amount</label>
+              <label className="block text-sm font-medium text-white/50 mb-2">
+                Total Amount
+              </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-slate-400 font-heading">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-white/30 font-heading">
+                  $
+                </span>
                 <input
                   type="number"
                   value={totalAmount}
@@ -477,13 +526,17 @@ export default function NewBillPage() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleScan(e.target.files[0])}
+                onChange={(e) =>
+                  e.target.files?.[0] && handleScan(e.target.files[0])
+                }
               />
-              
+
               {scanning ? (
                 <div className="text-center py-6">
                   <Loader2 className="w-10 h-10 text-splitzy-500 animate-spin mx-auto mb-3" />
-                  <p className="text-slate-600 font-medium">Scanning receipt...</p>
+                  <p className="text-white/60 font-medium">
+                    Scanning receipt...
+                  </p>
                 </div>
               ) : receiptPreview ? (
                 <div className="space-y-3">
@@ -498,13 +551,13 @@ export default function NewBillPage() {
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                        <Check className="w-6 h-6 text-green-600" />
+                        <Check className="w-6 h-6 text-green-400" />
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full text-sm text-splitzy-600 hover:underline"
+                    className="w-full text-sm text-splitzy-400 hover:underline"
                   >
                     Scan another receipt
                   </button>
@@ -515,16 +568,18 @@ export default function NewBillPage() {
                   className="w-full flex flex-col items-center gap-3 py-4"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-splitzy-100 flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-splitzy-600" />
+                    <div className="w-12 h-12 rounded-xl bg-splitzy-500/20 flex items-center justify-center">
+                      <Camera className="w-6 h-6 text-splitzy-400" />
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-violet-600" />
+                    <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                      <Upload className="w-6 h-6 text-violet-400" />
                     </div>
                   </div>
                   <div className="text-center">
-                    <p className="font-medium text-slate-700">Scan Receipt (Optional)</p>
-                    <p className="text-sm text-slate-500 flex items-center gap-1 justify-center">
+                    <p className="font-medium text-white/80">
+                      Scan Receipt (Optional)
+                    </p>
+                    <p className="text-sm text-white/50 flex items-center gap-1 justify-center">
                       <Sparkles className="w-3 h-3" />
                       AI-powered OCR
                     </p>
@@ -542,8 +597,12 @@ export default function NewBillPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal">
                 <Users className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 font-heading">Add People</h2>
-              <p className="text-slate-500 mt-1">Who&apos;s splitting this bill?</p>
+              <h2 className="text-2xl font-bold text-white font-heading">
+                Add People
+              </h2>
+              <p className="text-white/50 mt-1">
+                Who&apos;s splitting this bill?
+              </p>
             </div>
 
             {/* Participants List */}
@@ -555,12 +614,16 @@ export default function NewBillPage() {
                     className="clay-card p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <ParticipantAvatar name={p.name} color={p.color} size="md" />
-                      <span className="font-medium text-slate-800">{p.name}</span>
+                      <ParticipantAvatar
+                        name={p.name}
+                        color={p.color}
+                        size="md"
+                      />
+                      <span className="font-medium text-white">{p.name}</span>
                     </div>
                     <button
                       onClick={() => removeParticipant(p.id)}
-                      className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors"
+                      className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -577,7 +640,7 @@ export default function NewBillPage() {
                 onChange={(e) => setNewParticipantName(e.target.value)}
                 placeholder="Add person..."
                 className="clay-input flex-1"
-                onKeyDown={(e) => e.key === 'Enter' && addParticipant()}
+                onKeyDown={(e) => e.key === "Enter" && addParticipant()}
               />
               <button
                 onClick={addParticipant}
@@ -589,7 +652,7 @@ export default function NewBillPage() {
             </div>
 
             {participants.length < 2 && (
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-white/50">
                 Add at least 2 people to split the bill
               </p>
             )}
@@ -603,30 +666,38 @@ export default function NewBillPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal">
                 <DollarSign className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 font-heading">Split Method</h2>
-              <p className="text-slate-500 mt-1">How should we divide ${total.toFixed(2)}?</p>
+              <h2 className="text-2xl font-bold text-white font-heading">
+                Split Method
+              </h2>
+              <p className="text-white/50 mt-1">
+                How should we divide ${total.toFixed(2)}?
+              </p>
             </div>
 
             {/* Split Method Options */}
             <div className="space-y-3">
               {/* Even Split */}
               <button
-                onClick={() => setSplitMethod('even')}
+                onClick={() => setSplitMethod("even")}
                 className={`w-full clay-card p-4 text-left transition-all ${
-                  splitMethod === 'even' ? 'ring-2 ring-splitzy-500' : ''
+                  splitMethod === "even" ? "ring-2 ring-splitzy-500" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    splitMethod === 'even' 
-                      ? 'border-splitzy-500 bg-splitzy-500' 
-                      : 'border-slate-300'
-                  }`}>
-                    {splitMethod === 'even' && <Check className="w-4 h-4 text-white" />}
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      splitMethod === "even"
+                        ? "border-splitzy-500 bg-splitzy-500"
+                        : "border-white/20"
+                    }`}
+                  >
+                    {splitMethod === "even" && (
+                      <Check className="w-4 h-4 text-white" />
+                    )}
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800">Split Evenly</p>
-                    <p className="text-sm text-slate-500">
+                    <p className="font-semibold text-white">Split Evenly</p>
+                    <p className="text-sm text-white/50">
                       ${(total / participants.length).toFixed(2)} per person
                     </p>
                   </div>
@@ -635,63 +706,86 @@ export default function NewBillPage() {
 
               {/* Custom Amounts */}
               <button
-                onClick={() => setSplitMethod('custom')}
+                onClick={() => setSplitMethod("custom")}
                 className={`w-full clay-card p-4 text-left transition-all ${
-                  splitMethod === 'custom' ? 'ring-2 ring-splitzy-500' : ''
+                  splitMethod === "custom" ? "ring-2 ring-splitzy-500" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    splitMethod === 'custom' 
-                      ? 'border-splitzy-500 bg-splitzy-500' 
-                      : 'border-slate-300'
-                  }`}>
-                    {splitMethod === 'custom' && <Check className="w-4 h-4 text-white" />}
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      splitMethod === "custom"
+                        ? "border-splitzy-500 bg-splitzy-500"
+                        : "border-white/20"
+                    }`}
+                  >
+                    {splitMethod === "custom" && (
+                      <Check className="w-4 h-4 text-white" />
+                    )}
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800">Custom Amounts</p>
-                    <p className="text-sm text-slate-500">Set specific amount for each person</p>
+                    <p className="font-semibold text-white">Custom Amounts</p>
+                    <p className="text-sm text-white/50">
+                      Set specific amount for each person
+                    </p>
                   </div>
                 </div>
               </button>
 
               {/* By Item */}
               <button
-                onClick={() => setSplitMethod('by-item')}
+                onClick={() => setSplitMethod("by-item")}
                 className={`w-full clay-card p-4 text-left transition-all ${
-                  splitMethod === 'by-item' ? 'ring-2 ring-splitzy-500' : ''
+                  splitMethod === "by-item" ? "ring-2 ring-splitzy-500" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                    splitMethod === 'by-item' 
-                      ? 'border-splitzy-500 bg-splitzy-500' 
-                      : 'border-slate-300'
-                  }`}>
-                    {splitMethod === 'by-item' && <Check className="w-4 h-4 text-white" />}
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      splitMethod === "by-item"
+                        ? "border-splitzy-500 bg-splitzy-500"
+                        : "border-white/20"
+                    }`}
+                  >
+                    {splitMethod === "by-item" && (
+                      <Check className="w-4 h-4 text-white" />
+                    )}
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800">By Item</p>
-                    <p className="text-sm text-slate-500">Assign items to specific people</p>
+                    <p className="font-semibold text-white">By Item</p>
+                    <p className="text-sm text-white/50">
+                      Assign items to specific people
+                    </p>
                   </div>
                 </div>
               </button>
             </div>
 
             {/* Custom Amounts UI */}
-            {splitMethod === 'custom' && (
+            {splitMethod === "custom" && (
               <div className="space-y-3 pt-4">
-                <h3 className="font-semibold text-slate-700">Set amounts</h3>
+                <h3 className="font-semibold text-white/80">Set amounts</h3>
                 {participants.map((p) => (
                   <div key={p.id} className="flex items-center gap-3">
-                    <ParticipantAvatar name={p.name} color={p.color} size="sm" />
-                    <span className="flex-1 text-slate-700">{p.name}</span>
+                    <ParticipantAvatar
+                      name={p.name}
+                      color={p.color}
+                      size="sm"
+                    />
+                    <span className="flex-1 text-white/80">{p.name}</span>
                     <div className="relative w-28">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+                        $
+                      </span>
                       <input
                         type="number"
-                        value={p.customAmount || ''}
-                        onChange={(e) => updateCustomAmount(p.id, parseFloat(e.target.value) || 0)}
+                        value={p.customAmount || ""}
+                        onChange={(e) =>
+                          updateCustomAmount(
+                            p.id,
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
                         placeholder="0.00"
                         step="0.01"
                         className="clay-input text-right pr-3 pl-7 py-2"
@@ -699,32 +793,42 @@ export default function NewBillPage() {
                     </div>
                   </div>
                 ))}
-                <div className="flex justify-between text-sm pt-2 border-t border-slate-200">
-                  <span className="text-slate-500">Total assigned:</span>
-                  <span className={`font-semibold ${
-                    Object.values(shares).reduce((a, b) => a + b, 0) === total
-                      ? 'text-green-600'
-                      : 'text-amber-600'
-                  }`}>
-                    ${Object.values(shares).reduce((a, b) => a + b, 0).toFixed(2)} / ${total.toFixed(2)}
+                <div className="flex justify-between text-sm pt-2 border-t border-white/8">
+                  <span className="text-white/50">Total assigned:</span>
+                  <span
+                    className={`font-semibold ${
+                      Object.values(shares).reduce((a, b) => a + b, 0) === total
+                        ? "text-green-400"
+                        : "text-amber-400"
+                    }`}
+                  >
+                    $
+                    {Object.values(shares)
+                      .reduce((a, b) => a + b, 0)
+                      .toFixed(2)}{" "}
+                    / ${total.toFixed(2)}
                   </span>
                 </div>
               </div>
             )}
 
             {/* By Item UI */}
-            {splitMethod === 'by-item' && (
+            {splitMethod === "by-item" && (
               <div className="space-y-4 pt-4">
-                <h3 className="font-semibold text-slate-700">Items</h3>
-                
+                <h3 className="font-semibold text-white/80">Items</h3>
+
                 {/* Items List */}
                 {items.length > 0 && (
                   <div className="space-y-3">
                     {items.map((item) => (
                       <div key={item.id} className="clay-card p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-slate-800">{item.name}</span>
-                          <span className="font-semibold text-slate-700">${item.price.toFixed(2)}</span>
+                          <span className="font-medium text-white">
+                            {item.name}
+                          </span>
+                          <span className="font-semibold text-white/80">
+                            ${item.price.toFixed(2)}
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {participants.map((p) => (
@@ -732,9 +836,13 @@ export default function NewBillPage() {
                               key={p.id}
                               name={p.name}
                               color={p.color}
-                              isActive={item.assignedToParticipantIds.includes(p.id)}
+                              isActive={item.assignedToParticipantIds.includes(
+                                p.id
+                              )}
                               showCheck
-                              onClick={() => toggleItemAssignment(item.id, p.id)}
+                              onClick={() =>
+                                toggleItemAssignment(item.id, p.id)
+                              }
                               size="sm"
                             />
                           ))}
@@ -754,7 +862,9 @@ export default function NewBillPage() {
                     className="clay-input flex-1"
                   />
                   <div className="relative w-24">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+                      $
+                    </span>
                     <input
                       type="number"
                       value={newItemPrice}
@@ -767,7 +877,7 @@ export default function NewBillPage() {
                   <button
                     onClick={addItem}
                     disabled={!newItemName.trim() || !newItemPrice}
-                    className="w-12 h-12 rounded-xl bg-splitzy-100 flex items-center justify-center text-splitzy-600 hover:bg-splitzy-200 disabled:opacity-50 transition-colors"
+                    className="w-12 h-12 rounded-xl bg-splitzy-500/20 flex items-center justify-center text-splitzy-400 hover:bg-splitzy-500/30 disabled:opacity-50 transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -784,24 +894,37 @@ export default function NewBillPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-splitzy-500 to-splitzy-600 flex items-center justify-center shadow-clay-teal">
                 <Check className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 font-heading">Review Bill</h2>
-              <p className="text-slate-500 mt-1">Make sure everything looks right</p>
+              <h2 className="text-2xl font-bold text-white font-heading">
+                Review Bill
+              </h2>
+              <p className="text-white/50 mt-1">
+                Make sure everything looks right
+              </p>
             </div>
 
             {/* Bill Summary Card */}
             <div className="clay-card p-5">
-              <h3 className="text-xl font-bold text-slate-800 font-heading mb-4">{title}</h3>
-              
+              <h3 className="text-xl font-bold text-white font-heading mb-4">
+                {title}
+              </h3>
+
               <div className="space-y-4">
                 {/* Per-person breakdown */}
                 <div className="space-y-3">
                   {participants.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between">
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-3">
-                        <ParticipantAvatar name={p.name} color={p.color} size="sm" />
-                        <span className="text-slate-700">{p.name}</span>
+                        <ParticipantAvatar
+                          name={p.name}
+                          color={p.color}
+                          size="sm"
+                        />
+                        <span className="text-white/80">{p.name}</span>
                       </div>
-                      <span className="font-bold text-slate-800 font-heading">
+                      <span className="font-bold text-white font-heading">
                         ${(shares[p.id] || 0).toFixed(2)}
                       </span>
                     </div>
@@ -809,8 +932,8 @@ export default function NewBillPage() {
                 </div>
 
                 {/* Total */}
-                <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
-                  <span className="font-semibold text-slate-600">Total</span>
+                <div className="pt-4 border-t border-white/8 flex justify-between items-center">
+                  <span className="font-semibold text-white/60">Total</span>
                   <span className="text-2xl font-bold gradient-text font-heading">
                     ${total.toFixed(2)}
                   </span>
@@ -821,9 +944,9 @@ export default function NewBillPage() {
             {/* Split method badge */}
             <div className="text-center">
               <span className="clay-badge-teal">
-                {splitMethod === 'even' && '✓ Split evenly'}
-                {splitMethod === 'custom' && '✓ Custom amounts'}
-                {splitMethod === 'by-item' && '✓ Split by items'}
+                {splitMethod === "even" && "✓ Split evenly"}
+                {splitMethod === "custom" && "✓ Custom amounts"}
+                {splitMethod === "by-item" && "✓ Split by items"}
               </span>
             </div>
           </div>
@@ -836,8 +959,12 @@ export default function NewBillPage() {
               <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg animate-success-bounce">
                 <Check className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 font-heading">Bill Created!</h2>
-              <p className="text-slate-500 mt-1">Share payment links with everyone</p>
+              <h2 className="text-2xl font-bold text-white font-heading">
+                Bill Created!
+              </h2>
+              <p className="text-white/50 mt-1">
+                Share payment links with everyone
+              </p>
             </div>
 
             {/* Share Cards */}
@@ -846,13 +973,17 @@ export default function NewBillPage() {
                 <div key={p.id} className="clay-card p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <ParticipantAvatar name={p.name} color={p.color} size="md" />
+                      <ParticipantAvatar
+                        name={p.name}
+                        color={p.color}
+                        size="md"
+                      />
                       <div>
-                        <p className="font-semibold text-slate-800">{p.name}</p>
-                        <p className="text-sm text-slate-500">owes</p>
+                        <p className="font-semibold text-white">{p.name}</p>
+                        <p className="text-sm text-white/50">owes</p>
                       </div>
                     </div>
-                    <span className="text-2xl font-bold text-splitzy-600 font-heading">
+                    <span className="text-2xl font-bold text-splitzy-400 font-heading">
                       ${(shares[p.id] || 0).toFixed(2)}
                     </span>
                   </div>
@@ -891,7 +1022,7 @@ export default function NewBillPage() {
 
       {/* Navigation Footer */}
       {currentStep < 5 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-[rgb(20,20,25)]/90 backdrop-blur-md border-t border-white/6 p-4">
           <div className="max-w-lg mx-auto flex gap-3">
             {currentStep > 1 && (
               <button
