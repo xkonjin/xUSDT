@@ -187,10 +187,11 @@ export default function HomePage() {
   if (!ready) {
     return (
       <main className="min-h-dvh flex items-center justify-center bg-[rgb(var(--bg-primary))]">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-12 h-12 rounded-full border-3 border-plenmo-500/20 border-t-plenmo-500 animate-spin" />
-          <span className="text-white/50 font-body text-sm tracking-wide">
-            Loading
+        <div className="flex flex-col items-center gap-4">
+          <h1 className="text-2xl font-heading font-bold text-white">Plenmo</h1>
+          <div className="w-10 h-10 rounded-full border-2 border-plenmo-500/20 border-t-plenmo-500 animate-spin" />
+          <span className="text-white/40 font-body text-sm">
+            Setting up your wallet...
           </span>
         </div>
       </main>
@@ -280,7 +281,7 @@ export default function HomePage() {
         </div>
 
         <div className="text-4xl md:text-5xl font-heading font-bold mb-5 text-white tabular-nums">
-          {balanceLoading ? (
+          {balanceLoading || formatted === undefined ? (
             <div className="h-12 w-36 bg-white/5 rounded-lg animate-pulse" />
           ) : balanceVisible ? (
             `$${formatted || "0.00"}`
@@ -624,7 +625,9 @@ export default function HomePage() {
           </span>
         </button>
         <motion.button
-          onClick={logout}
+          onClick={() => {
+            if (window.confirm("Sign out of Plenmo?")) logout();
+          }}
           whileTap={{ scale: 0.97 }}
           className="flex items-center gap-3 w-full p-3.5 rounded-xl hover:bg-red-500/5 transition-colors text-red-400/80 min-h-[44px]"
         >

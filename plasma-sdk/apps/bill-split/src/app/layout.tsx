@@ -12,6 +12,7 @@ import { ReactNode } from "react";
 import { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 /**
  * Metadata configuration for the Bill Split app
@@ -56,35 +57,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="192x192"
-          href="/icon-192x192.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="512x512"
-          href="/icon-512x512.png"
-        />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#0A0A0F" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover"
-        />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-screen bg-black text-white antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <OfflineIndicator />
+          {children}
+        </Providers>
       </body>
     </html>
   );

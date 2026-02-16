@@ -60,6 +60,7 @@ export default function HomePage() {
   function deleteBill(id: string, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (!window.confirm("Delete this bill? This cannot be undone.")) return;
     const updated = bills.filter((b) => b.id !== id);
     setBills(updated);
     localStorage.setItem("splitzy_bills", JSON.stringify(updated));
@@ -187,7 +188,7 @@ export default function HomePage() {
                     {/* Delete button */}
                     <button
                       onClick={(e) => deleteBill(bill.id, e)}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-all"
+                      className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 max-md:opacity-60 hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-all"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

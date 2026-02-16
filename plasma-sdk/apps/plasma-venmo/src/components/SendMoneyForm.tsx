@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback, memo } from "react";
 import {
   Send,
   User,
-  DollarSign,
   AlertCircle,
   Wallet,
   CheckCircle,
@@ -297,6 +296,7 @@ export function SendMoneyForm({
   const [recipient, setRecipient] = useState("");
   const [recipientName, setRecipientName] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
+  const [memo, setMemo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -737,6 +737,8 @@ export function SendMoneyForm({
         <div>
           <input
             type="text"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
             placeholder="What's this for? (optional)"
             className="clay-input w-full"
             disabled={loading}
@@ -834,26 +836,15 @@ export function SendMoneyForm({
           </div>
         )}
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="flex-1 clay-button clay-button-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            style={{ minHeight: "48px" }}
-          >
-            <Send className="w-5 h-5" />
-            Send
-          </button>
-          <button
-            type="button"
-            disabled={!canSubmit}
-            className="flex-1 bg-white/5 border border-white/[0.06] text-white/80 rounded-xl font-semibold py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-            style={{ minHeight: "48px" }}
-          >
-            <DollarSign className="w-5 h-5" />
-            Request
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full clay-button clay-button-primary py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          style={{ minHeight: "48px" }}
+        >
+          <Send className="w-5 h-5" />
+          Send
+        </button>
 
         <div className="text-center">
           <p className="text-white/40 text-xs font-body">

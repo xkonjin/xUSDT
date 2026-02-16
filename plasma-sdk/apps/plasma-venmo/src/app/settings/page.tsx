@@ -141,10 +141,10 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-white">Settings</h1>
         </header>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
           {/* Sidebar */}
-          <div className="w-48 flex-shrink-0">
-            <nav className="space-y-1">
+          <div className="w-full md:w-48 flex-shrink-0">
+            <nav className="flex md:flex-col gap-1 overflow-x-auto pb-2 md:pb-0 -mx-2 px-2 md:mx-0 md:px-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -301,7 +301,15 @@ export default function SettingsPage() {
                       <p className="text-white/50 text-sm mb-3">
                         Export your embedded wallet private key
                       </p>
-                      <button className="text-amber-400 text-sm hover:text-amber-300 transition-colors">
+                      <button
+                        onClick={() =>
+                          window.open(
+                            "https://docs.privy.io/guide/react/wallets/export",
+                            "_blank"
+                          )
+                        }
+                        className="text-amber-400 text-sm hover:text-amber-300 transition-colors"
+                      >
                         Learn about exporting →
                       </button>
                     </div>
@@ -325,9 +333,24 @@ export default function SettingsPage() {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="clay-input w-full"
                     >
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
+                      <option
+                        className="bg-[rgb(28,28,36)] text-white"
+                        value="USD"
+                      >
+                        USD ($)
+                      </option>
+                      <option
+                        className="bg-[rgb(28,28,36)] text-white"
+                        value="EUR"
+                      >
+                        EUR (€)
+                      </option>
+                      <option
+                        className="bg-[rgb(28,28,36)] text-white"
+                        value="GBP"
+                      >
+                        GBP (£)
+                      </option>
                     </select>
                   </div>
 
@@ -340,8 +363,17 @@ export default function SettingsPage() {
                       onChange={(e) => setTheme(e.target.value)}
                       className="clay-input w-full"
                     >
-                      <option value="dark">Dark</option>
-                      <option value="light" disabled>
+                      <option
+                        className="bg-[rgb(28,28,36)] text-white"
+                        value="dark"
+                      >
+                        Dark
+                      </option>
+                      <option
+                        className="bg-[rgb(28,28,36)] text-white"
+                        value="light"
+                        disabled
+                      >
                         Light (Coming Soon)
                       </option>
                     </select>
@@ -428,6 +460,8 @@ function ToggleSetting({
       <button
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
+        role="switch"
+        aria-checked={enabled}
         className={`relative w-12 h-6 rounded-full transition-colors ${
           enabled ? "bg-plenmo-500" : "bg-white/20"
         } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}

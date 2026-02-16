@@ -107,10 +107,6 @@ export const SocialFeed = memo(function SocialFeed({
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
-        // If API fails, fall back to mock data for demo
-        if (offset === 0) {
-          setFeed(generateMockFeed());
-        }
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -121,9 +117,11 @@ export const SocialFeed = memo(function SocialFeed({
 
   useEffect(() => {
     // Load privacy settings from localStorage
-    const stored = localStorage.getItem("plasma-privacy");
-    if (stored) {
-      setPrivacySettings(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem("plasma-privacy");
+      if (stored) setPrivacySettings(JSON.parse(stored));
+    } catch {
+      /* ignore - private browsing or corrupted data */
     }
 
     // Fetch feed from API
@@ -139,7 +137,11 @@ export const SocialFeed = memo(function SocialFeed({
 
   const savePrivacySettings = (settings: typeof privacySettings) => {
     setPrivacySettings(settings);
-    localStorage.setItem("plasma-privacy", JSON.stringify(settings));
+    try {
+      localStorage.setItem("plasma-privacy", JSON.stringify(settings));
+    } catch {
+      /* ignore - private browsing */
+    }
   };
 
   const handleLike = useCallback((id: string) => {
@@ -502,6 +504,8 @@ function ToggleOption({
       <button
         onClick={() => !disabled && onChange(!enabled)}
         disabled={disabled}
+        role="switch"
+        aria-checked={enabled}
         className={`relative w-12 h-6 rounded-full transition-colors ${
           enabled ? "bg-plenmo-500" : "bg-white/20"
         } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
@@ -514,52 +518,4 @@ function ToggleOption({
       </button>
     </div>
   );
-}
-
-// Mock data generator (fallback when API unavailable)
-function generateMockFeed(): FeedItem[] {
-  const names = [
-    "Alex",
-    "Jordan",
-    "Sam",
-    "Riley",
-    "Casey",
-    "Morgan",
-    "Taylor",
-    "Quinn",
-    "Avery",
-    "Blake",
-  ];
-  const memos = [
-    "Dinner last night",
-    "Coffee",
-    "Movie tickets",
-    "Uber ride",
-    "Birthday gift",
-    "Lunch",
-    "Groceries",
-    "Concert tickets",
-    "Road trip gas",
-    "",
-  ];
-  const types: FeedItem["type"][] = ["payment", "claim", "request"];
-
-  return Array.from({ length: 10 }, (_, i) => ({
-    id: `feed-${i}`,
-    type: types[Math.floor(Math.random() * types.length)],
-    user: {
-      name: names[Math.floor(Math.random() * names.length)],
-      address: `0x${Math.random().toString(16).slice(2, 10)}`,
-    },
-    counterparty: {
-      name: names[Math.floor(Math.random() * names.length)],
-      address: `0x${Math.random().toString(16).slice(2, 10)}`,
-    },
-    amount: (Math.random() * 100).toFixed(2),
-    memo: memos[Math.floor(Math.random() * memos.length)],
-    timestamp: Date.now() - Math.floor(Math.random() * 86400000),
-    likes: Math.floor(Math.random() * 20),
-    isLiked: Math.random() > 0.7,
-    visibility: "public",
-  }));
 }
