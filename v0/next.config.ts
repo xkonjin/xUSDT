@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -10,4 +11,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: "xusdt",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+});
