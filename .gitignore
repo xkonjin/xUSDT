@@ -92,3 +92,11 @@ test-results/
 **/public/swe-worker-*.js
 
 .vercel
+
+# -----------------------------------------------------------------------------
+# Fleetmax / RALPH Loop artifacts
+# -----------------------------------------------------------------------------
+.ralph_loop_log.json
+.ralph_loop_log.json.tmp
+.worktrees/
+.claude-flow/
